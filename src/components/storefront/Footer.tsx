@@ -149,12 +149,12 @@ export function Footer() {
                 <span>
                   {supportContactItem?.extraData?.phone ||
                     footerSettings?.supportPhone ||
-                    "+880 1700-000000"}
+                    "01602670922"}
                 </span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <Mail className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span>{footerSettings?.supportEmail || "support@mobilehubbd.com"}</span>
+                <span>{footerSettings?.supportEmail || "mobilehubbd2@gmail.com"}</span>
               </div>
               {supportContactItem?.extraData?.availableTime && (
                 <div className="flex items-center gap-3 text-xs text-slate-400">
@@ -269,12 +269,9 @@ export function Footer() {
               ) : (
                 <>
                   <li className="text-xs">
-                    <span className="font-semibold text-slate-200 block">Bashundhara City Complex</span>
-                    <span className="text-slate-400 block">Level 4, Panthapath, Dhaka</span>
-                  </li>
-                  <li className="text-xs">
-                    <span className="font-semibold text-slate-200 block">Motijheel Flagship</span>
-                    <span className="text-slate-400 block">Dilkusha C/A, Motijheel, Dhaka</span>
+                    <span className="font-semibold text-slate-200 block">Eastern Plaza (Flagship)</span>
+                    <span className="text-slate-400 block">2/13 Eastern Plaza Shopping Complex, Hatirpool, Dhaka 1205</span>
+                    <span className="text-emerald-400 text-[11px] block">01602670922</span>
                   </li>
                 </>
               )}
@@ -286,7 +283,7 @@ export function Footer() {
       {/* Copyright Strip */}
       <div className="border-t border-slate-800 py-6 bg-slate-950">
         <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <p>{footerSettings?.copyrightText || "© 2026 mobilehubbd Ltd. All rights reserved."}</p>
+          <p>{footerSettings?.copyrightText || "© 2026 MobileHubBD. All rights reserved."}</p>
           <div className="flex items-center gap-6">
             <Link href="/terms" className="hover:text-emerald-400">Terms</Link>
             <Link href="/privacy" className="hover:text-emerald-400">Privacy</Link>

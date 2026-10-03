@@ -73,7 +73,7 @@ export class SslcommerzService {
     params.append('cus_name', order.customer?.name || 'Valued Customer');
     params.append(
       'cus_email',
-      order.customer?.email || 'customer@mobilehubbd.com',
+      order.customer?.email || 'mobilehubbd2@gmail.com',
     );
     params.append(
       'cus_add1',

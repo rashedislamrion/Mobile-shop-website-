@@ -123,20 +123,20 @@ export default function GeneralSettingsPage() {
 
   // Form states
   const [general, setGeneral] = useState<any>({
-    websiteName: "mobilehubbd",
-    websiteTitle: "mobilehubbd - Smartphone Parts & Repair Shop",
+    websiteName: "MobileHubBD",
+    websiteTitle: "MobileHubBD - Smartphone Parts & Repair Shop",
     defaultCurrency: "BDT",
     currencyPosition: "LEFT",
-    mobileNumber: "+880 1700-000000",
-    emailAddress: "contact@mobilehubbd.com",
-    address: "Level 4, Bashundhara City Shopping Complex, Panthapath, Dhaka",
+    mobileNumber: "01602670922",
+    emailAddress: "mobilehubbd2@gmail.com",
+    address: "2/13 Eastern Plaza Shopping Complex, Hatirpool, Dhaka 1205",
     showDownloadAppNav: true,
     googlePlayStoreLink: "https://play.google.com/store",
     appleStoreLink: "https://apple.com/app-store",
     showAdminFooter: true,
-    hotlineNumber: "+880 9612-000000",
+    hotlineNumber: "01602670922",
     footerText: "Bangladesh's leading destination for original spare parts and repair services.",
-    seoMetaTitle: "mobilehubbd | Genuine Spare Parts",
+    seoMetaTitle: "MobileHubBD | Genuine Spare Parts",
     seoMetaDescription: "Original displays, batteries and repair parts in Bangladesh.",
     seoKeywords: "mobile parts, display, battery, repair, bangladesh",
   });

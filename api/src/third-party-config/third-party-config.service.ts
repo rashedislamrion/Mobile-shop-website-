@@ -279,8 +279,8 @@ export class ThirdPartyConfigService {
           username: '',
           password: '',
           encryption: 'tls',
-          fromName: 'mobilehubbd',
-          fromEmail: 'noreply@mobilehubbd.com',
+          fromName: 'MobileHubBD',
+          fromEmail: 'mobilehubbd2@gmail.com',
         },
       });
     }
@@ -328,8 +328,8 @@ export class ThirdPartyConfigService {
         username: dto.username || null,
         password,
         encryption: dto.encryption || 'tls',
-        fromName: dto.fromName || 'mobilehubbd',
-        fromEmail: dto.fromEmail || 'noreply@mobilehubbd.com',
+        fromName: dto.fromName || 'MobileHubBD',
+        fromEmail: dto.fromEmail || 'mobilehubbd2@gmail.com',
       },
     });
   }

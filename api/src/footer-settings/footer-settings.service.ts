@@ -24,7 +24,7 @@ const DEFAULT_COLUMNS = [
         url: '/contact',
         extraData: {
           availableTime: '9:00 AM - 10:00 PM',
-          phone: '+880 1700-000000',
+          phone: '01602670922',
         },
       },
       {
@@ -98,32 +98,12 @@ const DEFAULT_COLUMNS = [
     items: [
       {
         sourceType: 'BRANCH',
-        navigationLabel: 'Bashundhara City Outlet',
-        url: '#',
+        navigationLabel: 'Eastern Plaza (Flagship)',
+        url: '/contact',
         extraData: {
-          name: 'Bashundhara City Outlet',
-          location: 'Level 4, Bashundhara City, Dhaka',
-          phone: '+880 1711-000001',
-        },
-      },
-      {
-        sourceType: 'BRANCH',
-        navigationLabel: 'Motijheel Flagship',
-        url: '#',
-        extraData: {
-          name: 'Motijheel Flagship',
-          location: 'Dilkusha C/A, Motijheel, Dhaka',
-          phone: '+880 1711-000002',
-        },
-      },
-      {
-        sourceType: 'BRANCH',
-        navigationLabel: 'Uttara Hub',
-        url: '#',
-        extraData: {
-          name: 'Uttara Hub',
-          location: 'Sector 3, Uttara, Dhaka',
-          phone: '+880 1711-000003',
+          name: 'Eastern Plaza (Flagship)',
+          location: '2/13 Eastern Plaza Shopping Complex, Hatirpool, Dhaka 1205',
+          phone: '01602670922',
         },
       },
     ],
@@ -173,11 +153,11 @@ export class FooterSettingsService implements OnModuleInit {
     if (!settings) {
       settings = await this.prisma.footerSettings.create({
         data: {
-          supportPhone: '+880 1700-000000',
-          supportEmail: 'support@mobilehubbd.com',
-          liveChatLink: 'https://wa.me/8801700000000',
+          supportPhone: '01602670922',
+          supportEmail: 'mobilehubbd2@gmail.com',
+          liveChatLink: 'https://wa.me/8801602670922',
           faqLink: '/faq',
-          copyrightText: '© 2026 mobilehubbd Ltd. All rights reserved.',
+          copyrightText: '© 2026 MobileHubBD. All rights reserved.',
         },
       });
     }

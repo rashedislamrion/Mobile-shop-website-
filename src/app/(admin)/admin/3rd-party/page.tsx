@@ -517,7 +517,7 @@ export default function ThirdPartyConfigPage() {
                 <Input
                   value={mail.username || ""}
                   onChange={(e) => setMail({ ...mail, username: e.target.value })}
-                  placeholder="contact@mobilehubbd.com"
+                  placeholder="mobilehubbd2@gmail.com"
                 />
               </div>
 
@@ -546,7 +546,7 @@ export default function ThirdPartyConfigPage() {
                   <Input
                     value={mail.fromEmail || ""}
                     onChange={(e) => setMail({ ...mail, fromEmail: e.target.value })}
-                    placeholder="noreply@mobilehubbd.com"
+                    placeholder="mobilehubbd2@gmail.com"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -554,7 +554,7 @@ export default function ThirdPartyConfigPage() {
                   <Input
                     value={mail.fromName || ""}
                     onChange={(e) => setMail({ ...mail, fromName: e.target.value })}
-                    placeholder="mobilehubbd"
+                    placeholder="MobileHubBD"
                   />
                 </div>
               </div>

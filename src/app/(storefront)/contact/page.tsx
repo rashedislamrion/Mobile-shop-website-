@@ -88,7 +88,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <p className="text-xs text-slate-400 font-semibold uppercase">Hotline</p>
-                  <p className="text-sm font-bold text-white">{footerSettings?.supportPhone || "+880 1700-000000"}</p>
+                  <p className="text-sm font-bold text-white">{footerSettings?.supportPhone || "01602670922"}</p>
                 </div>
               </div>
 
@@ -98,7 +98,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <p className="text-xs text-slate-400 font-semibold uppercase">Email</p>
-                  <p className="text-sm font-bold text-white">{footerSettings?.supportEmail || "support@mobilehubbd.com"}</p>
+                  <p className="text-sm font-bold text-white">{footerSettings?.supportEmail || "mobilehubbd2@gmail.com"}</p>
                 </div>
               </div>
 
@@ -111,7 +111,7 @@ export default function ContactPage() {
                   <p className="text-sm text-slate-200">
                     {branches.length > 0
                       ? `${branches[0].name}, ${branches[0].address}`
-                      : "Bashundhara City Complex, Level 5, Panthapath, Dhaka"}
+                      : "Eastern Plaza (Flagship), 2/13 Eastern Plaza Shopping Complex, Hatirpool, Dhaka 1205"}
                   </p>
                 </div>
               </div>
@@ -142,7 +142,7 @@ export default function ContactPage() {
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-slate-700">Your Name *</Label>
                   <Input 
-                    placeholder="e.g. Asif Mahmud" 
+                    placeholder="Your full name" 
                     value={name} 
                     onChange={(e) => setName(e.target.value)} 
                     required 
@@ -152,7 +152,7 @@ export default function ContactPage() {
                   <Label className="text-xs font-bold text-slate-700">Email Address *</Label>
                   <Input 
                     type="email" 
-                    placeholder="name@example.com" 
+                    placeholder="you@example.com" 
                     value={email} 
                     onChange={(e) => setEmail(e.target.value)} 
                     required 
@@ -164,7 +164,7 @@ export default function ContactPage() {
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-slate-700">Phone (Optional)</Label>
                   <Input 
-                    placeholder="017XXXXXXXX" 
+                    placeholder="01XXXXXXXXX" 
                     value={phone} 
                     onChange={(e) => setPhone(e.target.value)} 
                   />

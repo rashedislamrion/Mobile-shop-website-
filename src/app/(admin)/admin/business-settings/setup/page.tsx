@@ -19,9 +19,9 @@ export default function BusinessSetupPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   const [form, setForm] = useState({
-    companyName: "mobilehubbd Bangladesh",
-    companyEmail: "contact@mobilehubbd.com",
-    companyPhone: "+880 1700-000000",
+    companyName: "MobileHubBD",
+    companyEmail: "mobilehubbd2@gmail.com",
+    companyPhone: "01602670922",
     businessModel: "SINGLE_STORE",
     currencyPosition: "LEFT",
     timeZone: "UTC/GMT +06:00 - Asia/Dhaka",

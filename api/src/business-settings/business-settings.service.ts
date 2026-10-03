@@ -8,14 +8,14 @@ import {
 
 const defaultSettings = {
   general: {
-    companyName: 'mobilehubbd Bangladesh',
-    websiteName: 'mobilehubbd',
-    websiteTitle: 'mobilehubbd - Smartphone Parts & Repair Shop',
-    email: 'contact@mobilehubbd.com',
-    emailAddress: 'contact@mobilehubbd.com',
-    phone: '+880 1700-000000',
-    mobileNumber: '+880 1700-000000',
-    address: 'Level 4, Bashundhara City Shopping Complex, Panthapath, Dhaka',
+    companyName: 'MobileHubBD',
+    websiteName: 'MobileHubBD',
+    websiteTitle: 'MobileHubBD - Smartphone Parts & Repair Shop',
+    email: 'mobilehubbd2@gmail.com',
+    emailAddress: 'mobilehubbd2@gmail.com',
+    phone: '01602670922',
+    mobileNumber: '01602670922',
+    address: '2/13 Eastern Plaza Shopping Complex, Hatirpool, Dhaka 1205',
     timeZone: 'UTC/GMT +06:00 - Asia/Dhaka',
     currency: 'BDT',
     defaultCurrency: 'BDT',
@@ -25,7 +25,7 @@ const defaultSettings = {
     googlePlayStoreLink: 'https://play.google.com/store',
     appleStoreLink: 'https://apple.com/app-store',
     showAdminFooter: true,
-    hotlineNumber: '+880 9612-000000',
+    hotlineNumber: '01602670922',
     footerText:
       "Bangladesh's leading destination for original spare parts and repair services.",
     paymentMethodsSetup: {

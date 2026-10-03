@@ -28,13 +28,13 @@ export function PosInvoiceReceipt({ order, shopSettings }: PosInvoiceReceiptProp
     order.branch?.address ||
     shopSettings?.address ||
     shopSettings?.companyAddress ||
-    "Eastern Plaza, Hatirpool, Dhaka-1205";
+    "2/13 Eastern Plaza Shopping Complex, Hatirpool, Dhaka 1205";
 
   const shopPhone =
     order.branch?.phone ||
     shopSettings?.phone ||
     shopSettings?.companyPhone ||
-    "+880 1602670922";
+    "01602670922";
 
   const shopWebsite =
     shopSettings?.website ||
