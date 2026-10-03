@@ -51,20 +51,26 @@ async function main() {
   // ==========================================
   const adminRole = createdRoles.find((r) => r.name === 'Admin')!;
   const isProduction = process.env.NODE_ENV === 'production';
-  const seedDemo = process.env.SEED_DEMO === 'true' || (!isProduction && process.env.SEED_DEMO !== 'false');
+  const seedDemo = isProduction
+    ? process.env.SEED_DEMO === 'true'
+    : process.env.SEED_DEMO !== 'false';
 
   let adminEmail = process.env.SEED_ADMIN_EMAIL;
   let adminPassword = process.env.SEED_ADMIN_PASSWORD;
 
-  if (isProduction) {
+  if (isProduction || !seedDemo) {
     if (!adminEmail || !adminPassword || adminPassword.length < 12) {
       throw new Error(
-        '[SEED FATAL] In production, SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD (minimum 12 characters) must be configured in environment.',
+        '[SEED FATAL] In production mode, SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD (minimum 12 characters) must be configured in environment.',
       );
     }
   } else {
     adminEmail = adminEmail || 'admin@mobilehubbd.test';
-    adminPassword = adminPassword || 'Admin@12345';
+    if (!adminPassword || adminPassword.length < 12) {
+      throw new Error(
+        '[SEED FATAL] SEED_ADMIN_PASSWORD (minimum 12 characters) must be configured in environment.',
+      );
+    }
   }
 
   const passwordHash = await bcrypt.hash(adminPassword, 10);
@@ -75,7 +81,7 @@ async function main() {
       employeeId: 'EMP-0001',
       name: 'Super Admin',
       email: adminEmail,
-      phone: '+8801700000000',
+      phone: '01602670922',
       passwordHash,
       roleId: adminRole.id,
       adminPanelAccess: true,
@@ -87,11 +93,45 @@ async function main() {
   // ==========================================
   // 3. Branches
   // ==========================================
-  const branches = [
-    { name: 'Dhaka Main', code: 'BR-DHK', type: 'FLAGSHIP' as const, address: 'Gulshan', city: 'Dhaka', phone: '01711111111' },
-    { name: 'Chittagong Outlet', code: 'BR-CTG', type: 'OUTLET' as const, address: 'GEC', city: 'Chittagong', phone: '01722222222' },
-    { name: 'Sylhet Warehouse', code: 'BR-SYL', type: 'WAREHOUSE' as const, address: 'Zindabazar', city: 'Sylhet', phone: '01733333333' },
-  ];
+  // In production (seedDemo === false), only BR-DHK (flagship) is created with official client details.
+  const branches = seedDemo
+    ? [
+        {
+          name: 'Dhaka Main (Flagship)',
+          code: 'BR-DHK',
+          type: 'FLAGSHIP' as const,
+          address: '2/13 Eastern Plaza Shopping Complex, Hatirpool',
+          city: 'Dhaka 1205',
+          phone: '01602670922',
+        },
+        {
+          name: 'Chittagong Outlet',
+          code: 'BR-CTG',
+          type: 'OUTLET' as const,
+          address: 'GEC',
+          city: 'Chittagong',
+          phone: '01602670922',
+        },
+        {
+          name: 'Sylhet Warehouse',
+          code: 'BR-SYL',
+          type: 'WAREHOUSE' as const,
+          address: 'Zindabazar',
+          city: 'Sylhet',
+          phone: '01602670922',
+        },
+      ]
+    : [
+        {
+          name: 'Dhaka Main (Flagship)',
+          code: 'BR-DHK',
+          type: 'FLAGSHIP' as const,
+          address: '2/13 Eastern Plaza Shopping Complex, Hatirpool',
+          city: 'Dhaka 1205',
+          phone: '01602670922',
+        },
+      ];
+
   let branchCount = 0;
   let dhakaBranchId = '';
   for (const b of branches) {
@@ -104,26 +144,26 @@ async function main() {
     if (b.code === 'BR-DHK') dhakaBranchId = createdBranch.id;
     branchCount++;
   }
-  console.log(`✓ Seeded ${branchCount} branches`);
+  console.log(`✓ Seeded ${branchCount} branch(es)`);
 
   // ==========================================
   // 4. Demo Accounts (Skipped in production unless SEED_DEMO=true)
   // ==========================================
   if (seedDemo) {
     console.log('Seeding demo accounts for QA and role testing...');
-    const demoPasswordHash = await bcrypt.hash('Admin@12345', 10);
+    const demoPasswordHash = await bcrypt.hash(adminPassword, 10);
 
     const demoRoles = [
-      { email: 'demo.admin@mobilehubbd.test', role: 'Admin', name: 'Demo Global Admin', empId: 'DEMO-ADM-01', phone: '+8801799000001', branchId: null },
-      { email: 'demo.branchadmin@mobilehubbd.test', role: 'Branch Admin', name: 'Dhaka Branch Admin', empId: 'DEMO-BADM-01', phone: '+8801700000001', branchId: dhakaBranchId },
-      { email: 'demo.branchmanager@mobilehubbd.test', role: 'Branch Manager', name: 'Dhaka Branch Manager', empId: 'DEMO-BMGR-01', phone: '+8801700000004', branchId: dhakaBranchId },
-      { email: 'sales@mobilehubbd.test', role: 'Salesperson', name: 'Counter Sales Staff', empId: 'DEMO-SALES-01', phone: '+8801700000003', branchId: dhakaBranchId },
-      { email: 'demo.purchasemanager@mobilehubbd.test', role: 'Purchase Manager', name: 'Procurement Lead', empId: 'DEMO-PUR-01', phone: '+8801700000005', branchId: null },
-      { email: 'demo.productuploader@mobilehubbd.test', role: 'Product Uploader', name: 'Catalog Manager', empId: 'DEMO-UPL-01', phone: '+8801700000006', branchId: null },
-      { email: 'demo.customerservice@mobilehubbd.test', role: 'Customer Service', name: 'Customer Support Rep', empId: 'DEMO-CS-01', phone: '+8801700000007', branchId: null },
-      { email: 'demo.technician@mobilehubbd.test', role: 'Technician', name: 'Senior Technician', empId: 'DEMO-TECH-01', phone: '+8801700000002', branchId: dhakaBranchId, profitSharePercentage: 50 },
-      { email: 'demo.seo@mobilehubbd.test', role: 'SEO', name: 'Digital Marketer', empId: 'DEMO-SEO-01', phone: '+8801700000008', branchId: null },
-      { email: 'demo.auditor@mobilehubbd.test', role: 'Inventory Auditor', name: 'Stock Auditor', empId: 'DEMO-AUD-01', phone: '+8801700000009', branchId: dhakaBranchId },
+      { email: 'demo.admin@mobilehubbd.test', role: 'Admin', name: 'Demo Global Admin', empId: 'DEMO-ADM-01', phone: '01602670922', branchId: null },
+      { email: 'demo.branchadmin@mobilehubbd.test', role: 'Branch Admin', name: 'Dhaka Branch Admin', empId: 'DEMO-BADM-01', phone: '01602670922', branchId: dhakaBranchId },
+      { email: 'demo.branchmanager@mobilehubbd.test', role: 'Branch Manager', name: 'Dhaka Branch Manager', empId: 'DEMO-BMGR-01', phone: '01602670922', branchId: dhakaBranchId },
+      { email: 'sales@mobilehubbd.test', role: 'Salesperson', name: 'Counter Sales Staff', empId: 'DEMO-SALES-01', phone: '01602670922', branchId: dhakaBranchId },
+      { email: 'demo.purchasemanager@mobilehubbd.test', role: 'Purchase Manager', name: 'Procurement Lead', empId: 'DEMO-PUR-01', phone: '01602670922', branchId: null },
+      { email: 'demo.productuploader@mobilehubbd.test', role: 'Product Uploader', name: 'Catalog Manager', empId: 'DEMO-UPL-01', phone: '01602670922', branchId: null },
+      { email: 'demo.customerservice@mobilehubbd.test', role: 'Customer Service', name: 'Customer Support Rep', empId: 'DEMO-CS-01', phone: '01602670922', branchId: null },
+      { email: 'demo.technician@mobilehubbd.test', role: 'Technician', name: 'Senior Technician', empId: 'DEMO-TECH-01', phone: '01602670922', branchId: dhakaBranchId, profitSharePercentage: 50 },
+      { email: 'demo.seo@mobilehubbd.test', role: 'SEO', name: 'Digital Marketer', empId: 'DEMO-SEO-01', phone: '01602670922', branchId: null },
+      { email: 'demo.auditor@mobilehubbd.test', role: 'Inventory Auditor', name: 'Stock Auditor', empId: 'DEMO-AUD-01', phone: '01602670922', branchId: dhakaBranchId },
     ];
 
     for (const d of demoRoles) {
@@ -162,7 +202,7 @@ async function main() {
       create: {
         name: 'Demo Customer',
         email: 'customer@mobilehubbd.test',
-        phone: '+8801800000001',
+        phone: '01602670922',
         passwordHash: demoPasswordHash,
       },
     });
@@ -185,7 +225,12 @@ async function main() {
   if (!existingSettings) {
     await prisma.businessSetting.create({
       data: {
-        general: { storeName: 'mobilehubbd', email: 'contact@mobilehubbd.com' },
+        general: {
+          storeName: 'MobileHubBD',
+          email: 'mobilehubbd2@gmail.com',
+          phone: '01602670922',
+          address: '2/13 Eastern Plaza Shopping Complex, Hatirpool, Dhaka 1205',
+        },
         branding: { primaryColor: '#000000' },
         currencyTax: { currency: 'BDT' },
         orderSettings: { minOrder: 100 },

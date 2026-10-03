@@ -80,7 +80,7 @@ export default function RegisterPage() {
             <Label htmlFor="fullName">Full Name</Label>
             <Input
               id="fullName"
-              placeholder="e.g. John Doe"
+              placeholder="Your full name"
               className={errors.fullName ? "border-danger focus-visible:ring-danger" : ""}
               {...register("fullName")}
             />
@@ -93,7 +93,7 @@ export default function RegisterPage() {
             <Label htmlFor="phone">Phone Number</Label>
             <Input
               id="phone"
-              placeholder="e.g. 01712345678"
+              placeholder="01XXXXXXXXX"
               className={errors.phone ? "border-danger focus-visible:ring-danger" : ""}
               {...register("phone")}
             />
@@ -107,7 +107,7 @@ export default function RegisterPage() {
             <Input
               id="email"
               type="email"
-              placeholder="e.g. john@example.com"
+              placeholder="you@example.com"
               className={errors.email ? "border-danger focus-visible:ring-danger" : ""}
               {...register("email")}
             />

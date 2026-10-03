@@ -12,6 +12,7 @@ import {
   MakeTechnicianDto,
 } from './dto/create-employee.dto';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { Prisma, StaffStatus } from '@prisma/client';
 
 export const STAFF_SELECT_SAFE = {
@@ -175,7 +176,8 @@ export class EmployeeService {
   }
 
   async create(dto: CreateEmployeeDto) {
-    const rawPassword = dto.password || 'Temp@123456';
+    const rawPassword =
+      dto.password || crypto.randomBytes(8).toString('hex') + '!Aa1';
     const passwordHash = await bcrypt.hash(rawPassword, 10);
     const employeeId = await this.generateNextEmployeeId();
 

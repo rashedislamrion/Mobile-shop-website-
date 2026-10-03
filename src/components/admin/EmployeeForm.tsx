@@ -370,7 +370,7 @@ export function EmployeeForm({ initialData, isEdit }: EmployeeFormProps) {
                         Phone Number <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. 01712345678" {...field} className="h-10" />
+                        <Input placeholder="01XXXXXXXXX" {...field} className="h-10" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -981,7 +981,7 @@ export function EmployeeForm({ initialData, isEdit }: EmployeeFormProps) {
                       Contact Phone
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. 01812345678" {...field} className="h-10" />
+                      <Input placeholder="01XXXXXXXXX" {...field} className="h-10" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -60,7 +60,7 @@ export default function LoginPage() {
             <Label htmlFor="emailOrPhone">Email or Phone</Label>
             <Input 
               id="emailOrPhone" 
-              placeholder="Enter your email or phone number" 
+              placeholder="you@example.com or 01XXXXXXXXX" 
               className={errors.emailOrPhone ? "border-danger focus-visible:ring-danger" : ""}
               {...register("emailOrPhone")} 
             />
