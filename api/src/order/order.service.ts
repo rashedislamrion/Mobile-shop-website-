@@ -7,19 +7,47 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import * as puppeteer from 'puppeteer-core';
+import * as fs from 'fs';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { AddOrderNoteDto } from './dto/add-order-note.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { CheckoutOrderDto } from './dto/checkout-order.dto';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
-import { OrderPaymentMethod, OrderStatus, PaymentStatus, Prisma, SaleType } from '@prisma/client';
+import {
+  ModuleName,
+  OrderPaymentMethod,
+  OrderStatus,
+  PaymentStatus,
+  PermissionAction,
+  Prisma,
+  SaleType,
+  ServiceJobStatus,
+} from '@prisma/client';
 
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  PENDING: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED, OrderStatus.DIAGNOSING],
-  CONFIRMED: [OrderStatus.PARCEL_BOOKED, OrderStatus.DELIVERED, OrderStatus.COMPLETED, OrderStatus.CANCELLED],
-  PARCEL_BOOKED: [OrderStatus.DELIVERED, OrderStatus.RETURNED, OrderStatus.CANCELLED],
-  DIAGNOSING: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED, OrderStatus.COMPLETED],
+  PENDING: [
+    OrderStatus.CONFIRMED,
+    OrderStatus.CANCELLED,
+    OrderStatus.DIAGNOSING,
+  ],
+  CONFIRMED: [
+    OrderStatus.PARCEL_BOOKED,
+    OrderStatus.DELIVERED,
+    OrderStatus.COMPLETED,
+    OrderStatus.CANCELLED,
+  ],
+  PARCEL_BOOKED: [
+    OrderStatus.DELIVERED,
+    OrderStatus.RETURNED,
+    OrderStatus.CANCELLED,
+  ],
+  DIAGNOSING: [
+    OrderStatus.CONFIRMED,
+    OrderStatus.CANCELLED,
+    OrderStatus.COMPLETED,
+  ],
   DELIVERED: [OrderStatus.RETURNED, OrderStatus.COMPLETED],
   COMPLETED: [OrderStatus.RETURNED],
   RETURNED: [],
@@ -34,10 +62,14 @@ export class OrderService {
 
   private async checkBranchScope(user: JwtPayload, targetBranchId?: string) {
     if (!user || user.userType !== 'STAFF' || !user.roleId) return;
-    const role = await this.prisma.role.findUnique({ where: { id: user.roleId } });
+    const role = await this.prisma.role.findUnique({
+      where: { id: user.roleId },
+    });
     if (role?.scope === 'OWN_BRANCH') {
       if (targetBranchId && user.branchId && targetBranchId !== user.branchId) {
-        throw new ForbiddenException('You can only access or modify data belonging to your own branch.');
+        throw new ForbiddenException(
+          'You can only access or modify data belonging to your own branch.',
+        );
       }
     }
   }
@@ -49,6 +81,7 @@ export class OrderService {
       branch?: string;
       branchId?: string;
       paymentStatus?: PaymentStatus;
+      needsStockReview?: string | boolean;
       search?: string;
       dateFrom?: string;
       dateTo?: string;
@@ -65,7 +98,9 @@ export class OrderService {
 
     // Branch scoping
     if (user?.userType === 'STAFF' && user.roleId) {
-      const role = await this.prisma.role.findUnique({ where: { id: user.roleId } });
+      const role = await this.prisma.role.findUnique({
+        where: { id: user.roleId },
+      });
       if (role?.scope === 'OWN_BRANCH' && user.branchId) {
         where.branchId = user.branchId;
       } else if (query.branchId || query.branch) {
@@ -78,6 +113,9 @@ export class OrderService {
     if (query.status) where.status = query.status;
     if (query.saleType) where.saleType = query.saleType;
     if (query.paymentStatus) where.paymentStatus = query.paymentStatus;
+    if (query.needsStockReview !== undefined && query.needsStockReview !== '') {
+      where.needsStockReview = query.needsStockReview === 'true' || query.needsStockReview === true;
+    }
 
     if (query.search?.trim()) {
       const s = query.search.trim();
@@ -102,13 +140,17 @@ export class OrderService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          customer: { select: { id: true, name: true, phone: true, email: true } },
+          customer: {
+            select: { id: true, name: true, phone: true, email: true },
+          },
           branch: { select: { id: true, name: true, code: true } },
           staff: { select: { id: true, name: true } },
           items: {
             include: {
               product: { select: { id: true, name: true, slug: true } },
-              variant: { select: { id: true, color: true, quality: true, sku: true } },
+              variant: {
+                select: { id: true, color: true, quality: true, sku: true },
+              },
             },
           },
           _count: { select: { items: true, notes: true } },
@@ -206,22 +248,45 @@ export class OrderService {
 
     if (!order) throw new NotFoundException(`Order with ID "${id}" not found.`);
 
-    // Customer OWN_DATA check
+    // Customer OWN_DATA check (IDOR prevention)
     if (user?.userType === 'CUSTOMER') {
       if (order.customerId !== user.sub) {
-        throw new ForbiddenException('You do not have permission to view this order.');
+        throw new ForbiddenException(
+          'You do not have permission to view this order.',
+        );
       }
     } else if (user?.userType === 'STAFF') {
+      if (user.roleId) {
+        const perm = await this.prisma.rolePermission.findUnique({
+          where: {
+            roleId_module_action: {
+              roleId: user.roleId,
+              module: ModuleName.ORDERS,
+              action: PermissionAction.READ,
+            },
+          },
+        });
+        if (!perm?.allowed) {
+          throw new ForbiddenException(
+            'Your role does not have READ permission on ORDERS.',
+          );
+        }
+      }
       await this.checkBranchScope(user, order.branchId);
+    } else {
+      throw new ForbiddenException('Authentication required to view order.');
     }
 
     return order;
   }
 
   async create(dto: CreateOrderDto, user?: JwtPayload) {
-    if (user?.userType === 'STAFF') {
-      await this.checkBranchScope(user, dto.branchId);
+    if (!user || user.userType !== 'STAFF') {
+      throw new ForbiddenException(
+        'Staff authentication required. Customers must place orders via /orders/checkout.',
+      );
     }
+    await this.checkBranchScope(user, dto.branchId);
 
     if (!dto.items || dto.items.length === 0) {
       throw new BadRequestException('Order must contain at least one item.');
@@ -244,23 +309,38 @@ export class OrderService {
       }> = [];
 
       for (const item of dto.items) {
-        const product = await tx.product.findUnique({
+        const isItemService = Boolean(
+          item.isService || (item as any).isService,
+        );
+        let product = await tx.product.findUnique({
           where: { id: item.productId },
           include: { variants: true },
         });
-        if (!product) throw new NotFoundException(`Product with ID "${item.productId}" not found.`);
+
+        if (!product && isItemService) {
+          product = await tx.product.findFirst({ include: { variants: true } });
+        }
+        if (!product)
+          throw new NotFoundException(
+            `Product with ID "${item.productId}" not found.`,
+          );
 
         let variant: any = null;
-        if (item.variantId) {
-          variant = product.variants.find((v) => v.id === item.variantId);
-          if (!variant) throw new NotFoundException(`Variant "${item.variantId}" not found for product "${product.name}".`);
-        } else if (product.variants.length > 0) {
-          variant = product.variants[0];
+        if (!isItemService) {
+          if (item.variantId) {
+            variant = product.variants.find((v) => v.id === item.variantId);
+            if (!variant)
+              throw new NotFoundException(
+                `Variant "${item.variantId}" not found for product "${product.name}".`,
+              );
+          } else if (product.variants.length > 0) {
+            variant = product.variants[0];
+          }
         }
 
-        // Validate stock if POS immediate sale
+        // Validate stock if POS immediate sale (only for physical products, NEVER for services)
         const isPos = dto.saleType === SaleType.POS;
-        if (isPos && variant) {
+        if (isPos && variant && !isItemService) {
           if (item.phoneUnitId) {
             const phoneUnit = await tx.phoneUnit.findUnique({
               where: { id: item.phoneUnitId },
@@ -274,13 +354,16 @@ export class OrderService {
               );
             }
 
-            // Decrement variant stock if positive
-            if (variant.stock > 0) {
-              await tx.productVariant.update({
-                where: { id: variant.id },
-                data: { stock: { decrement: 1 } },
-              });
+            // Decrement variant stock
+            if (variant.stock <= 0) {
+              throw new BadRequestException(
+                `Insufficient stock for "${product.name}".`,
+              );
             }
+            await tx.productVariant.update({
+              where: { id: variant.id },
+              data: { stock: { decrement: 1 } },
+            });
 
             // Decrement branch inventory if present
             if (dto.branchId) {
@@ -292,17 +375,20 @@ export class OrderService {
                   },
                 },
               });
-              if (branchInv && branchInv.quantity > 0) {
-                await tx.branchInventory.update({
-                  where: {
-                    branchId_productVariantId: {
-                      branchId: dto.branchId,
-                      productVariantId: variant.id,
-                    },
-                  },
-                  data: { quantity: { decrement: 1 } },
-                });
+              if (!branchInv || branchInv.quantity <= 0) {
+                throw new BadRequestException(
+                  `Insufficient branch stock for "${product.name}".`,
+                );
               }
+              await tx.branchInventory.update({
+                where: {
+                  branchId_productVariantId: {
+                    branchId: dto.branchId,
+                    productVariantId: variant.id,
+                  },
+                },
+                data: { quantity: { decrement: 1 } },
+              });
             }
 
             phoneUnitAssignments.push({
@@ -328,9 +414,10 @@ export class OrderService {
               branchStock = branchInv ? branchInv.quantity : 0;
             }
 
-            if (branchStock < item.quantity) {
-              throw new ConflictException(
-                `Insufficient stock for "${product.name}" (${variant.color || ''} ${variant.quality || ''}). Available: ${branchStock}, Requested: ${item.quantity}`,
+            if (variant.stock < item.quantity || branchStock < item.quantity) {
+              const available = Math.min(variant.stock, branchStock);
+              throw new BadRequestException(
+                `Insufficient stock for "${product.name}" (${variant.color || ''} ${variant.quality || ''}). Available: ${available}, Requested: ${item.quantity}`,
               );
             }
 
@@ -355,14 +442,31 @@ export class OrderService {
           }
         }
 
-        const unitPrice = Number(item.unitPrice ?? variant?.price ?? product.regularPrice);
+        // SEC-01: Client-Supplied Price Vulnerability Defense
+        // When creating orders from website/customer channels (userType !== 'STAFF' or saleType === 'WEBSITE'),
+        // ignore client-supplied unitPrice entirely and recompute server-side from database (variant.price or product.regularPrice).
+        // Only trust client-supplied unitPrice when authenticated as STAFF (e.g. POS cashier override-price flow from Fix Pass 21/23).
+        const isStaff =
+          user?.userType === 'STAFF' && dto.saleType !== SaleType.WEBSITE;
+        const unitPrice =
+          isStaff && item.unitPrice != null
+            ? Number(item.unitPrice)
+            : Number(
+                variant?.price ?? product.salePrice ?? product.regularPrice,
+              );
         const lineTotal = unitPrice * item.quantity;
         subtotal += lineTotal;
+
+        const snapshotName = isItemService
+          ? item.serviceDetails?.device
+            ? `Service: ${item.serviceDetails.device}`
+            : `Technical Service: ${product.name}`
+          : product.name;
 
         orderItemsData.push({
           productId: product.id,
           variantId: variant?.id ?? null,
-          productNameSnapshot: product.name,
+          productNameSnapshot: snapshotName,
           quantity: item.quantity,
           unitPrice,
           lineTotal,
@@ -385,7 +489,10 @@ export class OrderService {
       let initialStatus: OrderStatus = OrderStatus.CONFIRMED;
       let effectiveSaleType: SaleType = dto.saleType || SaleType.POS;
 
-      if (dto.status === OrderStatus.DIAGNOSING || dto.saleType === SaleType.DIAGNOSING) {
+      if (
+        dto.status === OrderStatus.DIAGNOSING ||
+        dto.saleType === SaleType.DIAGNOSING
+      ) {
         initialStatus = OrderStatus.DIAGNOSING;
         effectiveSaleType = SaleType.DIAGNOSING;
       } else if (dto.saleType === SaleType.COURIER) {
@@ -398,7 +505,14 @@ export class OrderService {
         initialStatus = dto.status;
       }
 
-      const order = await tx.order.create({
+      let customerRecord: any = null;
+      if (dto.customerId) {
+        customerRecord = await tx.customer.findUnique({
+          where: { id: dto.customerId },
+        });
+      }
+
+      let order = await tx.order.create({
         data: {
           orderCode,
           branchId: dto.branchId,
@@ -436,19 +550,78 @@ export class OrderService {
                 },
               }
             : {}),
-          ...((effectiveSaleType === SaleType.DIAGNOSING || initialStatus === OrderStatus.DIAGNOSING) && (dto.device || dto.issueDescription)
-            ? {
-                serviceJob: {
-                  create: {
-                    device: dto.device || 'Mobile Device',
-                    issueDescription: dto.issueDescription || 'Repair inspection and diagnostic service',
-                    serviceCharge: dto.serviceCharge !== undefined ? dto.serviceCharge : subtotal,
-                    technicianId: dto.technicianId || null,
-                    status: 'PENDING',
-                  },
+          ...(() => {
+            const hasServiceItem = Boolean(
+              effectiveSaleType === SaleType.DIAGNOSING ||
+              initialStatus === OrderStatus.DIAGNOSING ||
+              dto.device ||
+              dto.issueDescription ||
+              dto.items.some((i) => i.isService),
+            );
+            if (!hasServiceItem) return {};
+
+            const serviceItem = dto.items.find((i) => i.isService);
+            const resolvedDevice =
+              dto.device ||
+              serviceItem?.serviceDetails?.device ||
+              'Customer Device';
+            const resolvedIssue =
+              dto.issueDescription ||
+              serviceItem?.serviceDetails?.issueDescription ||
+              'Repair inspection and technical service';
+            const resolvedCharge =
+              dto.serviceCharge !== undefined
+                ? Number(dto.serviceCharge)
+                : serviceItem
+                  ? Number(serviceItem.unitPrice) * Number(serviceItem.quantity)
+                  : subtotal;
+
+            // Determine technician ID: from dto.technicianId, or staff user if technician
+            let resolvedTechId = dto.technicianId || null;
+            if (!resolvedTechId && user?.sub && user?.userType === 'STAFF') {
+              resolvedTechId = user.sub;
+            }
+
+            const jobStatus: ServiceJobStatus =
+              effectiveSaleType === SaleType.DIAGNOSING ||
+              initialStatus === OrderStatus.DIAGNOSING
+                ? ServiceJobStatus.PENDING
+                : paymentStatus === PaymentStatus.PAID
+                  ? ServiceJobStatus.DELIVERED
+                  : ServiceJobStatus.IN_PROGRESS;
+
+            const techShare = resolvedCharge * 0.5;
+
+            return {
+              serviceJob: {
+                create: {
+                  invoiceNo: `SRV-${orderCode}`,
+                  customerId: dto.customerId || null,
+                  customerName:
+                    customerRecord?.name ||
+                    (dto as any).customerName ||
+                    'Walk-in Customer',
+                  customerPhone:
+                    customerRecord?.phone ||
+                    (dto as any).customerPhone ||
+                    'N/A',
+                  technicianId: resolvedTechId,
+                  device: resolvedDevice,
+                  issueDescription: resolvedIssue,
+                  serviceCharge: resolvedCharge,
+                  laborCost: resolvedCharge,
+                  materialCost: 0,
+                  totalBill: resolvedCharge,
+                  finalAmount: resolvedCharge,
+                  paidAmount: Math.min(paidAmount, resolvedCharge),
+                  dueAmount: Math.max(0, resolvedCharge - paidAmount),
+                  technicianProfitShare: techShare,
+                  status: jobStatus,
+                  createdAt: dto.saleDate ? new Date(dto.saleDate) : new Date(),
                 },
-              }
-            : {}),
+              },
+            };
+          })(),
           ...(effectiveSaleType === SaleType.COURIER && dto.courierPartner
             ? {
                 shipment: {
@@ -488,10 +661,36 @@ export class OrderService {
             orderItemId: matchingItem ? matchingItem.id : null,
             warrantyType: assignment.warrantyType || null,
             warrantyPeriod: assignment.warrantyPeriod || null,
-            warrantyStartDate: assignment.warrantyStartDate ? new Date(assignment.warrantyStartDate) : new Date(),
-            warrantyEndDate: assignment.warrantyEndDate ? new Date(assignment.warrantyEndDate) : null,
+            warrantyStartDate: assignment.warrantyStartDate
+              ? new Date(assignment.warrantyStartDate)
+              : new Date(),
+            warrantyEndDate: assignment.warrantyEndDate
+              ? new Date(assignment.warrantyEndDate)
+              : null,
           },
         });
+      }
+
+      if (phoneUnitAssignments.length > 0) {
+        const reloadedOrder = await tx.order.findUnique({
+          where: { id: order.id },
+          include: {
+            items: {
+              include: {
+                phoneUnits: true,
+                product: true,
+                variant: true,
+              },
+            },
+            customer: true,
+            branch: true,
+            serviceJob: true,
+            shipment: true,
+          },
+        });
+        if (reloadedOrder) {
+          order = reloadedOrder;
+        }
       }
 
       // Synchronize with Customer module (Fix Pass 18 stats and payment ledger)
@@ -501,7 +700,12 @@ export class OrderService {
             customerId: dto.customerId,
             type: 'ORDER_PLACED' as any,
             description: `Placed order #${orderCode} for ৳${totalAmount.toLocaleString()}`,
-            metadata: { orderId: order.id, orderCode, totalAmount, saleType: effectiveSaleType },
+            metadata: {
+              orderId: order.id,
+              orderCode,
+              totalAmount,
+              saleType: effectiveSaleType,
+            },
           },
         });
 
@@ -593,10 +797,15 @@ export class OrderService {
     return this.prisma.$transaction(async (tx) => {
       // Stock management logic:
       // Case 1: Transitioning to CONFIRMED (and order was not POS which already deducted on creation)
-      if (targetStatus === OrderStatus.CONFIRMED && order.saleType !== SaleType.POS) {
+      if (
+        targetStatus === OrderStatus.CONFIRMED &&
+        order.saleType !== SaleType.POS
+      ) {
         for (const item of order.items) {
           if (item.variantId) {
-            const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } });
+            const variant = await tx.productVariant.findUnique({
+              where: { id: item.variantId },
+            });
             if (!variant || variant.stock < item.quantity) {
               throw new ConflictException(
                 `Insufficient stock for "${item.productNameSnapshot}". Available: ${variant?.stock ?? 0}, Requested: ${item.quantity}`,
@@ -614,11 +823,20 @@ export class OrderService {
       // Only restore stock if stock was previously deducted (i.e. was POS OR reached CONFIRMED/PARCEL_BOOKED/DELIVERED/COMPLETED)
       const stockWasDeducted =
         order.saleType === SaleType.POS ||
-        ([OrderStatus.CONFIRMED, OrderStatus.PARCEL_BOOKED, OrderStatus.DELIVERED, OrderStatus.COMPLETED] as OrderStatus[]).includes(
-          currentStatus,
-        );
+        (
+          [
+            OrderStatus.CONFIRMED,
+            OrderStatus.PARCEL_BOOKED,
+            OrderStatus.DELIVERED,
+            OrderStatus.COMPLETED,
+          ] as OrderStatus[]
+        ).includes(currentStatus);
 
-      if ((targetStatus === OrderStatus.CANCELLED || targetStatus === OrderStatus.RETURNED) && stockWasDeducted) {
+      if (
+        (targetStatus === OrderStatus.CANCELLED ||
+          targetStatus === OrderStatus.RETURNED) &&
+        stockWasDeducted
+      ) {
         for (const item of order.items) {
           if (item.variantId) {
             await tx.productVariant.update({
@@ -636,7 +854,9 @@ export class OrderService {
           statusHistory: {
             create: {
               status: targetStatus,
-              note: dto.note || `Status changed from ${currentStatus} to ${targetStatus}`,
+              note:
+                dto.note ||
+                `Status changed from ${currentStatus} to ${targetStatus}`,
               changedById: user?.userType === 'STAFF' ? user.sub : null,
             },
           },
@@ -684,11 +904,18 @@ export class OrderService {
       await this.checkBranchScope(user, order.branchId);
     }
 
-    const discountAmount = dto.discountAmount !== undefined ? dto.discountAmount : Number(order.discountAmount);
-    const deliveryCharge = dto.deliveryCharge !== undefined ? dto.deliveryCharge : Number(order.deliveryCharge);
+    const discountAmount =
+      dto.discountAmount !== undefined
+        ? dto.discountAmount
+        : Number(order.discountAmount);
+    const deliveryCharge =
+      dto.deliveryCharge !== undefined
+        ? dto.deliveryCharge
+        : Number(order.deliveryCharge);
     const subtotal = Number(order.subtotal);
     const totalAmount = subtotal - discountAmount + deliveryCharge;
-    const paidAmount = dto.paidAmount !== undefined ? dto.paidAmount : Number(order.paidAmount);
+    const paidAmount =
+      dto.paidAmount !== undefined ? dto.paidAmount : Number(order.paidAmount);
     const dueAmount = Math.max(0, totalAmount - paidAmount);
 
     let paymentStatus = dto.paymentStatus || order.paymentStatus;
@@ -707,8 +934,14 @@ export class OrderService {
         paidAmount,
         dueAmount,
         paymentStatus,
-        paymentMethod: dto.paymentMethod !== undefined ? dto.paymentMethod : order.paymentMethod,
-        shippingAddressId: dto.shippingAddressId !== undefined ? dto.shippingAddressId : order.shippingAddressId,
+        paymentMethod:
+          dto.paymentMethod !== undefined
+            ? dto.paymentMethod
+            : order.paymentMethod,
+        shippingAddressId:
+          dto.shippingAddressId !== undefined
+            ? dto.shippingAddressId
+            : order.shippingAddressId,
       },
       include: {
         customer: true,
@@ -745,7 +978,8 @@ export class OrderService {
       }
     } else if (addressSource) {
       const guestPhone = addressSource.phone.trim();
-      const guestEmail = addressSource.email?.trim() || `${guestPhone}@guest.mobilehubbd.com`;
+      const guestEmail =
+        addressSource.email?.trim() || `${guestPhone}@guest.mobilehubbd.com`;
 
       let customer = await this.prisma.customer.findFirst({
         where: {
@@ -780,14 +1014,19 @@ export class OrderService {
         shippingAddressId = addr.id;
       }
     } else if (!user) {
-      throw new BadRequestException('Please login or provide delivery contact information.');
+      throw new BadRequestException(
+        'Please login or provide delivery contact information.',
+      );
     }
 
     const branch = await this.prisma.branch.findFirst({
       where: { status: 'ACTIVE' },
       orderBy: { createdAt: 'asc' },
     });
-    if (!branch) throw new BadRequestException('No active branch available for order fulfillment.');
+    if (!branch)
+      throw new BadRequestException(
+        'No active branch available for order fulfillment.',
+      );
 
     const branchId = branch.id;
     const orderCode = `EM${Date.now().toString().slice(-6)}${Math.floor(100 + Math.random() * 900)}`;
@@ -803,17 +1042,26 @@ export class OrderService {
           where: { id: item.productId },
           include: { variants: true },
         });
-        if (!product) throw new NotFoundException(`Product with ID "${item.productId}" not found.`);
+        if (!product)
+          throw new NotFoundException(
+            `Product with ID "${item.productId}" not found.`,
+          );
 
         let variant: any = null;
         if (item.variantId) {
           variant = product.variants.find((v) => v.id === item.variantId);
-          if (!variant) throw new NotFoundException(`Variant "${item.variantId}" not found for product "${product.name}".`);
+          if (!variant)
+            throw new NotFoundException(
+              `Variant "${item.variantId}" not found for product "${product.name}".`,
+            );
         } else if (product.variants.length > 0) {
           variant = product.variants[0];
         }
 
-        if (!variant) throw new BadRequestException(`No variant available for product "${product.name}".`);
+        if (!variant)
+          throw new BadRequestException(
+            `No variant available for product "${product.name}".`,
+          );
 
         if (variant.stock < item.quantity) {
           throw new ConflictException(
@@ -867,16 +1115,41 @@ export class OrderService {
         if (promo && promo.status === 'ACTIVE') {
           const now = new Date();
           if (now >= promo.validFrom && now <= promo.validUntil) {
-            const meetsLimit = promo.usageLimit === null || promo.usedCount < promo.usageLimit;
-            const meetsMin = promo.minOrderAmount === null || subtotal >= Number(promo.minOrderAmount);
-            if (meetsLimit && meetsMin) {
+            const meetsLimit =
+              promo.usageLimit === null || promo.usedCount < promo.usageLimit;
+            const meetsMin =
+              promo.minOrderAmount === null ||
+              subtotal >= Number(promo.minOrderAmount);
+            let meetsScope = true;
+            if (
+              promo.applicableTo === 'CATEGORY' &&
+              promo.applicableCategoryId
+            ) {
+              meetsScope = categoryIds.includes(promo.applicableCategoryId);
+            } else if (
+              promo.applicableTo === 'PRODUCT' &&
+              promo.applicableProductIds &&
+              promo.applicableProductIds.length > 0
+            ) {
+              meetsScope = productIds.some((pId) =>
+                promo.applicableProductIds.includes(pId),
+              );
+            }
+
+            if (meetsLimit && meetsMin && meetsScope) {
               if (promo.discountType === 'PERCENTAGE') {
                 discountAmount = (subtotal * Number(promo.discountValue)) / 100;
                 if (promo.maxDiscountCap && Number(promo.maxDiscountCap) > 0) {
-                  discountAmount = Math.min(discountAmount, Number(promo.maxDiscountCap));
+                  discountAmount = Math.min(
+                    discountAmount,
+                    Number(promo.maxDiscountCap),
+                  );
                 }
               } else {
-                discountAmount = Math.min(subtotal, Number(promo.discountValue));
+                discountAmount = Math.min(
+                  subtotal,
+                  Number(promo.discountValue),
+                );
               }
               discountAmount = Math.round(discountAmount * 100) / 100;
 
@@ -890,7 +1163,10 @@ export class OrderService {
       }
 
       // Security / Trust Boundary: Recompute delivery charge independently server-side
-      const totalOrderQuantity = dto.items.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
+      const totalOrderQuantity = dto.items.reduce(
+        (sum, it) => sum + (Number(it.quantity) || 0),
+        0,
+      );
       let calculatedDeliveryCharge = 60; // Baseline default
 
       // Query real DeliveryChargeTier records from database (Fix Pass 17)
@@ -907,7 +1183,10 @@ export class OrderService {
       }
 
       // Zone or Express adjustment
-      if (dto.deliveryType === 'EXPRESS' || dto.deliveryZone === 'OUTSIDE_DHAKA') {
+      if (
+        dto.deliveryType === 'EXPRESS' ||
+        dto.deliveryZone === 'OUTSIDE_DHAKA'
+      ) {
         calculatedDeliveryCharge = Math.max(calculatedDeliveryCharge, 120);
       }
 
@@ -928,7 +1207,10 @@ export class OrderService {
 
       const deliveryCharge = calculatedDeliveryCharge;
 
-      const totalAmount = Math.max(0, subtotal - discountAmount + deliveryCharge);
+      const totalAmount = Math.max(
+        0,
+        subtotal - discountAmount + deliveryCharge,
+      );
       const paidAmount = 0;
       const dueAmount = totalAmount;
       const paymentStatus = PaymentStatus.PENDING;
@@ -958,7 +1240,7 @@ export class OrderService {
           statusHistory: {
             create: {
               status: initialStatus,
-              note: `Website checkout via ${dto.paymentMethod}${effectiveNotes ? ` (${effectiveNotes})` : ''}`,
+              note: `Website checkout via ${dto.paymentMethod}${dto.promoCode ? ` (Promo: ${dto.promoCode.toUpperCase()})` : ''}${effectiveNotes ? ` (${effectiveNotes})` : ''}`,
             },
           },
         },
@@ -979,5 +1261,116 @@ export class OrderService {
         paymentStatus: order.paymentStatus,
       };
     });
+  }
+
+  private getChromeExecutablePath(): string {
+    if (process.env.CHROME_BIN) return process.env.CHROME_BIN;
+    if (process.env.PUPPETEER_EXECUTABLE_PATH)
+      return process.env.PUPPETEER_EXECUTABLE_PATH;
+
+    if (process.platform === 'darwin') {
+      const macPaths = [
+        '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+        '/Applications/Chromium.app/Contents/MacOS/Chromium',
+      ];
+      for (const p of macPaths) {
+        if (fs.existsSync(p)) return p;
+      }
+    }
+
+    // Standard Linux Chrome / Chromium paths
+    const linuxPaths = [
+      '/usr/bin/google-chrome',
+      '/usr/bin/google-chrome-stable',
+      '/usr/bin/chromium-browser',
+      '/usr/bin/chromium',
+    ];
+    for (const p of linuxPaths) {
+      if (fs.existsSync(p)) return p;
+    }
+
+    throw new Error(
+      'Chromium/Chrome executable not found. Please set CHROME_BIN or PUPPETEER_EXECUTABLE_PATH.',
+    );
+  }
+
+  async generateInvoice(
+    orderId: string,
+    format: 'pdf' | 'png',
+    user?: JwtPayload,
+    req?: any,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const order = await this.findOne(orderId, user);
+
+    const authHeader = req?.headers?.authorization;
+    const rawToken = authHeader?.startsWith('Bearer ')
+      ? authHeader.substring(7)
+      : (req?.query?.token as string);
+
+    const frontendUrl =
+      process.env.INTERNAL_FRONTEND_URL ||
+      process.env.FRONTEND_URL ||
+      'http://localhost:3000';
+
+    const targetUrl = `${frontendUrl}/admin/pos/invoice-print/${order.id}${rawToken ? `?token=${encodeURIComponent(rawToken)}` : ''}`;
+
+    const executablePath = this.getChromeExecutablePath();
+    const browser = await puppeteer.launch({
+      executablePath,
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--font-render-hinting=none',
+      ],
+      defaultViewport: {
+        width: 794,
+        height: 1123,
+        deviceScaleFactor: 2,
+      },
+    });
+
+    try {
+      const page = await browser.newPage();
+      await page.goto(targetUrl, {
+        waitUntil: 'networkidle0',
+        timeout: 30000,
+      });
+      await page.evaluateHandle('document.fonts.ready');
+      await page.waitForSelector('#printable-receipt', { timeout: 10000 });
+
+      const safeOrderCode = order.orderCode || 'Receipt';
+
+      if (format === 'pdf') {
+        const pdfUint8 = await page.pdf({
+          format: 'A4',
+          printBackground: true,
+          margin: { top: 0, right: 0, bottom: 0, left: 0 },
+        });
+        return {
+          buffer: Buffer.from(pdfUint8),
+          filename: `Invoice-${safeOrderCode}.pdf`,
+        };
+      } else {
+        const receiptElement = await page.$('#printable-receipt');
+        if (receiptElement) {
+          const pngUint8 = await receiptElement.screenshot({ type: 'png' });
+          return {
+            buffer: Buffer.from(pngUint8),
+            filename: `Invoice-${safeOrderCode}.png`,
+          };
+        } else {
+          const pngUint8 = await page.screenshot({ fullPage: true, type: 'png' });
+          return {
+            buffer: Buffer.from(pngUint8),
+            filename: `Invoice-${safeOrderCode}.png`,
+          };
+        }
+      }
+    } finally {
+      await browser.close().catch(() => {});
+    }
   }
 }

@@ -1,4 +1,10 @@
-import { IsEmail, IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  Matches,
+  MinLength,
+} from 'class-validator';
 import { Match } from '../decorators/match.decorator';
 
 export class RegisterCustomerDto {

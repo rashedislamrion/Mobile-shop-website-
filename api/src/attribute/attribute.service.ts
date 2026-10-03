@@ -1,8 +1,15 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAttributeDto } from './dto/create-attribute.dto';
 import { UpdateAttributeDto } from './dto/update-attribute.dto';
-import { CreateAttributeValueDto, UpdateAttributeValueDto } from './dto/attribute-value.dto';
+import {
+  CreateAttributeValueDto,
+  UpdateAttributeValueDto,
+} from './dto/attribute-value.dto';
 import { Prisma, StaffStatus } from '@prisma/client';
 
 @Injectable()
@@ -45,7 +52,10 @@ export class AttributeService {
           isOptional: dto.isOptional ?? false,
           status: dto.status || StaffStatus.ACTIVE,
           values: {
-            create: (dto.values || []).map((val) => ({ value: val, status: true })),
+            create: (dto.values || []).map((val) => ({
+              value: val,
+              status: true,
+            })),
           },
         },
         include: {
@@ -53,8 +63,13 @@ export class AttributeService {
         },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException(`Attribute with name "${dto.name}" already exists.`);
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          `Attribute with name "${dto.name}" already exists.`,
+        );
       }
       throw error;
     }
@@ -70,7 +85,11 @@ export class AttributeService {
         });
 
         await tx.attributeValue.createMany({
-          data: dto.values.map((val) => ({ attributeId: id, value: val, status: true })),
+          data: dto.values.map((val) => ({
+            attributeId: id,
+            value: val,
+            status: true,
+          })),
         });
       }
 
@@ -122,7 +141,9 @@ export class AttributeService {
     });
 
     if (existing) {
-      throw new ConflictException(`Value "${dto.value}" already exists for this attribute.`);
+      throw new ConflictException(
+        `Value "${dto.value}" already exists for this attribute.`,
+      );
     }
 
     return this.prisma.attributeValue.create({
@@ -134,7 +155,11 @@ export class AttributeService {
     });
   }
 
-  async updateValue(attributeId: string, valueId: string, dto: UpdateAttributeValueDto) {
+  async updateValue(
+    attributeId: string,
+    valueId: string,
+    dto: UpdateAttributeValueDto,
+  ) {
     await this.findOne(attributeId);
 
     const attrValue = await this.prisma.attributeValue.findUnique({
@@ -142,10 +167,15 @@ export class AttributeService {
     });
 
     if (!attrValue || attrValue.attributeId !== attributeId) {
-      throw new NotFoundException(`Attribute value with ID "${valueId}" not found for this attribute.`);
+      throw new NotFoundException(
+        `Attribute value with ID "${valueId}" not found for this attribute.`,
+      );
     }
 
-    if (dto.value && dto.value.trim().toLowerCase() !== attrValue.value.toLowerCase()) {
+    if (
+      dto.value &&
+      dto.value.trim().toLowerCase() !== attrValue.value.toLowerCase()
+    ) {
       const duplicate = await this.prisma.attributeValue.findFirst({
         where: {
           attributeId,
@@ -155,7 +185,9 @@ export class AttributeService {
       });
 
       if (duplicate) {
-        throw new ConflictException(`Value "${dto.value}" already exists for this attribute.`);
+        throw new ConflictException(
+          `Value "${dto.value}" already exists for this attribute.`,
+        );
       }
     }
 
@@ -177,7 +209,9 @@ export class AttributeService {
     });
 
     if (!attrValue || attrValue.attributeId !== attributeId) {
-      throw new NotFoundException(`Attribute value with ID "${valueId}" not found for this attribute.`);
+      throw new NotFoundException(
+        `Attribute value with ID "${valueId}" not found for this attribute.`,
+      );
     }
 
     // Check if any product variant is actively using this value

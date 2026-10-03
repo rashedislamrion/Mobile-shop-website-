@@ -36,7 +36,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { apiGet, apiPost, getImageUrl } from "@/lib/api-client";
+import { apiGet, apiPost, getImageUrl, getStaffToken, API_BASE_URL } from "@/lib/api-client";
 import Image from "next/image";
 
 interface SupplierItem {
@@ -863,11 +863,10 @@ export default function CreatePurchaseOrderPage() {
         try {
           const docFormData = new FormData();
           docFormData.append("document", purchaseDocument);
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
-          await fetch(`${apiUrl}/purchase-orders/${res.id}/document`, {
+          await fetch(`${API_BASE_URL}/purchase-orders/${res.id}/document`, {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${localStorage.getItem("novamobile_staff_token") || ""}`,
+              Authorization: `Bearer ${getStaffToken() || ""}`,
             },
             body: docFormData,
           });

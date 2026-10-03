@@ -38,13 +38,19 @@ export class FooterController {
   }
 
   @Patch('columns/reorder')
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.UPDATE,
+  })
   reorderColumnItems(@Body() dto: ReorderFooterColumnItemsDto) {
     return this.footerService.reorderColumnItems(dto);
   }
 
   @Post('columns/:columnKey/items')
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.CREATE,
+  })
   addItem(
     @Param('columnKey') columnKey: string,
     @Body() dto: CreateFooterColumnItemDto,
@@ -53,19 +59,28 @@ export class FooterController {
   }
 
   @Patch('columns/:columnKey/items/:id/disable')
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.UPDATE,
+  })
   disableItem(@Param('id') id: string) {
     return this.footerService.disableItem(id);
   }
 
   @Patch('columns/:columnKey/items/:id/enable')
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.UPDATE,
+  })
   enableItem(@Param('id') id: string) {
     return this.footerService.enableItem(id);
   }
 
   @Patch('columns/:columnKey/items/:id')
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.UPDATE,
+  })
   updateItem(
     @Param('columnKey') columnKey: string,
     @Param('id') id: string,
@@ -75,11 +90,11 @@ export class FooterController {
   }
 
   @Delete('columns/:columnKey/items/:id')
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.DELETE })
-  deleteItem(
-    @Param('columnKey') columnKey: string,
-    @Param('id') id: string,
-  ) {
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.DELETE,
+  })
+  deleteItem(@Param('columnKey') columnKey: string, @Param('id') id: string) {
     return this.footerService.deleteItem(id);
   }
 }

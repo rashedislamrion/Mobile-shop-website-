@@ -1,6 +1,5 @@
 import {
   PrismaClient,
-  PermissionScope,
   ModuleName,
   PermissionAction,
   StaffStatus,
@@ -13,6 +12,7 @@ import {
   SaleType,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { SEED_ROLES } from './roles-definition';
 
 const prisma = new PrismaClient();
 
@@ -23,30 +23,12 @@ async function main() {
   // 1. ROLES & PERMISSIONS
   // ==========================================
   console.log('1. Seeding System & Custom Roles...');
-  const rolesData = [
-    { name: 'Admin', scope: PermissionScope.GLOBAL, isSystem: true },
-    { name: 'Branch Admin', scope: PermissionScope.OWN_BRANCH, isSystem: true },
-    { name: 'Branch Manager', scope: PermissionScope.OWN_BRANCH, isSystem: true },
-    { name: 'Salesperson', scope: PermissionScope.OWN_BRANCH, isSystem: true },
-    { name: 'Purchase Manager', scope: PermissionScope.GLOBAL, isSystem: true },
-    { name: 'Product Uploader', scope: PermissionScope.GLOBAL, isSystem: true },
-    { name: 'Customer Service', scope: PermissionScope.GLOBAL, isSystem: true },
-    { name: 'Technician', scope: PermissionScope.OWN_BRANCH, isSystem: true },
-    { name: 'SEO', scope: PermissionScope.GLOBAL, isSystem: true },
-    {
-      name: 'Inventory Auditor',
-      scope: PermissionScope.OWN_BRANCH,
-      isSystem: false,
-      description: 'Custom narrow role with read-only access to products, stock adjustments, and purchases',
-    },
-  ];
-
   const createdRoles: any[] = [];
-  for (const r of rolesData) {
+  for (const r of SEED_ROLES) {
     const role = await prisma.role.upsert({
       where: { name: r.name },
-      update: { isSystem: r.isSystem, scope: r.scope },
-      create: { name: r.name, isSystem: r.isSystem, scope: r.scope, description: (r as any).description },
+      update: { isSystem: r.isSystem, scope: r.scope, description: r.description },
+      create: { name: r.name, isSystem: r.isSystem, scope: r.scope, description: r.description },
     });
     createdRoles.push(role);
   }
@@ -54,37 +36,15 @@ async function main() {
   const modules = Object.values(ModuleName);
   const actions = Object.values(PermissionAction);
 
-  for (const role of createdRoles) {
+  for (const roleDef of SEED_ROLES) {
+    const dbRole = createdRoles.find((r) => r.name === roleDef.name)!;
     for (const module of modules) {
       for (const action of actions) {
-        let allowed = false;
-
-        if (role.name === 'Admin') {
-          allowed = true;
-        } else if (role.name === 'Salesperson') {
-          if (['SALES', 'ORDERS', 'CUSTOMERS', 'POS'].includes(module)) allowed = true;
-        } else if (role.name === 'Technician') {
-          if (module === 'SALES') allowed = true;
-        } else if (role.name === 'SEO') {
-          if (['CMS', 'PROMOTIONAL_BANNER', 'ADS', 'PROMO_CODE', 'BLOGS'].includes(module)) allowed = true;
-        } else if (role.name === 'Product Uploader') {
-          if (['PRODUCTS', 'CATEGORY'].includes(module) && action !== 'DELETE') allowed = true;
-        } else if (role.name === 'Branch Admin' || role.name === 'Branch Manager') {
-          if (!['BUSINESS_SETTINGS', 'THIRD_PARTY_CONFIG'].includes(module)) allowed = true;
-        } else if (role.name === 'Customer Service') {
-          if (['HELP_REQUESTS', 'HELP_NOTES', 'ORDERS', 'CUSTOMERS'].includes(module)) allowed = true;
-        } else if (role.name === 'Purchase Manager') {
-          if (['PURCHASE', 'SUPPLIERS', 'PRODUCTS'].includes(module)) allowed = true;
-        } else if (role.name === 'Inventory Auditor') {
-          if (module === 'PRODUCTS' && ['READ', 'VIEW_DETAILS'].includes(action)) allowed = true;
-          if (module === 'STOCK_ADJUSTMENTS' && action === 'READ') allowed = true;
-          if (module === 'PURCHASE' && action === 'READ') allowed = true;
-        }
-
+        const allowed = roleDef.isAllowed(module, action);
         await prisma.rolePermission.upsert({
-          where: { roleId_module_action: { roleId: role.id, module, action } },
+          where: { roleId_module_action: { roleId: dbRole.id, module, action } },
           update: { allowed },
-          create: { roleId: role.id, module, action, allowed },
+          create: { roleId: dbRole.id, module, action, allowed },
         });
       }
     }
@@ -293,12 +253,23 @@ async function main() {
     });
   }
 
-  const gateways = ['BKASH', 'SSLCOMMERZ', 'COD'] as const;
+  const gateways = [
+    { gateway: 'BKASH', title: 'bKash', isActive: false },
+    { gateway: 'SSLCOMMERZ', title: 'SSLCommerz', isActive: false },
+    { gateway: 'COD', title: 'Cash on Delivery', isActive: true },
+  ] as const;
   for (const gw of gateways) {
     await prisma.paymentGatewayConfig.upsert({
-      where: { gateway: gw },
-      update: {},
-      create: { gateway: gw, isActive: true, title: gw, credentials: {} },
+      where: { gateway: gw.gateway },
+      update: {
+        ...(gw.gateway === 'COD' ? { isActive: true, title: gw.title } : {}),
+      },
+      create: {
+        gateway: gw.gateway,
+        isActive: gw.isActive,
+        title: gw.title,
+        credentials: {},
+      },
     });
   }
 

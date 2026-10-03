@@ -12,8 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiGet, getImageUrl } from "@/lib/api-client";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 30;
 
 const categoryIconMap: Record<string, React.ReactNode> = {
   'Display': <Monitor className="w-8 h-8" />,

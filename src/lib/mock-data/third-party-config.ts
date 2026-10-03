@@ -56,7 +56,7 @@ export const mockThirdPartyConfig = {
     username: 'mock_smtp_user',
     password: 'mock_smtp_password',
     encryption: 'tls', // 'tls', 'ssl', 'none'
-    fromName: 'MobileHubBD ERP',
+    fromName: 'Mobile Hub BD',
     fromEmail: 'noreply@mobilehubbd.com',
     templates: [
       { id: 1, event: 'Order Confirmation', template: '<h1>Order Confirmed</h1><p>...</p>' },

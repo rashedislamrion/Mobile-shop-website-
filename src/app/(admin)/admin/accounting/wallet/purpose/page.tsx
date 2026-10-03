@@ -112,6 +112,7 @@ export default function PurposePage() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this purpose?")) return;
     try {
       await apiDelete(`/purposes/${id}`);
       toast.success("Purpose deleted successfully");

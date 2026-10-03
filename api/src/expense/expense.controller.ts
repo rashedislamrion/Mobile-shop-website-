@@ -54,7 +54,10 @@ export class ExpenseController {
 
   @Patch('expense-categories/:id')
   @RequirePermission({ module: ModuleName.EXPENSE, action: PermissionAction.UPDATE })
-  updateCategory(@Param('id') id: string, @Body() dto: UpdateExpenseCategoryDto) {
+  updateCategory(
+    @Param('id') id: string,
+    @Body() dto: UpdateExpenseCategoryDto,
+  ) {
     return this.expenseService.updateCategory(id, dto);
   }
 

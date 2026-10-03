@@ -50,6 +50,8 @@ import { CustomerModule } from './customer/customer.module';
 import { PosModule } from './pos/pos.module';
 import { PhoneUnitModule } from './phone-unit/phone-unit.module';
 import { ServiceLookupModule } from './service-lookup/service-lookup.module';
+import { ProductRequestModule } from './product-request/product-request.module';
+import { WantedProductModule } from './wanted-product/wanted-product.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
@@ -58,10 +60,12 @@ import { PermissionsGuard } from './auth/guards/permissions.guard';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 1000,
+      },
+    ]),
     PrismaModule,
     AuthModule,
     CategoryModule,
@@ -110,6 +114,8 @@ import { PermissionsGuard } from './auth/guards/permissions.guard';
     PosModule,
     PhoneUnitModule,
     ServiceLookupModule,
+    ProductRequestModule,
+    WantedProductModule,
   ],
   controllers: [AppController],
   providers: [

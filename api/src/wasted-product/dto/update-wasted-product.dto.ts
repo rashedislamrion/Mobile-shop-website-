@@ -1,4 +1,10 @@
-import { IsInt, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
+import {
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class UpdateWastedProductDto {
@@ -10,13 +16,21 @@ export class UpdateWastedProductDto {
   @IsOptional()
   note?: string;
 
-  @Transform(({ value }) => (value !== undefined && value !== null && value !== '' ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== null && value !== ''
+      ? Number(value)
+      : undefined,
+  )
   @IsInt()
   @IsPositive()
   @IsOptional()
   quantity?: number;
 
-  @Transform(({ value }) => (value !== undefined && value !== null && value !== '' ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== null && value !== ''
+      ? Number(value)
+      : undefined,
+  )
   @IsNumber()
   @IsOptional()
   costImpact?: number;

@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
 import { StockAdjustmentService } from './stock-adjustment.service';
 import {
   CreateStockAdjustmentDto,
@@ -14,13 +7,23 @@ import {
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
-import { ModuleName, PermissionAction, StockAdjustmentType } from '@prisma/client';
+import {
+  ModuleName,
+  PermissionAction,
+  StockAdjustmentType,
+} from '@prisma/client';
 
 @Controller('stock-adjustments')
 export class StockAdjustmentController {
-  constructor(private readonly stockAdjustmentService: StockAdjustmentService) {}
+  constructor(
+    private readonly stockAdjustmentService: StockAdjustmentService,
+  ) {}
 
-  @RequirePermission({ module: ModuleName.STOCK_ADJUSTMENTS, action: PermissionAction.READ, branchParam: 'branchId' })
+  @RequirePermission({
+    module: ModuleName.STOCK_ADJUSTMENTS,
+    action: PermissionAction.READ,
+    branchParam: 'branchId',
+  })
   @Get()
   findAll(
     @Query('branch') branch?: string,
@@ -48,7 +51,11 @@ export class StockAdjustmentController {
     );
   }
 
-  @RequirePermission({ module: ModuleName.STOCK_ADJUSTMENTS, action: PermissionAction.CREATE, branchParam: 'branchId' })
+  @RequirePermission({
+    module: ModuleName.STOCK_ADJUSTMENTS,
+    action: PermissionAction.CREATE,
+    branchParam: 'branchId',
+  })
   @Post('batch')
   createBatch(
     @Body() dto: CreateBatchStockAdjustmentDto,
@@ -57,13 +64,20 @@ export class StockAdjustmentController {
     return this.stockAdjustmentService.createBatch(dto, user);
   }
 
-  @RequirePermission({ module: ModuleName.STOCK_ADJUSTMENTS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.STOCK_ADJUSTMENTS,
+    action: PermissionAction.READ,
+  })
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.stockAdjustmentService.findOne(id);
   }
 
-  @RequirePermission({ module: ModuleName.STOCK_ADJUSTMENTS, action: PermissionAction.CREATE, branchParam: 'branchId' })
+  @RequirePermission({
+    module: ModuleName.STOCK_ADJUSTMENTS,
+    action: PermissionAction.CREATE,
+    branchParam: 'branchId',
+  })
   @Post()
   create(
     @Body() dto: CreateStockAdjustmentDto,
@@ -72,4 +86,3 @@ export class StockAdjustmentController {
     return this.stockAdjustmentService.create(dto, user);
   }
 }
-

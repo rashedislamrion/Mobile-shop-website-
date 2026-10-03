@@ -7,7 +7,10 @@ import { NotificationStatus, NotificationTarget, Prisma } from '@prisma/client';
 export class PushNotificationService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(query?: { targetAudience?: NotificationTarget; search?: string }) {
+  async findAll(query?: {
+    targetAudience?: NotificationTarget;
+    search?: string;
+  }) {
     const where: Prisma.PushNotificationWhereInput = {};
     if (query?.targetAudience) where.targetAudience = query.targetAudience;
     if (query?.search?.trim()) {
@@ -21,8 +24,11 @@ export class PushNotificationService {
   }
 
   async findOne(id: string) {
-    const notification = await this.prisma.pushNotification.findUnique({ where: { id } });
-    if (!notification) throw new NotFoundException(`Notification with ID "${id}" not found.`);
+    const notification = await this.prisma.pushNotification.findUnique({
+      where: { id },
+    });
+    if (!notification)
+      throw new NotFoundException(`Notification with ID "${id}" not found.`);
     return notification;
   }
 

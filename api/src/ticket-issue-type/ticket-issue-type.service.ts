@@ -47,7 +47,10 @@ export class TicketIssueTypeService {
         autoAssignRole: { select: { id: true, name: true } },
       },
     });
-    if (!issueType) throw new NotFoundException(`Ticket issue type with ID "${id}" not found.`);
+    if (!issueType)
+      throw new NotFoundException(
+        `Ticket issue type with ID "${id}" not found.`,
+      );
     return issueType;
   }
 
@@ -56,7 +59,9 @@ export class TicketIssueTypeService {
       where: { name: dto.name.trim() },
     });
     if (existing) {
-      throw new ConflictException(`Ticket issue type "${dto.name}" already exists.`);
+      throw new ConflictException(
+        `Ticket issue type "${dto.name}" already exists.`,
+      );
     }
 
     return this.prisma.ticketIssueType.create({
@@ -80,7 +85,9 @@ export class TicketIssueTypeService {
         where: { name: dto.name.trim(), NOT: { id } },
       });
       if (existing) {
-        throw new ConflictException(`Ticket issue type "${dto.name}" already exists.`);
+        throw new ConflictException(
+          `Ticket issue type "${dto.name}" already exists.`,
+        );
       }
     }
 
@@ -89,7 +96,8 @@ export class TicketIssueTypeService {
       data: {
         name: dto.name ? dto.name.trim() : undefined,
         category: dto.category,
-        autoAssignRoleId: dto.autoAssignRoleId !== undefined ? dto.autoAssignRoleId : undefined,
+        autoAssignRoleId:
+          dto.autoAssignRoleId !== undefined ? dto.autoAssignRoleId : undefined,
         status: dto.status,
       },
       include: {
@@ -99,9 +107,13 @@ export class TicketIssueTypeService {
   }
 
   async remove(id: string) {
-    const count = await this.prisma.supportTicket.count({ where: { issueTypeId: id } });
+    const count = await this.prisma.supportTicket.count({
+      where: { issueTypeId: id },
+    });
     if (count > 0) {
-      throw new ConflictException('Cannot delete issue type because support tickets are linked to it.');
+      throw new ConflictException(
+        'Cannot delete issue type because support tickets are linked to it.',
+      );
     }
     return this.prisma.ticketIssueType.delete({ where: { id } });
   }

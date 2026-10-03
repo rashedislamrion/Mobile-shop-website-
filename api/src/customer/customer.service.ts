@@ -36,7 +36,11 @@ export class CustomerService {
       ];
     }
 
-    if (query.source && query.source.trim() && query.source.toLowerCase() !== 'all') {
+    if (
+      query.source &&
+      query.source.trim() &&
+      query.source.toLowerCase() !== 'all'
+    ) {
       where.source = { equals: query.source.trim(), mode: 'insensitive' };
     }
 
@@ -80,7 +84,9 @@ export class CustomerService {
       where: { phone: phoneClean },
     });
     if (existingPhone) {
-      throw new ConflictException(`A customer with phone number ${phoneClean} already exists.`);
+      throw new ConflictException(
+        `A customer with phone number ${phoneClean} already exists.`,
+      );
     }
 
     let emailClean: string | null = null;
@@ -90,7 +96,9 @@ export class CustomerService {
         where: { email: emailClean },
       });
       if (existingEmail) {
-        throw new ConflictException(`A customer with email ${emailClean} already exists.`);
+        throw new ConflictException(
+          `A customer with email ${emailClean} already exists.`,
+        );
       }
     }
 
@@ -98,8 +106,13 @@ export class CustomerService {
     let rawPassword = dto.password?.trim();
     if (!rawPassword) {
       rawPassword = `Nova@${crypto.randomBytes(4).toString('hex')}!`;
-    } else if (dto.confirmPassword && rawPassword !== dto.confirmPassword.trim()) {
-      throw new BadRequestException('Password and Confirm Password do not match.');
+    } else if (
+      dto.confirmPassword &&
+      rawPassword !== dto.confirmPassword.trim()
+    ) {
+      throw new BadRequestException(
+        'Password and Confirm Password do not match.',
+      );
     }
 
     const passwordHash = await bcrypt.hash(rawPassword, 10);
@@ -114,7 +127,10 @@ export class CustomerService {
         photo: profileImage,
         profileImageUrl: profileImage,
         source: dto.source?.trim() || 'Walk-In',
-        walletBalance: dto.walletBalance !== undefined ? new Prisma.Decimal(dto.walletBalance) : new Prisma.Decimal(0),
+        walletBalance:
+          dto.walletBalance !== undefined
+            ? new Prisma.Decimal(dto.walletBalance)
+            : new Prisma.Decimal(0),
       },
     });
 
@@ -160,7 +176,10 @@ export class CustomerService {
       throw new NotFoundException(`Customer with ID "${id}" not found.`);
     }
 
-    const primaryAddress = customer.addresses.find((a) => a.isDefault) || customer.addresses[0] || null;
+    const primaryAddress =
+      customer.addresses.find((a) => a.isDefault) ||
+      customer.addresses[0] ||
+      null;
     const lastOrder = customer.orders[0] || null;
 
     return {
@@ -197,9 +216,13 @@ export class CustomerService {
 
     if (dto.phone !== undefined && dto.phone.trim() !== existing.phone) {
       const phoneClean = dto.phone.trim();
-      const conflict = await this.prisma.customer.findUnique({ where: { phone: phoneClean } });
+      const conflict = await this.prisma.customer.findUnique({
+        where: { phone: phoneClean },
+      });
       if (conflict && conflict.id !== id) {
-        throw new ConflictException(`Phone number ${phoneClean} is already registered to another customer.`);
+        throw new ConflictException(
+          `Phone number ${phoneClean} is already registered to another customer.`,
+        );
       }
       updateData.phone = phoneClean;
     }
@@ -207,9 +230,13 @@ export class CustomerService {
     if (dto.email !== undefined) {
       const emailClean = dto.email ? dto.email.trim().toLowerCase() : null;
       if (emailClean && emailClean !== existing.email) {
-        const conflict = await this.prisma.customer.findUnique({ where: { email: emailClean } });
+        const conflict = await this.prisma.customer.findUnique({
+          where: { email: emailClean },
+        });
         if (conflict && conflict.id !== id) {
-          throw new ConflictException(`Email ${emailClean} is already registered to another customer.`);
+          throw new ConflictException(
+            `Email ${emailClean} is already registered to another customer.`,
+          );
         }
       }
       updateData.email = emailClean;
@@ -277,7 +304,12 @@ export class CustomerService {
     return this.prisma.customer.delete({ where: { id } });
   }
 
-  async getSummary(id: string, range: string = 'lifetime', from?: string, to?: string) {
+  async getSummary(
+    id: string,
+    range: string = 'lifetime',
+    from?: string,
+    to?: string,
+  ) {
     const customer = await this.prisma.customer.findUnique({ where: { id } });
     if (!customer) {
       throw new NotFoundException(`Customer with ID "${id}" not found.`);
@@ -288,7 +320,11 @@ export class CustomerService {
     const now = new Date();
 
     if (range === 'today') {
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfDay = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+      );
       dateFilter = { gte: startOfDay };
     } else if (range === 'week') {
       const day = now.getDay();
@@ -328,7 +364,7 @@ export class CustomerService {
 
     let totalSpent = 0;
     let totalPaid = 0;
-    let totalOrders = orders.length;
+    const totalOrders = orders.length;
     let purchasedQty = 0;
     let cancelledOrders = 0;
     let discountedOrders = 0;
@@ -424,7 +460,9 @@ export class CustomerService {
       dueAmount: Number(o.dueAmount),
       branchName: o.branch?.name,
       itemCount: o.items.reduce((sum, item) => sum + item.quantity, 0),
-      itemsSummary: o.items.map((i) => `${i.productNameSnapshot} (x${i.quantity})`).join(', '),
+      itemsSummary: o.items
+        .map((i) => `${i.productNameSnapshot} (x${i.quantity})`)
+        .join(', '),
     }));
   }
 
@@ -456,7 +494,9 @@ export class CustomerService {
     ]);
 
     const data = payments.map((p) => {
-      const itemNames = p.order?.items?.map((i) => i.productNameSnapshot).join(', ');
+      const itemNames = p.order?.items
+        ?.map((i) => i.productNameSnapshot)
+        .join(', ');
       return {
         id: p.id,
         createdAt: p.createdAt,
@@ -656,12 +696,18 @@ export class CustomerService {
     return address;
   }
 
-  async updateAddress(customerId: string, addressId: string, dto: Partial<CustomerAddressDto>) {
+  async updateAddress(
+    customerId: string,
+    addressId: string,
+    dto: Partial<CustomerAddressDto>,
+  ) {
     const existing = await this.prisma.address.findFirst({
       where: { id: addressId, customerId },
     });
     if (!existing) {
-      throw new NotFoundException(`Address with ID "${addressId}" not found for customer.`);
+      throw new NotFoundException(
+        `Address with ID "${addressId}" not found for customer.`,
+      );
     }
 
     if (dto.isDefault) {
@@ -676,11 +722,23 @@ export class CustomerService {
       data: {
         fullName: dto.fullName !== undefined ? dto.fullName.trim() : undefined,
         phone: dto.phone !== undefined ? dto.phone.trim() : undefined,
-        email: dto.email !== undefined ? (dto.email ? dto.email.trim() : null) : undefined,
-        fullAddress: dto.fullAddress !== undefined ? dto.fullAddress.trim() : undefined,
-        label: dto.label !== undefined ? (dto.label ? dto.label.trim() : null) : undefined,
+        email:
+          dto.email !== undefined
+            ? dto.email
+              ? dto.email.trim()
+              : null
+            : undefined,
+        fullAddress:
+          dto.fullAddress !== undefined ? dto.fullAddress.trim() : undefined,
+        label:
+          dto.label !== undefined
+            ? dto.label
+              ? dto.label.trim()
+              : null
+            : undefined,
         tag: dto.tag !== undefined ? dto.tag : undefined,
-        isDefault: dto.isDefault !== undefined ? Boolean(dto.isDefault) : undefined,
+        isDefault:
+          dto.isDefault !== undefined ? Boolean(dto.isDefault) : undefined,
       },
     });
 
@@ -700,7 +758,9 @@ export class CustomerService {
       where: { id: addressId, customerId },
     });
     if (!existing) {
-      throw new NotFoundException(`Address with ID "${addressId}" not found for customer.`);
+      throw new NotFoundException(
+        `Address with ID "${addressId}" not found for customer.`,
+      );
     }
 
     return this.prisma.address.delete({ where: { id: addressId } });

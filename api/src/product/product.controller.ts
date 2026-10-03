@@ -65,7 +65,10 @@ export class ProductController {
     });
   }
 
-  @RequirePermission({ module: ModuleName.SALES, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.SALES,
+    action: PermissionAction.CREATE,
+  })
   @Get('pos-search')
   posSearch(
     @Query('search') search?: string,
@@ -75,10 +78,20 @@ export class ProductController {
     @Query('inStock') inStock?: string,
     @Query('limit') limit?: number,
   ) {
-    return this.productService.posSearch({ search, category, branch: branchId || branch, branchId, inStock, limit });
+    return this.productService.posSearch({
+      search,
+      category,
+      branch: branchId || branch,
+      branchId,
+      inStock,
+      limit,
+    });
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.READ,
+  })
   @Get('admin')
   findAllAdmin(
     @Query('search') search?: string,
@@ -140,21 +153,21 @@ export class ProductController {
     return this.productService.getAttributes();
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.UPDATE,
+  })
   @Patch(':id/flags')
-  updateFlags(
-    @Param('id') id: string,
-    @Body() dto: ProductFlagsDto,
-  ) {
+  updateFlags(@Param('id') id: string, @Body() dto: ProductFlagsDto) {
     return this.productService.updateFlags(id, dto);
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.UPDATE,
+  })
   @Patch(':id/toggle')
-  toggleFlag(
-    @Param('id') id: string,
-    @Body() dto: ProductFlagsDto,
-  ) {
+  toggleFlag(@Param('id') id: string, @Body() dto: ProductFlagsDto) {
     return this.productService.updateFlags(id, dto);
   }
 
@@ -164,9 +177,14 @@ export class ProductController {
     return this.productService.findBySlug(slug);
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.CREATE,
+  })
   @Post()
-  @UseInterceptors(FilesInterceptor('images', 10, createMulterConfig('products')))
+  @UseInterceptors(
+    FilesInterceptor('images', 10, createMulterConfig('products')),
+  )
   create(
     @Body() dto: CreateProductDto,
     @UploadedFiles() files?: Express.Multer.File[],
@@ -174,9 +192,14 @@ export class ProductController {
     return this.productService.create(dto, files);
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.UPDATE,
+  })
   @Patch(':id')
-  @UseInterceptors(FilesInterceptor('images', 10, createMulterConfig('products')))
+  @UseInterceptors(
+    FilesInterceptor('images', 10, createMulterConfig('products')),
+  )
   update(
     @Param('id') id: string,
     @Body() dto: UpdateProductDto,
@@ -185,7 +208,10 @@ export class ProductController {
     return this.productService.update(id, dto, files);
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.DELETE,
+  })
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.productService.remove(id);

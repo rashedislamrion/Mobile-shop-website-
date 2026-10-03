@@ -3,11 +3,11 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAdminPage } from "@/contexts/AdminPageContext";
-import { ArrowLeft, Upload, Image as ImageIcon, Loader2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Upload, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { apiPost } from "@/lib/api-client";
+import { apiPost, getStaffToken, API_BASE_URL } from "@/lib/api-client";
 import Link from "next/link";
 
 export default function CreateBannerPage() {
@@ -54,11 +54,10 @@ export default function CreateBannerPage() {
         formData.append("image", selectedFile);
         formData.append("linkUrl", "#");
 
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
-        const res = await fetch(`${apiUrl}/banners`, {
+        const res = await fetch(`${API_BASE_URL}/banners`, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+            Authorization: `Bearer ${getStaffToken() || ""}`,
           },
           body: formData,
         });
@@ -117,23 +116,16 @@ export default function CreateBannerPage() {
           />
         </div>
 
-        {/* Informational Placeholder Box (2000 x 500) */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-500 block">
-            Expected Dimensions
-          </label>
-          <div className="w-full h-32 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/70 flex flex-col items-center justify-center text-slate-400 select-none">
-            <ImageIcon className="w-8 h-8 mb-1.5 text-slate-300" />
-            <span className="font-mono text-base font-bold text-slate-500">2000 × 500</span>
-            <span className="text-[11px] text-slate-400">Aspect Ratio 4:1 Landscape Format</span>
-          </div>
-        </div>
-
-        {/* Actual Upload Dropzone */}
+        {/* Banner Image Upload Dropzone */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-            Banner Ratio 4:1 (2000 × 500 px) <span className="text-rose-500">*</span>
-          </label>
+          <div>
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+              Banner Image <span className="text-rose-500">*</span>
+            </label>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Upload promotional banner image in any dimension or aspect ratio (PNG, JPG, WebP)
+            </p>
+          </div>
 
           <input
             ref={fileInputRef}

@@ -3,17 +3,23 @@ import { Transform } from 'class-transformer';
 import { OrderPaymentMethod, PaymentStatus } from '@prisma/client';
 
 export class UpdateOrderDto {
-  @Transform(({ value }) => (value !== undefined && value !== '' ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : undefined,
+  )
   @IsNumber()
   @IsOptional()
   discountAmount?: number;
 
-  @Transform(({ value }) => (value !== undefined && value !== '' ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : undefined,
+  )
   @IsNumber()
   @IsOptional()
   deliveryCharge?: number;
 
-  @Transform(({ value }) => (value !== undefined && value !== '' ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : undefined,
+  )
   @IsNumber()
   @IsOptional()
   paidAmount?: number;

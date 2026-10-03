@@ -9,7 +9,14 @@ import {
   CreateTicketMessageDto,
   UpdateTicketStatusDto,
 } from './dto/support-ticket.dto';
-import { Prisma, SenderType, StaffStatus, TicketStatus } from '@prisma/client';
+import {
+  Prisma,
+  SenderType,
+  StaffStatus,
+  TicketStatus,
+  ModuleName,
+  PermissionAction,
+} from '@prisma/client';
 
 @Injectable()
 export class SupportTicketService {
@@ -59,7 +66,9 @@ export class SupportTicketService {
       },
       include: {
         issueType: true,
-        customer: { select: { id: true, name: true, email: true, phone: true } },
+        customer: {
+          select: { id: true, name: true, email: true, phone: true },
+        },
         assignedTo: { select: { id: true, name: true, employeeId: true } },
         messages: { orderBy: { createdAt: 'asc' } },
       },
@@ -100,7 +109,9 @@ export class SupportTicketService {
     if (query?.issueTypeId) where.issueTypeId = query.issueTypeId;
     if (query?.assignedToId) where.assignedToId = query.assignedToId;
 
-    let orderBy: Prisma.SupportTicketOrderByWithRelationInput = { createdAt: 'desc' };
+    let orderBy: Prisma.SupportTicketOrderByWithRelationInput = {
+      createdAt: 'desc',
+    };
 
     if (query?.sortBy) {
       const s = query.sortBy.toLowerCase();
@@ -132,7 +143,9 @@ export class SupportTicketService {
         include: {
           issueType: true,
           order: { select: { id: true, orderCode: true } },
-          customer: { select: { id: true, name: true, email: true, phone: true } },
+          customer: {
+            select: { id: true, name: true, email: true, phone: true },
+          },
           assignedTo: { select: { id: true, name: true, employeeId: true } },
           messages: {
             take: 1,
@@ -176,17 +189,50 @@ export class SupportTicketService {
       where: { id },
       include: {
         issueType: true,
-        customer: { select: { id: true, name: true, email: true, phone: true } },
-        order: { select: { id: true, orderCode: true, totalAmount: true, status: true } },
+        customer: {
+          select: { id: true, name: true, email: true, phone: true },
+        },
+        order: {
+          select: {
+            id: true,
+            orderCode: true,
+            totalAmount: true,
+            status: true,
+          },
+        },
         assignedTo: { select: { id: true, name: true, employeeId: true } },
         messages: { orderBy: { createdAt: 'asc' } },
       },
     });
 
-    if (!ticket) throw new NotFoundException(`Support ticket with ID "${id}" not found.`);
+    if (!ticket)
+      throw new NotFoundException(`Support ticket with ID "${id}" not found.`);
 
-    if (user?.userType === 'CUSTOMER' && ticket.customerId !== user.sub) {
-      throw new ForbiddenException('You do not have permission to view this ticket.');
+    if (user?.userType === 'CUSTOMER') {
+      if (ticket.customerId !== user.sub) {
+        throw new ForbiddenException(
+          'You do not have permission to view this ticket.',
+        );
+      }
+    } else if (user?.userType === 'STAFF') {
+      if ((user as any).roleId) {
+        const perm = await this.prisma.rolePermission.findUnique({
+          where: {
+            roleId_module_action: {
+              roleId: (user as any).roleId,
+              module: ModuleName.HELP_REQUESTS,
+              action: PermissionAction.READ,
+            },
+          },
+        });
+        if (!perm?.allowed) {
+          throw new ForbiddenException(
+            'Your role does not have READ permission on HELP_REQUESTS.',
+          );
+        }
+      }
+    } else {
+      throw new ForbiddenException('Authentication required to view support ticket.');
     }
 
     return ticket;
@@ -199,7 +245,8 @@ export class SupportTicketService {
   ) {
     const ticket = await this.findOne(ticketId, user);
 
-    const senderType = user.userType === 'CUSTOMER' ? SenderType.CUSTOMER : SenderType.STAFF;
+    const senderType =
+      user.userType === 'CUSTOMER' ? SenderType.CUSTOMER : SenderType.STAFF;
 
     const message = await this.prisma.supportTicketMessage.create({
       data: {
@@ -219,11 +266,14 @@ export class SupportTicketService {
       where: { id },
       data: {
         status: dto.status,
-        assignedToId: dto.assignedToId !== undefined ? dto.assignedToId || null : undefined,
+        assignedToId:
+          dto.assignedToId !== undefined ? dto.assignedToId || null : undefined,
       },
       include: {
         issueType: true,
-        customer: { select: { id: true, name: true, email: true, phone: true } },
+        customer: {
+          select: { id: true, name: true, email: true, phone: true },
+        },
         assignedTo: { select: { id: true, name: true, employeeId: true } },
       },
     });

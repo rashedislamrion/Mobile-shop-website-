@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, ForbiddenException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ReportService } from './report.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
@@ -12,63 +21,92 @@ import { ModuleName, PermissionAction } from '@prisma/client';
 export class ReportController {
   constructor(private readonly reportService: ReportService) {}
 
+  @RequirePermission({
+    module: ModuleName.DASHBOARD,
+    action: PermissionAction.READ,
+  })
   @Get('dashboard')
   getDashboard(
     @Query('branch') branch?: string,
     @Query('period') period?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
+    @CurrentUser() user?: JwtPayload,
   ) {
-    return this.reportService.getDashboardData({
-      branch,
-      period,
-      dateFrom,
-      dateTo,
-    });
+    return this.reportService.getDashboardData(
+      {
+        branch,
+        period,
+        dateFrom,
+        dateTo,
+      },
+      user,
+    );
   }
 
   @Get('product-analytics')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getProductAnalytics(
     @Query('branch') branch?: string,
     @Query('category') category?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
+    @CurrentUser() user?: JwtPayload,
   ) {
-    return this.reportService.getProductAnalytics({
-      branch,
-      category,
-      dateFrom,
-      dateTo,
-    });
+    return this.reportService.getProductAnalytics(
+      {
+        branch,
+        category,
+        dateFrom,
+        dateTo,
+      },
+      user,
+    );
   }
 
   @Get('customer-due')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getCustomerDue(
     @Query('branch') branch?: string,
     @Query('dueRange') dueRange?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
+    @CurrentUser() user?: JwtPayload,
   ) {
-    return this.reportService.getCustomerDue({
-      branch,
-      dueRange,
-      dateFrom,
-      dateTo,
-    });
+    return this.reportService.getCustomerDue(
+      {
+        branch,
+        dueRange,
+        dateFrom,
+        dateTo,
+      },
+      user,
+    );
   }
 
   @Get('customer-due/:customerId/unpaid-orders')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getCustomerUnpaidOrders(@Param('customerId') customerId: string) {
     return this.reportService.getUnpaidOrdersForCustomer(customerId);
   }
 
   @Post('customer-due/payment')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.UPDATE,
+  })
   recordCustomerDuePayment(
-    @Body() dto: {
+    @Body()
+    dto: {
       customerId: string;
       amount: number;
       extraDiscount?: number;
@@ -84,7 +122,10 @@ export class ReportController {
   }
 
   @Get('supplier-due')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getSupplierDue(
     @Query('supplier') supplier?: string,
     @Query('dateFrom') dateFrom?: string,
@@ -98,25 +139,35 @@ export class ReportController {
   }
 
   @Get('website-sales')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getWebsiteSalesReport(
     @Query('branch') branch?: string,
     @Query('status') status?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
     @Query('search') search?: string,
+    @CurrentUser() user?: JwtPayload,
   ) {
-    return this.reportService.getWebsiteSalesReport({
-      branch,
-      status,
-      dateFrom,
-      dateTo,
-      search,
-    });
+    return this.reportService.getWebsiteSalesReport(
+      {
+        branch,
+        status,
+        dateFrom,
+        dateTo,
+        search,
+      },
+      user,
+    );
   }
 
   @Get('pos-sales')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getPosSalesReport(
     @Query('branch') branch?: string,
     @Query('status') status?: string,
@@ -124,19 +175,26 @@ export class ReportController {
     @Query('dateTo') dateTo?: string,
     @Query('search') search?: string,
     @Query('staffId') staffId?: string,
+    @CurrentUser() user?: JwtPayload,
   ) {
-    return this.reportService.getPosSalesReport({
-      branch,
-      status,
-      dateFrom,
-      dateTo,
-      search,
-      staffId,
-    });
+    return this.reportService.getPosSalesReport(
+      {
+        branch,
+        status,
+        dateFrom,
+        dateTo,
+        search,
+        staffId,
+      },
+      user,
+    );
   }
 
   @Get('service-sales')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getServiceSalesReport(
     @CurrentUser() user: JwtPayload,
     @Query('branch') branch?: string,
@@ -148,20 +206,28 @@ export class ReportController {
   ) {
     const isTech = user.roleName?.toLowerCase().includes('technician');
     if (isTech) {
-      throw new ForbiddenException('Access denied: Technicians can only view their own individual servicing reports');
+      throw new ForbiddenException(
+        'Access denied: Technicians can only view their own individual servicing reports',
+      );
     }
-    return this.reportService.getServiceSalesReport({
-      branch,
-      status,
-      technicianId,
-      dateFrom,
-      dateTo,
-      search,
-    });
+    return this.reportService.getServiceSalesReport(
+      {
+        branch,
+        status,
+        technicianId,
+        dateFrom,
+        dateTo,
+        search,
+      },
+      user,
+    );
   }
 
   @Get('service-global')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getGlobalServiceReport(
     @CurrentUser() user: JwtPayload,
     @Query('branch') branch?: string,
@@ -172,28 +238,53 @@ export class ReportController {
   ) {
     const isTech = user.roleName?.toLowerCase().includes('technician');
     if (isTech) {
-      throw new ForbiddenException('Access denied: Technicians can only view their own individual servicing reports');
+      throw new ForbiddenException(
+        'Access denied: Technicians can only view their own individual servicing reports',
+      );
     }
-    return this.reportService.getGlobalServiceReport({
-      branch,
-      technicianId,
-      dateFrom,
-      dateTo,
-      search,
-    });
+    return this.reportService.getGlobalServiceReport(
+      {
+        branch,
+        technicianId,
+        dateFrom,
+        dateTo,
+        search,
+      },
+      user,
+    );
   }
 
+  @RequirePermission({
+    module: ModuleName.SALES,
+    action: PermissionAction.READ,
+  })
   @Get('servicing-technician')
-  getServicingTechnicianReport(
+  async getServicingTechnicianReport(
     @CurrentUser() user: JwtPayload,
     @Query('technicianId') technicianId?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
     @Query('search') search?: string,
   ) {
-    const isTech = user.roleName?.toLowerCase().includes('technician');
-    // If caller is a technician, strictly bind to their own user.sub, ignoring client-supplied technicianId
-    const effectiveTechId = isTech ? user.sub : (technicianId || user.sub);
+    const hasReportRead = await this.reportService.hasPermission(
+      user?.roleId,
+      ModuleName.REPORT,
+      PermissionAction.READ,
+    );
+    const isTech = await this.reportService.isTechnicianUser(
+      user?.sub,
+      user?.roleId,
+      user?.roleName,
+    );
+
+    if (!isTech && !hasReportRead) {
+      throw new ForbiddenException(
+        'Access denied: Servicing technician report is only accessible to technicians and management',
+      );
+    }
+
+    // Servicing-technician report shows only the caller's own jobs unless the caller also has REPORT:READ
+    const effectiveTechId = hasReportRead ? technicianId || user.sub : user.sub;
     return this.reportService.getServicingTechnicianReport(effectiveTechId, {
       dateFrom,
       dateTo,
@@ -202,7 +293,10 @@ export class ReportController {
   }
 
   @Get('technician-performance')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getTechnicianPerformanceReport(
     @CurrentUser() user: JwtPayload,
     @Query('branch') branch?: string,
@@ -211,7 +305,9 @@ export class ReportController {
   ) {
     const isTech = user.roleName?.toLowerCase().includes('technician');
     if (isTech) {
-      throw new ForbiddenException('Access denied: Technicians can only view their own individual servicing reports');
+      throw new ForbiddenException(
+        'Access denied: Technicians can only view their own individual servicing reports',
+      );
     }
     return this.reportService.getTechnicianPerformanceReport({
       branch,
@@ -221,7 +317,10 @@ export class ReportController {
   }
 
   @Get('technician-profit')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getTechnicianProfitReport(
     @CurrentUser() user: JwtPayload,
     @Query('branch') branch?: string,
@@ -230,7 +329,9 @@ export class ReportController {
   ) {
     const isTech = user.roleName?.toLowerCase().includes('technician');
     if (isTech) {
-      throw new ForbiddenException('Access denied: Technicians can only view their own individual servicing reports');
+      throw new ForbiddenException(
+        'Access denied: Technicians can only view their own individual servicing reports',
+      );
     }
     return this.reportService.getTechnicianProfitReport({
       branch,
@@ -240,7 +341,10 @@ export class ReportController {
   }
 
   @Get('shopwise')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getShopwiseReport(
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
@@ -252,7 +356,10 @@ export class ReportController {
   }
 
   @Get('marketing-fee')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getMarketingFeeReport(
     @Query('branch') branch?: string,
     @Query('dateFrom') dateFrom?: string,
@@ -266,7 +373,10 @@ export class ReportController {
   }
 
   @Get('expense')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getExpenseReport(
     @Query('categoryId') categoryId?: string,
     @Query('branch') branch?: string,
@@ -274,19 +384,26 @@ export class ReportController {
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
     @Query('search') search?: string,
+    @CurrentUser() user?: JwtPayload,
   ) {
-    return this.reportService.getExpenseReport({
-      categoryId,
-      branch,
-      walletTypeId,
-      dateFrom,
-      dateTo,
-      search,
-    });
+    return this.reportService.getExpenseReport(
+      {
+        categoryId,
+        branch,
+        walletTypeId,
+        dateFrom,
+        dateTo,
+        search,
+      },
+      user,
+    );
   }
 
   @Get('purchase')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getPurchaseReport(
     @Query('supplierId') supplierId?: string,
     @Query('branch') branch?: string,
@@ -294,19 +411,26 @@ export class ReportController {
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
     @Query('search') search?: string,
+    @CurrentUser() user?: JwtPayload,
   ) {
-    return this.reportService.getPurchaseReport({
-      supplierId,
-      branch,
-      paymentStatus,
-      dateFrom,
-      dateTo,
-      search,
-    });
+    return this.reportService.getPurchaseReport(
+      {
+        supplierId,
+        branch,
+        paymentStatus,
+        dateFrom,
+        dateTo,
+        search,
+      },
+      user,
+    );
   }
 
   @Get('transactions')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getTransactionsReport(
     @Query('walletTypeId') walletTypeId?: string,
     @Query('branch') branch?: string,
@@ -315,20 +439,27 @@ export class ReportController {
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
     @Query('search') search?: string,
+    @CurrentUser() user?: JwtPayload,
   ) {
-    return this.reportService.getTransactionsReport({
-      walletTypeId,
-      branch,
-      type,
-      payType,
-      dateFrom,
-      dateTo,
-      search,
-    });
+    return this.reportService.getTransactionsReport(
+      {
+        walletTypeId,
+        branch,
+        type,
+        payType,
+        dateFrom,
+        dateTo,
+        search,
+      },
+      user,
+    );
   }
 
   @Get('product-stock')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getProductStockReport(
     @Query('inStockOnly') inStockOnly?: string,
     @Query('branch') branch?: string,
@@ -350,46 +481,69 @@ export class ReportController {
   }
 
   @Get('courier')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getCourierReport(
+    @Query('branch') branch?: string,
     @Query('status') status?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
     @Query('search') search?: string,
+    @CurrentUser() user?: JwtPayload,
   ) {
-    return this.reportService.getCourierReport({
-      status,
-      dateFrom,
-      dateTo,
-      search,
-    });
+    return this.reportService.getCourierReport(
+      {
+        branch,
+        status,
+        dateFrom,
+        dateTo,
+        search,
+      },
+      user,
+    );
   }
 
   @Get('summary')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getSummary(
     @Query('branch') branch?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
+    @CurrentUser() user?: JwtPayload,
   ) {
-    return this.reportService.getSummary({
-      branch,
-      dateFrom,
-      dateTo,
-    });
+    return this.reportService.getSummary(
+      {
+        branch,
+        dateFrom,
+        dateTo,
+      },
+      user,
+    );
   }
 
   @Get('discount')
-  @RequirePermission({ module: ModuleName.REPORT, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.REPORT,
+    action: PermissionAction.READ,
+  })
   getDiscountReport(
     @Query('branch') branch?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
+    @CurrentUser() user?: JwtPayload,
   ) {
-    return this.reportService.getDiscountReport({
-      branch,
-      dateFrom,
-      dateTo,
-    });
+    return this.reportService.getDiscountReport(
+      {
+        branch,
+        dateFrom,
+        dateTo,
+      },
+      user,
+    );
   }
 }

@@ -65,6 +65,7 @@ export default function SupplierListPage() {
       toast.error("Cannot delete supplier with outstanding due balance");
       return;
     }
+    if (!confirm("Are you sure you want to delete this supplier?")) return;
     try {
       await apiDelete(`/suppliers/${id}`);
       toast.success("Supplier deleted successfully");

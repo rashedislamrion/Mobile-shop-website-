@@ -33,31 +33,49 @@ export class PromoCodeController {
   }
 
   @Get()
-  @RequirePermission({ module: ModuleName.PROMO_CODE, action: PermissionAction.READ })
-  findAll(@Query('status') status?: PromoAdStatus, @Query('search') search?: string) {
+  @RequirePermission({
+    module: ModuleName.PROMO_CODE,
+    action: PermissionAction.READ,
+  })
+  findAll(
+    @Query('status') status?: PromoAdStatus,
+    @Query('search') search?: string,
+  ) {
     return this.promoCodeService.findAll({ status, search });
   }
 
   @Get(':id')
-  @RequirePermission({ module: ModuleName.PROMO_CODE, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.PROMO_CODE,
+    action: PermissionAction.READ,
+  })
   findOne(@Param('id') id: string) {
     return this.promoCodeService.findOne(id);
   }
 
   @Post()
-  @RequirePermission({ module: ModuleName.PROMO_CODE, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.PROMO_CODE,
+    action: PermissionAction.CREATE,
+  })
   create(@Body() createDto: CreatePromoCodeDto) {
     return this.promoCodeService.create(createDto);
   }
 
   @Patch(':id')
-  @RequirePermission({ module: ModuleName.PROMO_CODE, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.PROMO_CODE,
+    action: PermissionAction.UPDATE,
+  })
   update(@Param('id') id: string, @Body() updateDto: UpdatePromoCodeDto) {
     return this.promoCodeService.update(id, updateDto);
   }
 
   @Delete(':id')
-  @RequirePermission({ module: ModuleName.PROMO_CODE, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.PROMO_CODE,
+    action: PermissionAction.DELETE,
+  })
   remove(@Param('id') id: string) {
     return this.promoCodeService.remove(id);
   }

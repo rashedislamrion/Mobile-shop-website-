@@ -1,17 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { MapPin, Edit, Trash2 } from "lucide-react";
+import { MapPin, Trash2, Loader2, Home, Building2, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/context/AuthContext";
+import { apiGet, apiPost, apiDelete } from "@/lib/api-client";
 
-const mockAddresses: any[] = [];
+interface CustomerAddress {
+  id: string;
+  fullName: string;
+  phone: string;
+  email?: string | null;
+  fullAddress: string;
+  tag: "HOME" | "OFFICE" | "OTHER";
+  isDefault: boolean;
+}
 
 const addressSchema = z.object({
   fullName: z.string().min(2, "Name is required"),
@@ -24,21 +34,104 @@ const addressSchema = z.object({
 type AddressFormValues = z.infer<typeof addressSchema>;
 
 export default function AddressPage() {
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [activeTag, setActiveTag] = useState<"Home" | "Office" | "Other">("Home");
+  const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     setValue,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<AddressFormValues>({
     resolver: zodResolver(addressSchema),
     defaultValues: { tag: "Home" }
   });
 
-  const onSubmit = async () => {
-    await new Promise(resolve => setTimeout(resolve, 800));
-    toast.success("Address saved successfully!");
+  const loadAddresses = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      setIsLoadingAddresses(true);
+      const res = await apiGet<CustomerAddress[]>(`/customers/${user.id}/addresses`);
+      if (Array.isArray(res)) {
+        setAddresses(res);
+      } else {
+        setAddresses([]);
+      }
+    } catch {
+      setAddresses([]);
+    } finally {
+      setIsLoadingAddresses(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadAddresses();
+  }, [loadAddresses]);
+
+  const onSubmit = async (data: AddressFormValues) => {
+    if (!user?.id) {
+      toast.error("Please login to manage your addresses.");
+      return;
+    }
+
+    try {
+      const tagMap: Record<string, "HOME" | "OFFICE" | "OTHER"> = {
+        Home: "HOME",
+        Office: "OFFICE",
+        Other: "OTHER",
+      };
+
+      await apiPost(`/customers/${user.id}/addresses`, {
+        fullName: data.fullName.trim(),
+        phone: data.phone.trim(),
+        email: data.email ? data.email.trim() : undefined,
+        fullAddress: data.address.trim(),
+        tag: tagMap[data.tag] || "HOME",
+        isDefault: addresses.length === 0,
+      });
+
+      toast.success("Address saved successfully!");
+      reset({ fullName: "", phone: "", email: "", address: "", tag: "Home" });
+      setActiveTag("Home");
+      await loadAddresses();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save address");
+    }
+  };
+
+  const handleDelete = async (addressId: string) => {
+    if (!user?.id) return;
+    try {
+      setDeletingId(addressId);
+      await apiDelete(`/customers/${user.id}/addresses/${addressId}`);
+      toast.success("Address deleted successfully!");
+      await loadAddresses();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete address");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const getTagIcon = (tag: string) => {
+    switch (tag) {
+      case "OFFICE":
+        return <Building2 className="w-4 h-4 text-primary" />;
+      case "HOME":
+        return <Home className="w-4 h-4 text-emerald-600" />;
+      default:
+        return <HelpCircle className="w-4 h-4 text-slate-500" />;
+    }
+  };
+
+  const formatTagLabel = (tag: string) => {
+    if (tag === "OFFICE") return "Office";
+    if (tag === "OTHER") return "Other";
+    return "Home";
   };
 
   return (
@@ -50,33 +143,52 @@ export default function AddressPage() {
       </div>
 
       {/* Existing Addresses */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {mockAddresses.map((addr) => (
-          <div key={addr.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm relative group hover:border-primary/50 transition-colors">
-            {addr.isDefault && (
-              <span className="absolute top-4 right-4 text-[10px] font-bold tracking-wider uppercase text-primary bg-primary/10 px-2 py-1 rounded-full">Default</span>
-            )}
-            <div className="flex items-center gap-2 mb-2">
-              <MapPin className="w-4 h-4 text-slate-400" />
-              <span className="font-semibold text-slate-900">{addr.tag}</span>
+      {isLoadingAddresses || isAuthLoading ? (
+        <div className="flex items-center justify-center p-8 bg-white border border-slate-100 rounded-2xl">
+          <Loader2 className="w-6 h-6 animate-spin text-primary mr-2" />
+          <span className="text-sm text-slate-500">Loading saved addresses...</span>
+        </div>
+      ) : addresses.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {addresses.map((addr) => (
+            <div key={addr.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm relative group hover:border-primary/50 transition-colors">
+              {addr.isDefault && (
+                <span className="absolute top-4 right-4 text-[10px] font-bold tracking-wider uppercase text-primary bg-primary/10 px-2 py-1 rounded-full">Default</span>
+              )}
+              <div className="flex items-center gap-2 mb-2">
+                {getTagIcon(addr.tag)}
+                <span className="font-semibold text-slate-900">{formatTagLabel(addr.tag)}</span>
+              </div>
+              <div className="text-sm text-slate-600 space-y-1 mb-4 ml-6">
+                <p className="font-medium text-slate-900">{addr.fullName}</p>
+                <p>{addr.fullAddress}</p>
+                <p className="pt-1 text-xs text-slate-500">{addr.phone}</p>
+              </div>
+              <div className="flex items-center gap-2 ml-6">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleDelete(addr.id)}
+                  disabled={deletingId === addr.id}
+                  className="h-8 text-xs font-medium border-slate-200 text-danger hover:text-danger hover:bg-danger/5"
+                >
+                  {deletingId === addr.id ? (
+                    <Loader2 className="w-3 h-3 animate-spin mr-1.5" />
+                  ) : (
+                    <Trash2 className="w-3 h-3 mr-1.5" />
+                  )}
+                  Delete
+                </Button>
+              </div>
             </div>
-            <div className="text-sm text-slate-600 space-y-1 mb-4 ml-6">
-              <p className="font-medium text-slate-900">{addr.name}</p>
-              <p>{addr.address}</p>
-              <p>{addr.city}, {addr.zip}</p>
-              <p className="pt-1">{addr.phone}</p>
-            </div>
-            <div className="flex items-center gap-2 ml-6">
-              <Button variant="outline" size="sm" className="h-8 text-xs font-medium border-slate-200">
-                <Edit className="w-3 h-3 mr-1.5" /> Edit
-              </Button>
-              <Button variant="outline" size="sm" className="h-8 text-xs font-medium border-slate-200 text-danger hover:text-danger hover:bg-danger/5">
-                <Trash2 className="w-3 h-3 mr-1.5" /> Delete
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="p-6 bg-slate-50/70 border border-slate-200/80 rounded-2xl text-center text-slate-500 text-sm">
+          <MapPin className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50" />
+          No saved addresses yet. Add your primary delivery address below.
+        </div>
+      )}
 
       <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
         <h3 className="text-lg font-bold text-slate-900 mb-6">Add New Address</h3>

@@ -5,6 +5,12 @@ export const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
 
 if (typeof window !== 'undefined') {
+  if (process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_API_URL) {
+    console.error(
+      '%c[FATAL CONFIG ERROR] NEXT_PUBLIC_API_URL is NOT configured in production! Set NEXT_PUBLIC_API_URL to your backend API URL.',
+      'background: red; color: white; font-size: 14px; font-weight: bold; padding: 6px;',
+    );
+  }
   console.log(`[MobileHubBD Client Init] API Base URL: ${API_BASE_URL}`);
 }
 
@@ -153,6 +159,7 @@ function notifyUnauthorized(scope?: 'STAFF' | 'CUSTOMER') {
 export function getImageUrl(path?: string | null, fallback = '/images/placeholder.png'): string {
   if (!path) return fallback;
   if (typeof path !== 'string') return fallback;
+  if (path.includes('placehold.co')) return fallback;
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
   if (path.startsWith('/uploads/')) return `${BACKEND_URL}${path}`;
   if (path.startsWith('uploads/')) return `${BACKEND_URL}/${path}`;

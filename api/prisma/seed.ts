@@ -1,97 +1,92 @@
-import { PrismaClient, PermissionScope, ModuleName, PermissionAction, StaffStatus, Role } from '@prisma/client';
+import {
+  PrismaClient,
+  ModuleName,
+  PermissionAction,
+  StaffStatus,
+  Role,
+} from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { SEED_ROLES } from './roles-definition';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Starting seed...');
+  console.log('Starting mobilehubbd database seed...');
 
-  // 1. Roles
-  const rolesData = [
-    { name: 'Admin', scope: PermissionScope.GLOBAL },
-    { name: 'Branch Admin', scope: PermissionScope.OWN_BRANCH },
-    { name: 'Branch Manager', scope: PermissionScope.OWN_BRANCH },
-    { name: 'Salesperson', scope: PermissionScope.OWN_BRANCH },
-    { name: 'Purchase Manager', scope: PermissionScope.GLOBAL },
-    { name: 'Product Uploader', scope: PermissionScope.GLOBAL },
-    { name: 'Customer Service', scope: PermissionScope.GLOBAL },
-    { name: 'Technician', scope: PermissionScope.OWN_BRANCH },
-    { name: 'SEO', scope: PermissionScope.GLOBAL },
-  ];
-
+  // ==========================================
+  // 1. Roles & Permissions (Canonical Shared Matrix)
+  // ==========================================
   const createdRoles: Role[] = [];
-  for (const r of rolesData) {
+  for (const r of SEED_ROLES) {
     const role = await prisma.role.upsert({
       where: { name: r.name },
-      update: { isSystem: true, scope: r.scope },
-      create: { name: r.name, isSystem: true, scope: r.scope },
+      update: { isSystem: r.isSystem, scope: r.scope, description: r.description },
+      create: { name: r.name, isSystem: r.isSystem, scope: r.scope, description: r.description },
     });
     createdRoles.push(role);
   }
-  
-  // Permissions Logic
-  // Provide basic CRUD matrix
+
   const modules = Object.values(ModuleName);
   const actions = Object.values(PermissionAction);
 
   let permissionsCount = 0;
-  for (const role of createdRoles) {
+  for (const roleDef of SEED_ROLES) {
+    const dbRole = createdRoles.find((r) => r.name === roleDef.name)!;
     for (const module of modules) {
       for (const action of actions) {
-        let allowed = false;
-        
-        if (role.name === 'Admin') {
-          allowed = true;
-        } else if (role.name === 'Salesperson') {
-          if (['SALES', 'ORDERS', 'CUSTOMERS', 'PRODUCTS'].includes(module) && action !== 'DELETE') allowed = true;
-        } else if (role.name === 'Technician') {
-          if ((module === 'SALES' && (action === 'READ' || action === 'UPDATE')) || (module === 'REPORT' && action === 'READ')) allowed = true;
-        } else if (role.name === 'SEO') {
-          if (['CMS', 'PROMOTIONAL_BANNER', 'ADS', 'PROMO_CODE', 'BLOGS'].includes(module)) allowed = true;
-        } else if (role.name === 'Product Uploader') {
-          if (['PRODUCTS', 'CATEGORY'].includes(module) && action !== 'DELETE') allowed = true;
-        } else if (role.name === 'Branch Admin' || role.name === 'Branch Manager') {
-           // allow most except business settings
-           if (!['BUSINESS_SETTINGS', 'THIRD_PARTY_CONFIG'].includes(module)) allowed = true;
-        } else if (role.name === 'Customer Service') {
-           if (['HELP_REQUESTS', 'HELP_NOTES', 'ORDERS', 'CUSTOMERS'].includes(module)) allowed = true;
-        } else if (role.name === 'Purchase Manager') {
-           if (['PURCHASE', 'SUPPLIERS', 'PRODUCTS'].includes(module)) allowed = true;
-        }
-
+        const allowed = roleDef.isAllowed(module, action);
         await prisma.rolePermission.upsert({
-          where: { roleId_module_action: { roleId: role.id, module, action } },
+          where: { roleId_module_action: { roleId: dbRole.id, module, action } },
           update: { allowed },
-          create: { roleId: role.id, module, action, allowed },
+          create: { roleId: dbRole.id, module, action, allowed },
         });
         permissionsCount++;
       }
     }
   }
+  console.log(`✓ Seeded ${createdRoles.length} roles and ${permissionsCount} permission entries`);
 
-  // 2. Staff Accounts
-  const adminRole = createdRoles.find(r => r.name === 'Admin')!;
-  const branchAdminRole = createdRoles.find(r => r.name === 'Branch Admin')!;
-  const technicianRole = createdRoles.find(r => r.name === 'Technician')!;
-  const salespersonRole = createdRoles.find(r => r.name === 'Salesperson')!;
+  // ==========================================
+  // 2. Super Admin Configuration
+  // ==========================================
+  const adminRole = createdRoles.find((r) => r.name === 'Admin')!;
+  const isProduction = process.env.NODE_ENV === 'production';
+  const seedDemo = process.env.SEED_DEMO === 'true' || (!isProduction && process.env.SEED_DEMO !== 'false');
 
-  const passwordHash = await bcrypt.hash('Admin@12345', 10);
+  let adminEmail = process.env.SEED_ADMIN_EMAIL;
+  let adminPassword = process.env.SEED_ADMIN_PASSWORD;
+
+  if (isProduction) {
+    if (!adminEmail || !adminPassword || adminPassword.length < 12) {
+      throw new Error(
+        '[SEED FATAL] In production, SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD (minimum 12 characters) must be configured in environment.',
+      );
+    }
+  } else {
+    adminEmail = adminEmail || 'admin@mobilehubbd.test';
+    adminPassword = adminPassword || 'Admin@12345';
+  }
+
+  const passwordHash = await bcrypt.hash(adminPassword, 10);
   await prisma.staff.upsert({
-    where: { email: 'admin@mobilehubbd.test' },
-    update: { passwordHash, roleId: adminRole.id, adminPanelAccess: true },
+    where: { email: adminEmail },
+    update: { passwordHash, roleId: adminRole.id, adminPanelAccess: true, status: StaffStatus.ACTIVE },
     create: {
       employeeId: 'EMP-0001',
       name: 'Super Admin',
-      email: 'admin@mobilehubbd.test',
+      email: adminEmail,
       phone: '+8801700000000',
       passwordHash,
       roleId: adminRole.id,
       adminPanelAccess: true,
       status: StaffStatus.ACTIVE,
-    }
+    },
   });
+  console.log(`✓ Super Admin provisioned (${adminEmail})`);
 
+  // ==========================================
   // 3. Branches
+  // ==========================================
   const branches = [
     { name: 'Dhaka Main', code: 'BR-DHK', type: 'FLAGSHIP' as const, address: 'Gulshan', city: 'Dhaka', phone: '01711111111' },
     { name: 'Chittagong Outlet', code: 'BR-CTG', type: 'OUTLET' as const, address: 'GEC', city: 'Chittagong', phone: '01722222222' },
@@ -103,76 +98,89 @@ async function main() {
     // @ts-ignore
     const createdBranch = await prisma.branch.upsert({
       where: { code: b.code },
-      update: {},
+      update: { name: b.name, address: b.address, city: b.city, phone: b.phone },
       create: b,
     });
     if (b.code === 'BR-DHK') dhakaBranchId = createdBranch.id;
     branchCount++;
   }
+  console.log(`✓ Seeded ${branchCount} branches`);
 
-  // Demo Branch Admin
-  const branchAdminHash = await bcrypt.hash('Branch@12345', 10);
-  await prisma.staff.upsert({
-    where: { email: 'demo.branchadmin@mobilehubbd.test' },
-    update: { passwordHash: branchAdminHash, roleId: branchAdminRole.id, branchId: dhakaBranchId, adminPanelAccess: true },
-    create: {
-      employeeId: 'DEMO-BADM-01',
-      name: 'Dhaka Branch Admin',
-      email: 'demo.branchadmin@mobilehubbd.test',
-      phone: '+8801700000001',
-      passwordHash: branchAdminHash,
-      roleId: branchAdminRole.id,
-      branchId: dhakaBranchId,
-      adminPanelAccess: true,
-      status: StaffStatus.ACTIVE,
+  // ==========================================
+  // 4. Demo Accounts (Skipped in production unless SEED_DEMO=true)
+  // ==========================================
+  if (seedDemo) {
+    console.log('Seeding demo accounts for QA and role testing...');
+    const demoPasswordHash = await bcrypt.hash('Admin@12345', 10);
+
+    const demoRoles = [
+      { email: 'demo.admin@mobilehubbd.test', role: 'Admin', name: 'Demo Global Admin', empId: 'DEMO-ADM-01', phone: '+8801799000001', branchId: null },
+      { email: 'demo.branchadmin@mobilehubbd.test', role: 'Branch Admin', name: 'Dhaka Branch Admin', empId: 'DEMO-BADM-01', phone: '+8801700000001', branchId: dhakaBranchId },
+      { email: 'demo.branchmanager@mobilehubbd.test', role: 'Branch Manager', name: 'Dhaka Branch Manager', empId: 'DEMO-BMGR-01', phone: '+8801700000004', branchId: dhakaBranchId },
+      { email: 'sales@mobilehubbd.test', role: 'Salesperson', name: 'Counter Sales Staff', empId: 'DEMO-SALES-01', phone: '+8801700000003', branchId: dhakaBranchId },
+      { email: 'demo.purchasemanager@mobilehubbd.test', role: 'Purchase Manager', name: 'Procurement Lead', empId: 'DEMO-PUR-01', phone: '+8801700000005', branchId: null },
+      { email: 'demo.productuploader@mobilehubbd.test', role: 'Product Uploader', name: 'Catalog Manager', empId: 'DEMO-UPL-01', phone: '+8801700000006', branchId: null },
+      { email: 'demo.customerservice@mobilehubbd.test', role: 'Customer Service', name: 'Customer Support Rep', empId: 'DEMO-CS-01', phone: '+8801700000007', branchId: null },
+      { email: 'demo.technician@mobilehubbd.test', role: 'Technician', name: 'Senior Technician', empId: 'DEMO-TECH-01', phone: '+8801700000002', branchId: dhakaBranchId, profitSharePercentage: 50 },
+      { email: 'demo.seo@mobilehubbd.test', role: 'SEO', name: 'Digital Marketer', empId: 'DEMO-SEO-01', phone: '+8801700000008', branchId: null },
+      { email: 'demo.auditor@mobilehubbd.test', role: 'Inventory Auditor', name: 'Stock Auditor', empId: 'DEMO-AUD-01', phone: '+8801700000009', branchId: dhakaBranchId },
+    ];
+
+    for (const d of demoRoles) {
+      const r = createdRoles.find((role) => role.name === d.role);
+      if (r) {
+        await prisma.staff.upsert({
+          where: { email: d.email },
+          update: {
+            passwordHash: demoPasswordHash,
+            roleId: r.id,
+            branchId: d.branchId,
+            adminPanelAccess: true,
+            status: StaffStatus.ACTIVE,
+            ...(d.profitSharePercentage ? { profitSharePercentage: d.profitSharePercentage } : {}),
+          },
+          create: {
+            employeeId: d.empId,
+            name: d.name,
+            email: d.email,
+            phone: d.phone,
+            passwordHash: demoPasswordHash,
+            roleId: r.id,
+            branchId: d.branchId,
+            adminPanelAccess: true,
+            status: StaffStatus.ACTIVE,
+            ...(d.profitSharePercentage ? { profitSharePercentage: d.profitSharePercentage } : {}),
+          },
+        });
+      }
     }
-  });
 
-  // Demo Technician
-  const techHash = await bcrypt.hash('Tech@12345', 10);
-  await prisma.staff.upsert({
-    where: { email: 'demo.technician@mobilehubbd.test' },
-    update: { passwordHash: techHash, roleId: technicianRole.id, branchId: dhakaBranchId, profitSharePercentage: 50, adminPanelAccess: true },
-    create: {
-      employeeId: 'DEMO-TECH-01',
-      name: 'Senior Technician',
-      email: 'demo.technician@mobilehubbd.test',
-      phone: '+8801700000002',
-      passwordHash: techHash,
-      roleId: technicianRole.id,
-      branchId: dhakaBranchId,
-      profitSharePercentage: 50,
-      adminPanelAccess: true,
-      status: StaffStatus.ACTIVE,
-    }
-  });
+    // Customer Account for testing customer 401/403 access
+    await prisma.customer.upsert({
+      where: { email: 'customer@mobilehubbd.test' },
+      update: { passwordHash: demoPasswordHash },
+      create: {
+        name: 'Demo Customer',
+        email: 'customer@mobilehubbd.test',
+        phone: '+8801800000001',
+        passwordHash: demoPasswordHash,
+      },
+    });
 
-  // Demo Salesperson
-  const salesHash = await bcrypt.hash('Sales@12345', 10);
-  await prisma.staff.upsert({
-    where: { email: 'sales@mobilehubbd.test' },
-    update: { passwordHash: salesHash, roleId: salespersonRole.id, branchId: dhakaBranchId, adminPanelAccess: true },
-    create: {
-      employeeId: 'DEMO-SALES-01',
-      name: 'Counter Sales Staff',
-      email: 'sales@mobilehubbd.test',
-      phone: '+8801700000003',
-      passwordHash: salesHash,
-      roleId: salespersonRole.id,
-      branchId: dhakaBranchId,
-      adminPanelAccess: true,
-      status: StaffStatus.ACTIVE,
-    }
-  });
+    console.log(`✓ Seeded ${demoRoles.length} demo staff roles and 1 demo customer`);
+  } else {
+    console.log('Skipping demo accounts (production mode: SEED_DEMO=false).');
+  }
 
-  // 4. Misc defaults
+  // ==========================================
+  // 5. System Defaults & Settings
+  // ==========================================
   await prisma.country.upsert({
     where: { name: 'Bangladesh' },
     update: {},
-    create: { name: 'Bangladesh', code: 'BD', currency: 'BDT' }
+    create: { name: 'Bangladesh', code: 'BD', currency: 'BDT' },
   });
 
-  // BusinessSettings
   const existingSettings = await prisma.businessSetting.findFirst();
   if (!existingSettings) {
     await prisma.businessSetting.create({
@@ -181,39 +189,44 @@ async function main() {
         branding: { primaryColor: '#000000' },
         currencyTax: { currency: 'BDT' },
         orderSettings: { minOrder: 100 },
-        notifications: { email: true }
-      }
+        notifications: { email: true },
+      },
     });
   }
 
-  // Payment gateways
-  const gateways = ['BKASH', 'SSLCOMMERZ', 'COD'] as const;
+  const gateways = [
+    { gateway: 'BKASH', title: 'bKash', isActive: false },
+    { gateway: 'SSLCOMMERZ', title: 'SSLCommerz', isActive: false },
+    { gateway: 'COD', title: 'Cash on Delivery', isActive: true },
+  ] as const;
   for (const gw of gateways) {
     await prisma.paymentGatewayConfig.upsert({
-      where: { gateway: gw },
-      update: {},
-      create: { gateway: gw, isActive: false, title: gw, credentials: {} }
+      where: { gateway: gw.gateway },
+      update: {
+        ...(gw.gateway === 'COD' ? { isActive: true, title: gw.title } : {}),
+      },
+      create: {
+        gateway: gw.gateway,
+        isActive: gw.isActive,
+        title: gw.title,
+        credentials: {},
+      },
     });
   }
-  
+
   const existingSms = await prisma.smsConfig.findFirst();
   if (!existingSms) await prisma.smsConfig.create({ data: { provider: 'BulkSMSBD' } });
-  
+
   const existingMail = await prisma.mailConfig.findFirst();
   if (!existingMail) await prisma.mailConfig.create({ data: {} });
-  
+
   const existingFirebase = await prisma.firebaseConfig.findFirst();
   if (!existingFirebase) await prisma.firebaseConfig.create({ data: {} });
 
   const existingRecaptcha = await prisma.recaptchaConfig.findFirst();
   if (!existingRecaptcha) await prisma.recaptchaConfig.create({ data: {} });
 
-  console.log(`Seed complete!`);
-  console.log(`- Created/Updated ${createdRoles.length} roles`);
-  console.log(`- Created/Updated ${permissionsCount} role permissions`);
-  console.log(`- Created/Updated 1 Super Admin staff`);
-  console.log(`- Created/Updated ${branchCount} branches`);
-  console.log(`- Created basic configs (Payment, Mail, SMS, Firebase, Recaptcha, Settings)`);
+  console.log('Seed completed successfully!');
 }
 
 main()

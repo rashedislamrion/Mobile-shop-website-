@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import { SupportTicketService } from './support-ticket.service';
 import {
@@ -28,16 +29,25 @@ export class SupportTicketController {
 
   @Post()
   create(@Body() createDto: CreateSupportTicketDto, @Req() req: any) {
+    if (req.user?.userType !== 'CUSTOMER') {
+      throw new ForbiddenException('Only customers can submit support tickets.');
+    }
     return this.supportTicketService.create(createDto, req.user.sub);
   }
 
   @Get('my')
   findMyTickets(@Req() req: any, @Query('status') status?: TicketStatus) {
+    if (req.user?.userType !== 'CUSTOMER') {
+      throw new ForbiddenException('Only customers can view personal support tickets.');
+    }
     return this.supportTicketService.findMyTickets(req.user.sub, status);
   }
 
   @Get()
-  @RequirePermission({ module: ModuleName.HELP_REQUESTS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.HELP_REQUESTS,
+    action: PermissionAction.READ,
+  })
   findAll(
     @Query('status') status?: TicketStatus,
     @Query('issueTypeId') issueTypeId?: string,
@@ -73,13 +83,22 @@ export class SupportTicketController {
   }
 
   @Patch(':id/status')
-  @RequirePermission({ module: ModuleName.HELP_REQUESTS, action: PermissionAction.UPDATE })
-  updateStatus(@Param('id') id: string, @Body() updateDto: UpdateTicketStatusDto) {
+  @RequirePermission({
+    module: ModuleName.HELP_REQUESTS,
+    action: PermissionAction.UPDATE,
+  })
+  updateStatus(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateTicketStatusDto,
+  ) {
     return this.supportTicketService.updateStatus(id, updateDto);
   }
 
   @Delete(':id')
-  @RequirePermission({ module: ModuleName.HELP_REQUESTS, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.HELP_REQUESTS,
+    action: PermissionAction.DELETE,
+  })
   remove(@Param('id') id: string) {
     return this.supportTicketService.remove(id);
   }

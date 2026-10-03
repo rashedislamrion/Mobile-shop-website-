@@ -4,7 +4,10 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateDepartmentDto, UpdateDepartmentDto } from './dto/create-department.dto';
+import {
+  CreateDepartmentDto,
+  UpdateDepartmentDto,
+} from './dto/create-department.dto';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -21,7 +24,15 @@ export class DepartmentService {
       where,
       orderBy: { name: 'asc' },
       include: {
-        head: { select: { id: true, name: true, employeeId: true, email: true, phone: true } },
+        head: {
+          select: {
+            id: true,
+            name: true,
+            employeeId: true,
+            email: true,
+            phone: true,
+          },
+        },
         _count: { select: { staff: true } },
       },
     });
@@ -31,7 +42,15 @@ export class DepartmentService {
     const dept = await this.prisma.department.findUnique({
       where: { id },
       include: {
-        head: { select: { id: true, name: true, employeeId: true, email: true, phone: true } },
+        head: {
+          select: {
+            id: true,
+            name: true,
+            employeeId: true,
+            email: true,
+            phone: true,
+          },
+        },
         staff: {
           select: {
             id: true,
@@ -46,7 +65,8 @@ export class DepartmentService {
         _count: { select: { staff: true } },
       },
     });
-    if (!dept) throw new NotFoundException(`Department with ID "${id}" not found.`);
+    if (!dept)
+      throw new NotFoundException(`Department with ID "${id}" not found.`);
     return dept;
   }
 
@@ -65,7 +85,9 @@ export class DepartmentService {
       });
     } catch (e: any) {
       if (e.code === 'P2002') {
-        throw new ConflictException(`Department with name "${dto.name}" already exists.`);
+        throw new ConflictException(
+          `Department with name "${dto.name}" already exists.`,
+        );
       }
       throw e;
     }
@@ -88,7 +110,9 @@ export class DepartmentService {
       });
     } catch (e: any) {
       if (e.code === 'P2002') {
-        throw new ConflictException(`Department with name "${dto.name}" already exists.`);
+        throw new ConflictException(
+          `Department with name "${dto.name}" already exists.`,
+        );
       }
       throw e;
     }

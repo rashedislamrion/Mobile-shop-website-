@@ -8,7 +8,12 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PurposeCategory, StaffStatus, WalletKind, WalletTxnType } from '@prisma/client';
+import {
+  PurposeCategory,
+  StaffStatus,
+  WalletKind,
+  WalletTxnType,
+} from '@prisma/client';
 
 export class CreateWalletTypeDto {
   @IsString()
@@ -156,16 +161,47 @@ export class CreateStaffPaymentDto {
   walletTypeId: string;
 
   @IsNumber()
-  @Min(0.01)
+  @IsOptional()
   @Type(() => Number)
-  amount: number;
+  amount?: number;
 
   @IsString()
-  @IsNotEmpty()
-  payType: string; // SALARY, ALLOWANCE, BONUS, OTHER
+  @IsOptional()
+  payType?: string; // SALARY, ALLOWANCE, BONUS, OTHER
 
   @IsString()
   @IsOptional()
   note?: string;
-}
 
+  @IsString()
+  @IsOptional()
+  salaryMonth?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Type(() => Number)
+  salaryAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Type(() => Number)
+  bonusAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Type(() => Number)
+  allowanceAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Type(() => Number)
+  deductionAmount?: number;
+
+  @IsString()
+  @IsOptional()
+  allowanceFrequency?: string;
+}

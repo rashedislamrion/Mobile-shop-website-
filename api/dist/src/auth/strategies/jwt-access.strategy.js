@@ -18,9 +18,12 @@ let JwtAccessStrategy = class JwtAccessStrategy extends (0, passport_1.PassportS
     configService;
     constructor(configService) {
         super({
-            jwtFromRequest: passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
+            jwtFromRequest: passport_jwt_1.ExtractJwt.fromExtractors([
+                passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
+                passport_jwt_1.ExtractJwt.fromUrlQueryParameter('token'),
+            ]),
             ignoreExpiration: false,
-            secretOrKey: configService.get('JWT_ACCESS_SECRET') || 'access-secret',
+            secretOrKey: configService.get('JWT_ACCESS_SECRET') || '',
         });
         this.configService = configService;
     }

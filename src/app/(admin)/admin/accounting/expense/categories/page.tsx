@@ -95,6 +95,7 @@ export default function ExpenseCategoriesPage() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this expense category?")) return;
     try {
       await apiDelete(`/expense-categories/${id}`);
       toast.success("Category deleted successfully");

@@ -40,7 +40,8 @@ export class PromoCodeService {
 
   async findOne(id: string) {
     const promo = await this.prisma.promoCode.findUnique({ where: { id } });
-    if (!promo) throw new NotFoundException(`Promo code with ID "${id}" not found.`);
+    if (!promo)
+      throw new NotFoundException(`Promo code with ID "${id}" not found.`);
     return {
       ...promo,
       singleUserLimit: promo.perCustomerLimit,
@@ -52,7 +53,9 @@ export class PromoCodeService {
       where: { code: dto.code.trim().toUpperCase() },
     });
     if (existing) {
-      throw new ConflictException(`Promo code "${dto.code.toUpperCase()}" already exists.`);
+      throw new ConflictException(
+        `Promo code "${dto.code.toUpperCase()}" already exists.`,
+      );
     }
 
     return this.prisma.promoCode.create({
@@ -60,11 +63,18 @@ export class PromoCodeService {
         code: dto.code.trim().toUpperCase(),
         discountType: dto.discountType,
         discountValue: dto.discountValue,
-        maxDiscountCap: dto.maxDiscountCap !== undefined ? dto.maxDiscountCap : null,
-        minOrderAmount: dto.minOrderAmount !== undefined ? dto.minOrderAmount : null,
+        maxDiscountCap:
+          dto.maxDiscountCap !== undefined ? dto.maxDiscountCap : null,
+        minOrderAmount:
+          dto.minOrderAmount !== undefined ? dto.minOrderAmount : null,
         usageLimit: dto.usageLimit !== undefined ? dto.usageLimit : null,
         usedCount: 0,
-        perCustomerLimit: dto.singleUserLimit !== undefined ? dto.singleUserLimit : (dto.perCustomerLimit !== undefined ? dto.perCustomerLimit : null),
+        perCustomerLimit:
+          dto.singleUserLimit !== undefined
+            ? dto.singleUserLimit
+            : dto.perCustomerLimit !== undefined
+              ? dto.perCustomerLimit
+              : null,
         applicableTo: dto.applicableTo || PromoApplicableTo.ALL,
         applicableCategoryId: dto.applicableCategoryId || null,
         applicableProductIds: dto.applicableProductIds || [],
@@ -86,7 +96,9 @@ export class PromoCodeService {
         },
       });
       if (existing) {
-        throw new ConflictException(`Promo code "${dto.code.toUpperCase()}" is already in use.`);
+        throw new ConflictException(
+          `Promo code "${dto.code.toUpperCase()}" is already in use.`,
+        );
       }
     }
 
@@ -96,12 +108,22 @@ export class PromoCodeService {
         code: dto.code ? dto.code.trim().toUpperCase() : undefined,
         discountType: dto.discountType,
         discountValue: dto.discountValue,
-        maxDiscountCap: dto.maxDiscountCap !== undefined ? dto.maxDiscountCap : undefined,
-        minOrderAmount: dto.minOrderAmount !== undefined ? dto.minOrderAmount : undefined,
+        maxDiscountCap:
+          dto.maxDiscountCap !== undefined ? dto.maxDiscountCap : undefined,
+        minOrderAmount:
+          dto.minOrderAmount !== undefined ? dto.minOrderAmount : undefined,
         usageLimit: dto.usageLimit !== undefined ? dto.usageLimit : undefined,
-        perCustomerLimit: dto.singleUserLimit !== undefined ? dto.singleUserLimit : (dto.perCustomerLimit !== undefined ? dto.perCustomerLimit : undefined),
+        perCustomerLimit:
+          dto.singleUserLimit !== undefined
+            ? dto.singleUserLimit
+            : dto.perCustomerLimit !== undefined
+              ? dto.perCustomerLimit
+              : undefined,
         applicableTo: dto.applicableTo,
-        applicableCategoryId: dto.applicableCategoryId !== undefined ? dto.applicableCategoryId : undefined,
+        applicableCategoryId:
+          dto.applicableCategoryId !== undefined
+            ? dto.applicableCategoryId
+            : undefined,
         applicableProductIds: dto.applicableProductIds,
         validFrom: dto.validFrom ? new Date(dto.validFrom) : undefined,
         validUntil: dto.validUntil ? new Date(dto.validUntil) : undefined,
@@ -117,7 +139,9 @@ export class PromoCodeService {
     });
 
     if (!promo) {
-      throw new BadRequestException(`Promo code "${code}" is invalid or does not exist.`);
+      throw new BadRequestException(
+        `Promo code "${code}" is invalid or does not exist.`,
+      );
     }
 
     if (promo.status !== PromoAdStatus.ACTIVE) {
@@ -133,11 +157,16 @@ export class PromoCodeService {
     }
 
     if (promo.usageLimit !== null && promo.usedCount >= promo.usageLimit) {
-      throw new BadRequestException(`Promo code "${code}" has reached its maximum usage limit.`);
+      throw new BadRequestException(
+        `Promo code "${code}" has reached its maximum usage limit.`,
+      );
     }
 
-    const subtotal = Number(dto.orderSubtotal);
-    if (promo.minOrderAmount !== null && subtotal < Number(promo.minOrderAmount)) {
+    const subtotal = Number(dto.orderSubtotal ?? dto.orderAmount ?? 0);
+    if (
+      promo.minOrderAmount !== null &&
+      subtotal < Number(promo.minOrderAmount)
+    ) {
       throw new BadRequestException(
         `Minimum order amount of ৳${Number(promo.minOrderAmount).toLocaleString()} required to use promo code "${code}".`,
       );
@@ -146,17 +175,26 @@ export class PromoCodeService {
     // Applicability checks
     if (promo.applicableTo === PromoApplicableTo.CATEGORY) {
       if (promo.applicableCategoryId) {
-        const matchesCategory = dto.categoryIds && dto.categoryIds.includes(promo.applicableCategoryId);
+        const matchesCategory =
+          dto.categoryIds &&
+          dto.categoryIds.includes(promo.applicableCategoryId);
         if (!matchesCategory) {
-          throw new BadRequestException(`Promo code "${code}" is not applicable to the items in your cart.`);
+          throw new BadRequestException(
+            `Promo code "${code}" is not applicable to the items in your cart.`,
+          );
         }
       }
     } else if (promo.applicableTo === PromoApplicableTo.PRODUCT) {
       if (promo.applicableProductIds && promo.applicableProductIds.length > 0) {
         const matchesProduct =
-          dto.productIds && dto.productIds.some((pId) => promo.applicableProductIds.includes(pId));
+          dto.productIds &&
+          dto.productIds.some((pId) =>
+            promo.applicableProductIds.includes(pId),
+          );
         if (!matchesProduct) {
-          throw new BadRequestException(`Promo code "${code}" is not applicable to the products in your cart.`);
+          throw new BadRequestException(
+            `Promo code "${code}" is not applicable to the products in your cart.`,
+          );
         }
       }
     }
@@ -182,7 +220,9 @@ export class PromoCodeService {
       promoCodeId: promo.id,
       discountType: promo.discountType,
       discountValue: Number(promo.discountValue),
-      maxDiscountCap: promo.maxDiscountCap ? Number(promo.maxDiscountCap) : null,
+      maxDiscountCap: promo.maxDiscountCap
+        ? Number(promo.maxDiscountCap)
+        : null,
       discountAmount,
       finalSubtotal: Math.max(0, subtotal - discountAmount),
     };

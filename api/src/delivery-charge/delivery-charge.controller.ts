@@ -25,7 +25,10 @@ export class DeliveryChargeController {
   constructor(private readonly deliveryChargeService: DeliveryChargeService) {}
 
   @Get()
-  @RequirePermission({ module: ModuleName.BUSINESS_SETTINGS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.BUSINESS_SETTINGS,
+    action: PermissionAction.READ,
+  })
   findAll() {
     return this.deliveryChargeService.findAll();
   }
@@ -37,25 +40,40 @@ export class DeliveryChargeController {
   }
 
   @Get(':id')
-  @RequirePermission({ module: ModuleName.BUSINESS_SETTINGS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.BUSINESS_SETTINGS,
+    action: PermissionAction.READ,
+  })
   findOne(@Param('id') id: string) {
     return this.deliveryChargeService.findOne(id);
   }
 
   @Post()
-  @RequirePermission({ module: ModuleName.BUSINESS_SETTINGS, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.BUSINESS_SETTINGS,
+    action: PermissionAction.CREATE,
+  })
   create(@Body() createDto: CreateDeliveryChargeTierDto) {
     return this.deliveryChargeService.create(createDto);
   }
 
   @Patch(':id')
-  @RequirePermission({ module: ModuleName.BUSINESS_SETTINGS, action: PermissionAction.UPDATE })
-  update(@Param('id') id: string, @Body() updateDto: UpdateDeliveryChargeTierDto) {
+  @RequirePermission({
+    module: ModuleName.BUSINESS_SETTINGS,
+    action: PermissionAction.UPDATE,
+  })
+  update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateDeliveryChargeTierDto,
+  ) {
     return this.deliveryChargeService.update(id, updateDto);
   }
 
   @Delete(':id')
-  @RequirePermission({ module: ModuleName.BUSINESS_SETTINGS, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.BUSINESS_SETTINGS,
+    action: PermissionAction.DELETE,
+  })
   remove(@Param('id') id: string) {
     return this.deliveryChargeService.remove(id);
   }

@@ -30,6 +30,8 @@ interface OrderRecord {
   paidAmount: number | string;
   paymentStatus: string;
   status: string;
+  needsStockReview?: boolean;
+  stockReviewNote?: string;
   staff?: { id: string; name: string };
 }
 
@@ -68,6 +70,7 @@ export default function OrdersPage() {
       if (branchToFilter) params.branchId = branchToFilter;
       if (filters.paymentStatus) params.paymentStatus = (filters.paymentStatus as string).toUpperCase();
       if (filters.status) params.status = (filters.status as string).toUpperCase();
+      if (filters.needsStockReview) params.needsStockReview = filters.needsStockReview;
       if (searchQuery) params.search = searchQuery;
 
       const dateRange = filters.dateRange as { from?: Date; to?: Date } | undefined;
@@ -125,6 +128,15 @@ export default function OrdersPage() {
         { label: "Delivered", value: "DELIVERED" },
         { label: "Returned", value: "RETURNED" },
         { label: "Cancelled", value: "CANCELLED" },
+      ],
+    },
+    {
+      type: "select",
+      label: "Stock Review",
+      key: "needsStockReview",
+      options: [
+        { label: "All Orders", value: "" },
+        { label: "Needs Stock Review", value: "true" },
       ],
     },
     {
@@ -251,10 +263,20 @@ export default function OrdersPage() {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => (
-        <StatusBadge 
-          status={row.original.status} 
-          type={getOrderStatusVariant(row.original.status)} 
-        />
+        <div className="flex flex-col gap-1 items-start">
+          <StatusBadge 
+            status={row.original.status} 
+            type={getOrderStatusVariant(row.original.status)} 
+          />
+          {row.original.needsStockReview && (
+            <span 
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-900 border border-amber-300"
+              title={row.original.stockReviewNote || "Payment received but inventory was exhausted. Requires manual stock review."}
+            >
+              ⚠️ Needs Stock Review
+            </span>
+          )}
+        </div>
       ),
     },
     {

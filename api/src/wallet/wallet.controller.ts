@@ -33,49 +33,73 @@ export class WalletController {
   // ============================= WALLET TYPES =============================
 
   @Get('wallet-types/summary')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.READ,
+  })
   getWalletTypesSummary() {
     return this.walletService.getWalletTypesSummary();
   }
 
   @Get('wallet-types')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.READ,
+  })
   findAllWalletTypes() {
     return this.walletService.findAllWalletTypes();
   }
 
   @Get('wallets')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.READ,
+  })
   findAllWallets(@Query('branchId') branchId?: string) {
     return this.walletService.findAllWalletTypes();
   }
 
   @Get('wallet-types/:id')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.READ,
+  })
   findOneWalletType(@Param('id') id: string) {
     return this.walletService.findOneWalletType(id);
   }
 
   @Patch('wallet-types/:id/toggle-active')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.UPDATE,
+  })
   toggleActiveWalletType(@Param('id') id: string) {
     return this.walletService.toggleActiveWalletType(id);
   }
 
   @Post('wallet-types')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.CREATE,
+  })
   createWalletType(@Body() dto: CreateWalletTypeDto) {
     return this.walletService.createWalletType(dto);
   }
 
   @Patch('wallet-types/:id')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.UPDATE,
+  })
   updateWalletType(@Param('id') id: string, @Body() dto: UpdateWalletTypeDto) {
     return this.walletService.updateWalletType(id, dto);
   }
 
   @Delete('wallet-types/:id')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.DELETE,
+  })
   removeWalletType(@Param('id') id: string) {
     return this.walletService.removeWalletType(id);
   }
@@ -83,31 +107,46 @@ export class WalletController {
   // ============================= PURPOSES =============================
 
   @Get('purposes')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.READ,
+  })
   findAllPurposes() {
     return this.walletService.findAllPurposes();
   }
 
   @Get('purposes/:id')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.READ,
+  })
   findOnePurpose(@Param('id') id: string) {
     return this.walletService.findOnePurpose(id);
   }
 
   @Post('purposes')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.CREATE,
+  })
   createPurpose(@Body() dto: CreatePurposeDto) {
     return this.walletService.createPurpose(dto);
   }
 
   @Patch('purposes/:id')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.UPDATE,
+  })
   updatePurpose(@Param('id') id: string, @Body() dto: UpdatePurposeDto) {
     return this.walletService.updatePurpose(id, dto);
   }
 
   @Delete('purposes/:id')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.DELETE,
+  })
   removePurpose(@Param('id') id: string) {
     return this.walletService.removePurpose(id);
   }
@@ -115,7 +154,10 @@ export class WalletController {
   // ============================= TRANSACTIONS =============================
 
   @Get('wallet-transactions/transfers')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.READ,
+  })
   findAllTransfers(
     @Query('search') search?: string,
     @Query('dateFrom') dateFrom?: string,
@@ -133,11 +175,11 @@ export class WalletController {
   }
 
   @Post('wallet-transactions/transfer')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.CREATE })
-  transferFunds(
-    @Body() dto: any,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.CREATE,
+  })
+  transferFunds(@Body() dto: any, @CurrentUser() user: JwtPayload) {
     return this.walletService.transferFunds(dto, user.sub);
   }
 
@@ -162,7 +204,10 @@ export class WalletController {
   }
 
   @Post('wallet-transactions/staff-payment')
-  @RequirePermission({ module: ModuleName.HRM, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.HRM,
+    action: PermissionAction.CREATE,
+  })
   createStaffPayment(
     @Body() dto: CreateStaffPaymentDto,
     @CurrentUser() user: JwtPayload,
@@ -171,7 +216,10 @@ export class WalletController {
   }
 
   @Get('wallet-transactions')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.READ,
+  })
   findAllTransactions(
     @Query('walletType') walletType?: string,
     @Query('purpose') purpose?: string,
@@ -195,7 +243,10 @@ export class WalletController {
   }
 
   @Post('wallet-transactions')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.CREATE,
+  })
   createTransaction(
     @Body() dto: CreateWalletTransactionDto,
     @CurrentUser() user: JwtPayload,
@@ -204,12 +255,18 @@ export class WalletController {
   }
 
   @Post('wallets/:id/transactions')
-  @RequirePermission({ module: ModuleName.WALLET, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.WALLET,
+    action: PermissionAction.CREATE,
+  })
   createWalletTransaction(
     @Param('id') id: string,
     @Body() dto: CreateWalletTransactionDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.walletService.createTransaction({ ...dto, walletTypeId: id }, user.sub);
+    return this.walletService.createTransaction(
+      { ...dto, walletTypeId: id },
+      user.sub,
+    );
   }
 }

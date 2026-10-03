@@ -59,6 +59,8 @@ const customer_module_1 = require("./customer/customer.module");
 const pos_module_1 = require("./pos/pos.module");
 const phone_unit_module_1 = require("./phone-unit/phone-unit.module");
 const service_lookup_module_1 = require("./service-lookup/service-lookup.module");
+const product_request_module_1 = require("./product-request/product-request.module");
+const wanted_product_module_1 = require("./wanted-product/wanted-product.module");
 const throttler_1 = require("@nestjs/throttler");
 const core_1 = require("@nestjs/core");
 const jwt_auth_guard_1 = require("./auth/guards/jwt-auth.guard");
@@ -70,10 +72,12 @@ exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
             config_1.ConfigModule.forRoot({ isGlobal: true }),
-            throttler_1.ThrottlerModule.forRoot([{
+            throttler_1.ThrottlerModule.forRoot([
+                {
                     ttl: 60000,
-                    limit: 100,
-                }]),
+                    limit: 1000,
+                },
+            ]),
             prisma_module_1.PrismaModule,
             auth_module_1.AuthModule,
             category_module_1.CategoryModule,
@@ -122,6 +126,8 @@ exports.AppModule = AppModule = __decorate([
             pos_module_1.PosModule,
             phone_unit_module_1.PhoneUnitModule,
             service_lookup_module_1.ServiceLookupModule,
+            product_request_module_1.ProductRequestModule,
+            wanted_product_module_1.WantedProductModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

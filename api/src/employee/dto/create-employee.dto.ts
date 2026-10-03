@@ -10,7 +10,11 @@ import {
   MinLength,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
-import { EmploymentType, StaffPaymentMethod, StaffStatus } from '@prisma/client';
+import {
+  EmploymentType,
+  StaffPaymentMethod,
+  StaffStatus,
+} from '@prisma/client';
 
 export class CreateEmployeeDto {
   @IsString()
@@ -81,17 +85,26 @@ export class CreateEmployeeDto {
 
   @IsBoolean()
   @IsOptional()
-  @Transform(({ value }) => value === true || value === 'true' || value === 1 || value === '1')
+  @Transform(
+    ({ value }) =>
+      value === true || value === 'true' || value === 1 || value === '1',
+  )
   adminPanelAccess?: boolean = false;
 
   @IsBoolean()
   @IsOptional()
-  @Transform(({ value }) => value === true || value === 'true' || value === 1 || value === '1')
+  @Transform(
+    ({ value }) =>
+      value === true || value === 'true' || value === 1 || value === '1',
+  )
   sendCredentialsEmail?: boolean = false;
 
   @IsBoolean()
   @IsOptional()
-  @Transform(({ value }) => value === true || value === 'true' || value === 1 || value === '1')
+  @Transform(
+    ({ value }) =>
+      value === true || value === 'true' || value === 1 || value === '1',
+  )
   isTechnician?: boolean = false;
 
   @IsNumber()
@@ -210,17 +223,26 @@ export class UpdateEmployeeDto {
 
   @IsBoolean()
   @IsOptional()
-  @Transform(({ value }) => value === true || value === 'true' || value === 1 || value === '1')
+  @Transform(
+    ({ value }) =>
+      value === true || value === 'true' || value === 1 || value === '1',
+  )
   adminPanelAccess?: boolean;
 
   @IsBoolean()
   @IsOptional()
-  @Transform(({ value }) => value === true || value === 'true' || value === 1 || value === '1')
+  @Transform(
+    ({ value }) =>
+      value === true || value === 'true' || value === 1 || value === '1',
+  )
   sendCredentialsEmail?: boolean;
 
   @IsBoolean()
   @IsOptional()
-  @Transform(({ value }) => value === true || value === 'true' || value === 1 || value === '1')
+  @Transform(
+    ({ value }) =>
+      value === true || value === 'true' || value === 1 || value === '1',
+  )
   isTechnician?: boolean;
 
   @IsNumber()

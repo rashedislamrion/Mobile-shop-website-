@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Query,
-  Res,
-} from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { BkashService } from './bkash.service';
 import { Public } from '../../auth/decorators/public.decorator';
@@ -28,7 +21,11 @@ export class BkashController {
     @Query('orderId') orderId: string,
     @Res() res: Response,
   ) {
-    const redirectUrl = await this.bkashService.handleCallback({ paymentID, status, orderId });
+    const redirectUrl = await this.bkashService.handleCallback({
+      paymentID,
+      status,
+      orderId,
+    });
     return res.redirect(redirectUrl);
   }
 
@@ -44,7 +41,11 @@ export class BkashController {
     const pid = paymentID || body?.paymentID;
     const st = status || body?.status;
     const oid = orderId || body?.orderId;
-    const redirectUrl = await this.bkashService.handleCallback({ paymentID: pid, status: st, orderId: oid });
+    const redirectUrl = await this.bkashService.handleCallback({
+      paymentID: pid,
+      status: st,
+      orderId: oid,
+    });
     return res.redirect(redirectUrl);
   }
 }

@@ -14,7 +14,13 @@ import {
   CreateStaffPaymentDto,
   CreateTransferDto,
 } from './dto/wallet.dto';
-import { PayrollLineType, Prisma, WalletTxnType, StaffStatus } from '@prisma/client';
+import {
+  PayrollLineType,
+  PayrollStatus,
+  Prisma,
+  WalletTxnType,
+  StaffStatus,
+} from '@prisma/client';
 
 @Injectable()
 export class WalletService {
@@ -28,7 +34,11 @@ export class WalletService {
       include: {
         branch: { select: { id: true, name: true, code: true } },
         _count: {
-          select: { transactions: true, expenses: true, supplierPayments: true },
+          select: {
+            transactions: true,
+            expenses: true,
+            supplierPayments: true,
+          },
         },
       },
     });
@@ -49,11 +59,16 @@ export class WalletService {
           },
         },
         _count: {
-          select: { transactions: true, expenses: true, supplierPayments: true },
+          select: {
+            transactions: true,
+            expenses: true,
+            supplierPayments: true,
+          },
         },
       },
     });
-    if (!wallet) throw new NotFoundException(`Wallet type with ID "${id}" not found.`);
+    if (!wallet)
+      throw new NotFoundException(`Wallet type with ID "${id}" not found.`);
     return wallet;
   }
 
@@ -82,7 +97,8 @@ export class WalletService {
       data: {
         name: dto.name,
         kind: dto.kind,
-        accountNumber: dto.accountNumber !== undefined ? dto.accountNumber : undefined,
+        accountNumber:
+          dto.accountNumber !== undefined ? dto.accountNumber : undefined,
         icon: dto.icon !== undefined ? dto.icon : undefined,
         isActive: dto.isActive !== undefined ? dto.isActive : undefined,
         branchId: dto.branchId !== undefined ? dto.branchId : undefined,
@@ -137,9 +153,10 @@ export class WalletService {
       0,
     );
 
-    const highestBalance = wallets.length > 0
-      ? Math.max(...wallets.map((w) => Number(w.currentBalance)))
-      : 0;
+    const highestBalance =
+      wallets.length > 0
+        ? Math.max(...wallets.map((w) => Number(w.currentBalance)))
+        : 0;
 
     return {
       totalWallets: wallets.length,
@@ -166,7 +183,8 @@ export class WalletService {
       where: { id },
       include: { _count: { select: { transactions: true } } },
     });
-    if (!purpose) throw new NotFoundException(`Purpose with ID "${id}" not found.`);
+    if (!purpose)
+      throw new NotFoundException(`Purpose with ID "${id}" not found.`);
     return purpose;
   }
 
@@ -180,7 +198,9 @@ export class WalletService {
       });
     } catch (e: any) {
       if (e.code === 'P2002') {
-        throw new ConflictException(`Purpose with name "${dto.name}" already exists.`);
+        throw new ConflictException(
+          `Purpose with name "${dto.name}" already exists.`,
+        );
       }
       throw e;
     }
@@ -198,7 +218,9 @@ export class WalletService {
       });
     } catch (e: any) {
       if (e.code === 'P2002') {
-        throw new ConflictException(`Purpose with name "${dto.name}" already exists.`);
+        throw new ConflictException(
+          `Purpose with name "${dto.name}" already exists.`,
+        );
       }
       throw e;
     }
@@ -259,7 +281,9 @@ export class WalletService {
       this.prisma.walletTransaction.findMany({
         where,
         include: {
-          walletType: { select: { id: true, name: true, kind: true, accountNumber: true } },
+          walletType: {
+            select: { id: true, name: true, kind: true, accountNumber: true },
+          },
           purpose: { select: { id: true, name: true, category: true } },
           branch: { select: { id: true, name: true, code: true } },
           recordedBy: { select: { id: true, name: true, employeeId: true } },
@@ -281,7 +305,10 @@ export class WalletService {
     };
   }
 
-  async createTransaction(dto: CreateWalletTransactionDto, recordedById: string) {
+  async createTransaction(
+    dto: CreateWalletTransactionDto,
+    recordedById: string,
+  ) {
     const wallet = await this.findOneWalletType(dto.walletTypeId);
 
     if (dto.purposeId) {
@@ -334,7 +361,9 @@ export class WalletService {
 
   async transferFunds(dto: CreateTransferDto, recordedById: string) {
     if (dto.sourceWalletId === dto.targetWalletId) {
-      throw new BadRequestException('Source and target wallets must be different.');
+      throw new BadRequestException(
+        'Source and target wallets must be different.',
+      );
     }
 
     const [sourceWallet, targetWallet] = await Promise.all([
@@ -344,7 +373,9 @@ export class WalletService {
 
     const amount = Number(dto.amount);
     if (amount <= 0) {
-      throw new BadRequestException('Transfer amount must be greater than zero.');
+      throw new BadRequestException(
+        'Transfer amount must be greater than zero.',
+      );
     }
 
     const sourceCurrent = Number(sourceWallet.currentBalance);
@@ -468,7 +499,9 @@ export class WalletService {
       this.prisma.walletTransaction.findMany({
         where,
         include: {
-          walletType: { select: { id: true, name: true, kind: true, accountNumber: true } },
+          walletType: {
+            select: { id: true, name: true, kind: true, accountNumber: true },
+          },
           branch: { select: { id: true, name: true, code: true } },
           recordedBy: { select: { id: true, name: true, employeeId: true } },
         },
@@ -489,7 +522,9 @@ export class WalletService {
         type: WalletTxnType.DEPOSIT,
       },
       include: {
-        walletType: { select: { id: true, name: true, kind: true, accountNumber: true } },
+        walletType: {
+          select: { id: true, name: true, kind: true, accountNumber: true },
+        },
         branch: { select: { id: true, name: true, code: true } },
       },
     });
@@ -510,7 +545,10 @@ export class WalletService {
         amount: Number(w.amount),
         note: w.note,
         sourceWallet: w.walletType,
-        targetWallet: dep?.walletType || { name: 'Unknown Wallet', kind: 'CASH' },
+        targetWallet: dep?.walletType || {
+          name: 'Unknown Wallet',
+          kind: 'CASH',
+        },
         branch: w.branch || dep?.branch || null,
         isBranchTransfer: Boolean(w.branchId || dep?.branchId),
         recordedBy: w.recordedBy,
@@ -531,21 +569,229 @@ export class WalletService {
   async createStaffPayment(dto: CreateStaffPaymentDto, recordedById: string) {
     const staff = await this.prisma.staff.findUnique({
       where: { id: dto.staffId },
-      select: { id: true, name: true, employeeId: true },
+      select: { id: true, name: true, employeeId: true, paymentMethod: true },
     });
-    if (!staff) throw new NotFoundException(`Staff with ID "${dto.staffId}" not found.`);
+    if (!staff)
+      throw new NotFoundException(`Staff with ID "${dto.staffId}" not found.`);
 
     const wallet = await this.findOneWalletType(dto.walletTypeId);
-    const amount = Number(dto.amount);
     const currentBalance = Number(wallet.currentBalance);
 
+    // Determine if unified form payload is submitted
+    const isUnified =
+      dto.salaryAmount !== undefined ||
+      dto.bonusAmount !== undefined ||
+      dto.allowanceAmount !== undefined ||
+      dto.deductionAmount !== undefined;
+
+    if (isUnified) {
+      const salaryAmount = Math.max(0, Number(dto.salaryAmount || 0));
+      const bonusAmount = Math.max(0, Number(dto.bonusAmount || 0));
+      const allowanceAmount = Math.max(0, Number(dto.allowanceAmount || 0));
+      const deductionAmount = Math.max(0, Number(dto.deductionAmount || 0));
+
+      const totalGross = salaryAmount + bonusAmount + allowanceAmount;
+      if (totalGross === 0 && deductionAmount === 0) {
+        throw new BadRequestException(
+          'At least one compensation or deduction amount must be greater than zero.',
+        );
+      }
+
+      // Wallet balance validation:
+      // Total deducted from Source Wallet is (salary + bonus + allowance),
+      // minus nothing for deduction since that reduces the employee's net, not the wallet draw.
+      const totalWalletDeduction = totalGross;
+
+      if (currentBalance < totalWalletDeduction) {
+        throw new BadRequestException(
+          `Insufficient balance in wallet "${wallet.name}". Required: ৳${totalWalletDeduction.toLocaleString()}, Current Balance: ৳${currentBalance.toLocaleString()}.`,
+        );
+      }
+
+      const monthStr = dto.salaryMonth || new Date().toISOString().slice(0, 7);
+      const [y, m] = monthStr.split('-').map(Number);
+      const monthDate = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0));
+      const newBalance = currentBalance - totalWalletDeduction;
+
+      return this.prisma.$transaction(async (tx) => {
+        if (totalWalletDeduction > 0) {
+          await tx.walletType.update({
+            where: { id: dto.walletTypeId },
+            data: { currentBalance: newBalance },
+          });
+        }
+
+        const createdTxns: any[] = [];
+        let runningBal = currentBalance;
+        const timeStamp = Date.now();
+
+        const buildNote = (typeLabel: string) => {
+          const parts: string[] = [];
+          if (dto.note?.trim()) {
+            parts.push(dto.note.trim());
+          }
+          parts.push(`${typeLabel} for ${monthStr}`);
+          if (deductionAmount > 0) {
+            parts.push(
+              `(Net after ৳${deductionAmount.toLocaleString()} deduction)`,
+            );
+          }
+          return `${typeLabel} payment for ${staff.name} (${staff.employeeId}) • ${parts.join(' • ')}`;
+        };
+
+        // 1. Record Salary
+        if (salaryAmount > 0) {
+          runningBal -= salaryAmount;
+          const salTxn = await tx.walletTransaction.create({
+            data: {
+              walletTypeId: dto.walletTypeId,
+              type: WalletTxnType.WITHDRAWAL,
+              amount: salaryAmount,
+              payType: PayrollLineType.SALARY,
+              staffId: dto.staffId,
+              referenceNo: `PAY-SAL-${timeStamp}-${Math.floor(100 + Math.random() * 900)}`,
+              note: buildNote('Salary'),
+              recordedById,
+              balanceAfter: runningBal,
+            },
+            include: {
+              walletType: { select: { id: true, name: true, kind: true } },
+              staff: {
+                select: { id: true, name: true, employeeId: true, phone: true },
+              },
+              recordedBy: {
+                select: { id: true, name: true, employeeId: true },
+              },
+            },
+          });
+          createdTxns.push(salTxn);
+        }
+
+        // 2. Record Bonus
+        if (bonusAmount > 0) {
+          runningBal -= bonusAmount;
+          const bonTxn = await tx.walletTransaction.create({
+            data: {
+              walletTypeId: dto.walletTypeId,
+              type: WalletTxnType.WITHDRAWAL,
+              amount: bonusAmount,
+              payType: PayrollLineType.BONUS,
+              staffId: dto.staffId,
+              referenceNo: `PAY-BON-${timeStamp}-${Math.floor(100 + Math.random() * 900)}`,
+              note: buildNote('Bonus'),
+              recordedById,
+              balanceAfter: runningBal,
+            },
+            include: {
+              walletType: { select: { id: true, name: true, kind: true } },
+              staff: {
+                select: { id: true, name: true, employeeId: true, phone: true },
+              },
+              recordedBy: {
+                select: { id: true, name: true, employeeId: true },
+              },
+            },
+          });
+          createdTxns.push(bonTxn);
+        }
+
+        // 3. Record Allowance
+        if (allowanceAmount > 0) {
+          runningBal -= allowanceAmount;
+          const frequencyLabel = dto.allowanceFrequency
+            ? `${dto.allowanceFrequency} Allowance`
+            : 'Allowance';
+          const alwTxn = await tx.walletTransaction.create({
+            data: {
+              walletTypeId: dto.walletTypeId,
+              type: WalletTxnType.WITHDRAWAL,
+              amount: allowanceAmount,
+              payType: PayrollLineType.ALLOWANCE,
+              staffId: dto.staffId,
+              referenceNo: `PAY-ALW-${timeStamp}-${Math.floor(100 + Math.random() * 900)}`,
+              note: buildNote(frequencyLabel),
+              recordedById,
+              balanceAfter: runningBal,
+            },
+            include: {
+              walletType: { select: { id: true, name: true, kind: true } },
+              staff: {
+                select: { id: true, name: true, employeeId: true, phone: true },
+              },
+              recordedBy: {
+                select: { id: true, name: true, employeeId: true },
+              },
+            },
+          });
+          createdTxns.push(alwTxn);
+        }
+
+        // 4. Upsert Payroll summary record
+        const netSalary = Math.max(
+          0,
+          salaryAmount + bonusAmount + allowanceAmount - deductionAmount,
+        );
+        await tx.payroll.upsert({
+          where: {
+            staffId_month: {
+              staffId: dto.staffId,
+              month: monthDate,
+            },
+          },
+          create: {
+            staffId: dto.staffId,
+            month: monthDate,
+            basicSalary: salaryAmount,
+            allowances:
+              allowanceAmount > 0 ? { Allowance: allowanceAmount } : undefined,
+            deductions:
+              deductionAmount > 0 ? { Deduction: deductionAmount } : undefined,
+            netSalary,
+            status: PayrollStatus.PAID,
+            paymentDate: new Date(),
+            paymentMethod: staff.paymentMethod,
+          },
+          update: {
+            basicSalary: salaryAmount,
+            allowances:
+              allowanceAmount > 0 ? { Allowance: allowanceAmount } : undefined,
+            deductions:
+              deductionAmount > 0 ? { Deduction: deductionAmount } : undefined,
+            netSalary,
+            status: PayrollStatus.PAID,
+            paymentDate: new Date(),
+          },
+        });
+
+        // Return composite response compatible with single transaction callers
+        const primaryTxn = createdTxns[0] || {
+          id: `payroll-${timeStamp}`,
+          staffId: dto.staffId,
+          amount: totalWalletDeduction,
+          referenceNo: `PAY-REC-${timeStamp}`,
+          note: buildNote('Payroll'),
+          recordedById,
+          balanceAfter: newBalance,
+        };
+
+        return {
+          ...primaryTxn,
+          transactions: createdTxns,
+          netPayout: netSalary,
+          totalWalletDeduction,
+        };
+      });
+    }
+
+    // Legacy Single Payment Fallback
+    const amount = Number(dto.amount);
     if (currentBalance < amount) {
       throw new BadRequestException(
         `Insufficient balance in wallet "${wallet.name}". Required: ৳${amount.toLocaleString()}, Current Balance: ৳${currentBalance.toLocaleString()}.`,
       );
     }
 
-    const payType = dto.payType.toUpperCase() as PayrollLineType;
+    const payType = (dto.payType || 'BONUS').toUpperCase() as PayrollLineType;
     const newBalance = currentBalance - amount;
 
     return this.prisma.$transaction(async (tx) => {
@@ -563,13 +809,17 @@ export class WalletService {
           payType,
           staffId: dto.staffId,
           referenceNo: refNo,
-          note: dto.note || `${payType} payment for ${staff.name} (${staff.employeeId})`,
+          note:
+            dto.note ||
+            `${payType} payment for ${staff.name} (${staff.employeeId})`,
           recordedById,
           balanceAfter: newBalance,
         },
         include: {
           walletType: { select: { id: true, name: true, kind: true } },
-          staff: { select: { id: true, name: true, employeeId: true, phone: true } },
+          staff: {
+            select: { id: true, name: true, employeeId: true, phone: true },
+          },
           recordedBy: { select: { id: true, name: true, employeeId: true } },
         },
       });
@@ -589,10 +839,7 @@ export class WalletService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.WalletTransactionWhereInput = {
-      OR: [
-        { staffId: { not: null } },
-        { payType: { not: null } },
-      ],
+      OR: [{ staffId: { not: null } }, { payType: { not: null } }],
     };
 
     if (query?.walletTypeId && query.walletTypeId !== 'all') {
@@ -686,4 +933,3 @@ export class WalletService {
     };
   }
 }
-

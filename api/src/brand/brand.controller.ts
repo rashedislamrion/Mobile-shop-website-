@@ -34,7 +34,10 @@ export class BrandController {
     return this.brandService.findOne(id);
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.CREATE,
+  })
   @Post()
   @UseInterceptors(FileInterceptor('logo', createMulterConfig('brands')))
   create(
@@ -44,7 +47,10 @@ export class BrandController {
     return this.brandService.create(dto, file);
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.UPDATE,
+  })
   @Patch(':id')
   @UseInterceptors(FileInterceptor('logo', createMulterConfig('brands')))
   update(
@@ -55,7 +61,10 @@ export class BrandController {
     return this.brandService.update(id, dto, file);
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.DELETE,
+  })
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.brandService.remove(id);

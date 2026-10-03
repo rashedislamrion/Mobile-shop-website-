@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { AddSalaryPayrollModal } from "@/components/admin/hrm/AddSalaryPayrollModal";
 
 interface StaffPaymentRecord {
   id: string;
@@ -79,6 +80,8 @@ interface StaffOption {
   employeeId: string;
   phone: string;
   department?: { id: string; name: string } | null;
+  basicSalary?: number | string;
+  allowances?: any;
 }
 
 export default function PayrollPage() {
@@ -99,14 +102,9 @@ export default function PayrollPage() {
   const [wallets, setWallets] = useState<WalletOption[]>([]);
   const [staffList, setStaffList] = useState<StaffOption[]>([]);
 
-  // Add Payment Modal State
+  // Add Salary / Payroll Modal State
   const [addPaymentModalOpen, setAddPaymentModalOpen] = useState(false);
-  const [payStaffId, setPayStaffId] = useState("");
   const [payWalletTypeId, setPayWalletTypeId] = useState("");
-  const [payTypeSelect, setPayTypeSelect] = useState<"BONUS" | "ALLOWANCE" | "OTHER">("BONUS");
-  const [payAmount, setPayAmount] = useState("");
-  const [payNote, setPayNote] = useState("");
-  const [isSubmittingPay, setIsSubmittingPay] = useState(false);
 
   // Run Payroll Modal State
   const [runPayrollModalOpen, setRunPayrollModalOpen] = useState(false);
@@ -181,35 +179,6 @@ export default function PayrollPage() {
     setSelectedPayType("all");
     setSelectedMonth("");
     setCurrentPage(1);
-  };
-
-  const handleCreateStaffPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!payStaffId || !payWalletTypeId || !payAmount) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
-    try {
-      setIsSubmittingPay(true);
-      await apiPost("/wallet-transactions/staff-payment", {
-        staffId: payStaffId,
-        walletTypeId: payWalletTypeId,
-        amount: parseFloat(payAmount),
-        payType: payTypeSelect,
-        note: payNote.trim() || undefined,
-      });
-
-      toast.success("Staff payment disbursed successfully!");
-      setAddPaymentModalOpen(false);
-      setPayAmount("");
-      setPayNote("");
-      loadData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to disburse payment");
-    } finally {
-      setIsSubmittingPay(false);
-    }
   };
 
   const handleRunMonthlyPayroll = async (e: React.FormEvent) => {
@@ -291,8 +260,6 @@ export default function PayrollPage() {
     }
   };
 
-  const selectedWalletObj = wallets.find((w) => w.id === payWalletTypeId);
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -326,7 +293,7 @@ export default function PayrollPage() {
             className="px-4 py-2 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-2 transition-colors"
           >
             <Plus className="h-4 w-4" />
-            Add Payment
+            + New Payroll
           </button>
         </div>
       </div>
@@ -578,138 +545,15 @@ export default function PayrollPage() {
       </div>
 
       {/* ========================================================================= */}
-      {/* ADD PAYMENT MODAL (Ad-hoc Bonus, Allowance, Other) */}
+      {/* ADD SALARY / PAYROLL MODAL (Unified Salary, Bonus, Allowance, Deduction)  */}
       {/* ========================================================================= */}
-      <Dialog open={addPaymentModalOpen} onOpenChange={setAddPaymentModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-emerald-600" />
-              Disburse Staff Payment
-            </DialogTitle>
-            <DialogDescription>
-              Process an immediate bonus, allowance, or reimbursement payment from a wallet account.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleCreateStaffPayment} className="space-y-4 pt-2">
-            {/* Staff */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">
-                Beneficiary Employee <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={payStaffId}
-                onChange={(e) => setPayStaffId(e.target.value)}
-                required
-                className="w-full h-10 px-3 py-2 text-sm rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">-- Choose Staff Member --</option>
-                {staffList.map((st) => (
-                  <option key={st.id} value={st.id}>
-                    {st.name} ({st.employeeId} • {st.department?.name || "General"})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Wallet */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Disburse From Wallet <span className="text-red-500">*</span>
-                </label>
-                {selectedWalletObj && (
-                  <span className="text-xs font-mono font-semibold text-emerald-600">
-                    Avail: ৳{Number(selectedWalletObj.currentBalance).toLocaleString()}
-                  </span>
-                )}
-              </div>
-              <select
-                value={payWalletTypeId}
-                onChange={(e) => setPayWalletTypeId(e.target.value)}
-                required
-                className="w-full h-10 px-3 py-2 text-sm rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                {wallets.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.name} ({w.kind}) — ৳{Number(w.currentBalance).toLocaleString()}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Payment Type & Amount */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">
-                  Payment Type <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={payTypeSelect}
-                  onChange={(e) => setPayTypeSelect(e.target.value as any)}
-                  className="w-full h-10 px-3 py-2 text-sm rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="BONUS">Performance Bonus</option>
-                  <option value="ALLOWANCE">Special Allowance</option>
-                  <option value="OTHER">Other / Reimbursement</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">
-                  Amount (৳) <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="number"
-                  min="1"
-                  step="any"
-                  placeholder="0.00"
-                  value={payAmount}
-                  onChange={(e) => setPayAmount(e.target.value)}
-                  required
-                  className="h-10 font-mono"
-                />
-              </div>
-            </div>
-
-            {/* Note */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">
-                Payment Note / Description
-              </label>
-              <Input
-                placeholder="e.g. Eid Festival Bonus / Travel Expense Reimbursement"
-                value={payNote}
-                onChange={(e) => setPayNote(e.target.value)}
-                className="h-10"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
-              <button
-                type="button"
-                onClick={() => setAddPaymentModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium border border-border rounded-lg bg-background hover:bg-muted text-foreground transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmittingPay || !payStaffId || !payAmount}
-                className="px-5 py-2 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-2 transition-colors disabled:opacity-50"
-              >
-                {isSubmittingPay ? (
-                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4" />
-                )}
-                Confirm & Disburse
-              </button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <AddSalaryPayrollModal
+        open={addPaymentModalOpen}
+        onOpenChange={setAddPaymentModalOpen}
+        staffList={staffList}
+        wallets={wallets}
+        onSuccess={loadData}
+      />
 
       {/* ========================================================================= */}
       {/* RUN MONTHLY PAYROLL MODAL */}

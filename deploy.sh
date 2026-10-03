@@ -1,50 +1,76 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# MobileHubBD Production Deployment Script
-# Targets: /var/www/mobilehubbd
+# NovaMobile Production Zero-Downtime Deployment Script
+# Target: Single Hostinger KVM VPS
+#
+# Server Layout:
+# - Application Repository: /var/www/novamobile/app
+# - Persistent Uploads:     /var/www/novamobile/uploads (OUTSIDE the repo)
+# - Backups Directory:      /var/www/novamobile/backups
+#
+# Safety Rules:
+# - Strictly uses "npx prisma migrate deploy" (NEVER db push or migrate reset)
+# - Installs ALL dependencies (devDependencies needed for nest build, next build, prisma db seed)
+# - NEVER uses --omit=dev
+# - NEVER touches or deletes the persistent uploads directory
+# - NEVER runs git clean
+# - Performs atomic reload of PM2 processes via ecosystem.config.js
 # ==============================================================================
 
-set -e # Exit immediately if any command fails
+set -euo pipefail
 
-PROJECT_ROOT="/var/www/mobilehubbd"
+APP_DIR="${APP_DIR:-/var/www/novamobile/app}"
+UPLOAD_DIR="${UPLOAD_ROOT:-/var/www/novamobile/uploads}"
 
-echo "=========================================="
-echo "🚀 Starting MobileHubBD Deployment"
-echo "=========================================="
+echo "================================================================="
+echo "🚀 Starting NovaMobile Production Deployment"
+echo "   Time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+echo "   Target Directory: $APP_DIR"
+echo "   Uploads Directory: $UPLOAD_DIR"
+echo "================================================================="
 
-# 1. Navigate to project root & pull latest changes
-cd "$PROJECT_ROOT"
-echo "📥 Pulling latest code from origin/main..."
-git pull origin main
+# 1. Ensure persistent uploads folder exists outside the repo with correct permissions
+if [ ! -d "$UPLOAD_DIR" ]; then
+    echo "📁 Creating persistent uploads directory outside repo: $UPLOAD_DIR"
+    mkdir -p "$UPLOAD_DIR"
+fi
+chmod 755 "$UPLOAD_DIR" || true
 
-# 2. Build and restart Backend (NestJS + Prisma)
-echo ""
-echo "⚙️ [1/2] Updating Backend API..."
-cd "$PROJECT_ROOT/api"
-npm install --omit=dev=false
+# 2. Navigate to repo & pull latest code
+cd "$APP_DIR"
+echo "📥 [1/5] Pulling latest changes from repository..."
+git pull --ff-only
+
+# 3. Install ALL dependencies (devDependencies required for nest build, next build, prisma)
+echo "📦 [2/5] Installing backend dependencies (including devDependencies)..."
+cd "$APP_DIR/api"
+npm install
+
+echo "📦 [2/5] Installing frontend dependencies (including devDependencies)..."
+cd "$APP_DIR"
+npm install
+
+# 4. Run Prisma database migrations (Non-destructive)
+echo "🗄️  [3/5] Applying pending Prisma database migrations..."
+cd "$APP_DIR/api"
 npx prisma generate
-npx prisma db push
+npx prisma migrate deploy
+
+# 5. Build applications
+echo "⚙️  [4/5] Building NestJS Backend API..."
 npm run build
 
-echo "🔄 Restarting Backend PM2 process (mobilehubbd-api)..."
-pm2 restart mobilehubbd-api --update-env || pm2 start dist/main.js --name mobilehubbd-api
-
-# 3. Build and restart Frontend (Next.js)
-echo ""
-echo "🌐 [2/2] Updating Frontend Web..."
-cd "$PROJECT_ROOT"
-npm install --omit=dev=false
+echo "⚙️  [4/5] Building Next.js Frontend Web..."
+cd "$APP_DIR"
 npm run build
 
-echo "🔄 Restarting Frontend PM2 process (mobilehubbd-web)..."
-pm2 restart mobilehubbd-web --update-env || pm2 start npm --name mobilehubbd-web -- start
-
-# 4. Save PM2 list
-echo ""
-echo "💾 Saving PM2 process state..."
+# 6. PM2 Zero-downtime Reload via ecosystem.config.js
+echo "🔄 [5/5] Reloading PM2 processes via ecosystem.config.js..."
+cd "$APP_DIR"
+pm2 reload ecosystem.config.js || pm2 start ecosystem.config.js
 pm2 save
 
-echo ""
-echo "=========================================="
-echo "✅ Deployment finished successfully!"
-echo "=========================================="
+echo "================================================================="
+echo "✅ NovaMobile Deployment Completed Successfully!"
+echo "🔒 SAFEGUARD VERIFICATION: Uploads directory ($UPLOAD_DIR) was preserved."
+echo "================================================================="

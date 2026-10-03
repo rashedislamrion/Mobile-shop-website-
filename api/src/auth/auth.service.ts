@@ -1,4 +1,12 @@
-import { Injectable, UnauthorizedException, ForbiddenException, BadRequestException, NotFoundException, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ForbiddenException,
+  BadRequestException,
+  NotFoundException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -20,7 +28,10 @@ export class AuthService {
   ) {}
 
   // Brute-force rate limiting: 5 failed attempts locks out for 60 seconds
-  private failedAttempts = new Map<string, { count: number; firstAttemptAt: number; lockedUntil?: number }>();
+  private failedAttempts = new Map<
+    string,
+    { count: number; firstAttemptAt: number; lockedUntil?: number }
+  >();
 
   private checkFailedAttempts(identifier: string) {
     const key = identifier.toLowerCase().trim();
@@ -44,9 +55,15 @@ export class AuthService {
   private recordFailedAttempt(identifier: string) {
     const key = identifier.toLowerCase().trim();
     const now = Date.now();
-    const record = this.failedAttempts.get(key) || { count: 0, firstAttemptAt: now };
+    const record = this.failedAttempts.get(key) || {
+      count: 0,
+      firstAttemptAt: now,
+    };
 
-    if (now - record.firstAttemptAt > 60000 && (!record.lockedUntil || now > record.lockedUntil)) {
+    if (
+      now - record.firstAttemptAt > 60000 &&
+      (!record.lockedUntil || now > record.lockedUntil)
+    ) {
       record.count = 1;
       record.firstAttemptAt = now;
       delete record.lockedUntil;
@@ -70,7 +87,9 @@ export class AuthService {
       where: { OR: [{ email: dto.email }, { phone: dto.phone }] },
     });
     if (existing) {
-      throw new BadRequestException('Customer already exists with this email or phone');
+      throw new BadRequestException(
+        'Customer already exists with this email or phone',
+      );
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -105,19 +124,24 @@ export class AuthService {
 
   async loginCustomer(dto: LoginDto) {
     const rawIdentifier = dto.emailOrPhone || dto.email;
-    if (!rawIdentifier) throw new UnauthorizedException('Identifier is required');
+    if (!rawIdentifier)
+      throw new UnauthorizedException('Identifier is required');
     const identifier = rawIdentifier.trim();
     this.checkFailedAttempts(identifier);
 
     const altIdentifier = identifier.includes('@novamobile.test')
       ? identifier.replace('@novamobile.test', '@mobilehubbd.test')
       : identifier.includes('@mobilehubbd.test')
-      ? identifier.replace('@mobilehubbd.test', '@novamobile.test')
-      : identifier;
+        ? identifier.replace('@mobilehubbd.test', '@novamobile.test')
+        : identifier;
 
     const customer = await this.prisma.customer.findFirst({
       where: {
-        OR: [{ email: identifier }, { email: altIdentifier }, { phone: identifier }],
+        OR: [
+          { email: identifier },
+          { email: altIdentifier },
+          { phone: identifier },
+        ],
       },
     });
 
@@ -164,12 +188,16 @@ export class AuthService {
     const altIdentifier = identifier.includes('@novamobile.test')
       ? identifier.replace('@novamobile.test', '@mobilehubbd.test')
       : identifier.includes('@mobilehubbd.test')
-      ? identifier.replace('@mobilehubbd.test', '@novamobile.test')
-      : identifier;
+        ? identifier.replace('@mobilehubbd.test', '@novamobile.test')
+        : identifier;
 
     const staff = await this.prisma.staff.findFirst({
       where: {
-        OR: [{ email: identifier }, { email: altIdentifier }, { phone: identifier }],
+        OR: [
+          { email: identifier },
+          { email: altIdentifier },
+          { phone: identifier },
+        ],
       },
       include: { role: true },
     });
@@ -180,7 +208,9 @@ export class AuthService {
     }
 
     if (staff.status !== 'ACTIVE') {
-      throw new ForbiddenException('Account is inactive. Contact administrator.');
+      throw new ForbiddenException(
+        'Account is inactive. Contact administrator.',
+      );
     }
 
     const isValid = await bcrypt.compare(dto.password, staff.passwordHash);
@@ -192,10 +222,18 @@ export class AuthService {
     this.clearFailedAttempts(identifier);
 
     if (!staff.adminPanelAccess) {
-      throw new ForbiddenException('Your account does not have access to the Admin Panel. Please contact your administrator.');
+      throw new ForbiddenException(
+        'Your account does not have access to the Admin Panel. Please contact your administrator.',
+      );
     }
 
-    const tokens = await this.generateTokens(staff.id, 'STAFF', staff.roleId, staff.role?.name, staff.branchId);
+    const tokens = await this.generateTokens(
+      staff.id,
+      'STAFF',
+      staff.roleId,
+      staff.role?.name,
+      staff.branchId,
+    );
     return {
       ...tokens,
       user: {
@@ -214,7 +252,7 @@ export class AuthService {
     let decoded;
     try {
       decoded = this.jwtService.verify(refreshToken, {
-        secret: this.configService.get('JWT_REFRESH_SECRET') || 'refresh-secret',
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       });
     } catch (e) {
       throw new UnauthorizedException('Invalid refresh token');
@@ -222,12 +260,11 @@ export class AuthService {
 
     const allTokensForUser = await this.prisma.refreshToken.findMany({
       where: {
-        OR: [
-          { staffId: decoded.sub },
-          { customerId: decoded.sub }
-        ],
-        revoked: false
+        OR: [{ staffId: decoded.sub }, { customerId: decoded.sub }],
+        revoked: false,
       },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
     });
 
     let matchedToken: RefreshToken | null = null;
@@ -247,18 +284,23 @@ export class AuthService {
       data: { revoked: true },
     });
 
-    return this.generateTokens(decoded.sub, decoded.userType, decoded.roleId, decoded.roleName, decoded.branchId);
+    return this.generateTokens(
+      decoded.sub,
+      decoded.userType,
+      decoded.roleId,
+      decoded.roleName,
+      decoded.branchId,
+    );
   }
 
   async logout(refreshToken: string, userId: string) {
     const allTokensForUser = await this.prisma.refreshToken.findMany({
       where: {
-        OR: [
-          { staffId: userId },
-          { customerId: userId }
-        ],
-        revoked: false
+        OR: [{ staffId: userId }, { customerId: userId }],
+        revoked: false,
       },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
     });
 
     for (const t of allTokensForUser) {
@@ -273,12 +315,21 @@ export class AuthService {
     return { success: true };
   }
 
-  async changePassword(userId: string, userType: 'STAFF' | 'CUSTOMER', dto: ChangePasswordDto) {
+  async changePassword(
+    userId: string,
+    userType: 'STAFF' | 'CUSTOMER',
+    dto: ChangePasswordDto,
+  ) {
     if (userType === 'STAFF') {
-      const user = await this.prisma.staff.findUnique({ where: { id: userId } });
+      const user = await this.prisma.staff.findUnique({
+        where: { id: userId },
+      });
       if (!user) throw new NotFoundException('User not found');
-      
-      const isValid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+
+      const isValid = await bcrypt.compare(
+        dto.currentPassword,
+        user.passwordHash,
+      );
       if (!isValid) throw new BadRequestException('Incorrect current password');
 
       const passwordHash = await bcrypt.hash(dto.newPassword, 10);
@@ -287,10 +338,15 @@ export class AuthService {
         data: { passwordHash },
       });
     } else {
-      const user = await this.prisma.customer.findUnique({ where: { id: userId } });
+      const user = await this.prisma.customer.findUnique({
+        where: { id: userId },
+      });
       if (!user) throw new NotFoundException('User not found');
-      
-      const isValid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+
+      const isValid = await bcrypt.compare(
+        dto.currentPassword,
+        user.passwordHash,
+      );
       if (!isValid) throw new BadRequestException('Incorrect current password');
 
       const passwordHash = await bcrypt.hash(dto.newPassword, 10);
@@ -307,17 +363,24 @@ export class AuthService {
     let userId: string;
     let userType: 'STAFF' | 'CUSTOMER';
 
-    const staff = await this.prisma.staff.findUnique({ where: { email: dto.email } });
+    const staff = await this.prisma.staff.findUnique({
+      where: { email: dto.email },
+    });
     if (staff) {
       userId = staff.id;
       userType = 'STAFF';
     } else {
-      const customer = await this.prisma.customer.findUnique({ where: { email: dto.email } });
+      const customer = await this.prisma.customer.findUnique({
+        where: { email: dto.email },
+      });
       if (customer) {
         userId = customer.id;
         userType = 'CUSTOMER';
       } else {
-        return { success: true, message: 'If an account exists, a reset link will be sent.' };
+        return {
+          success: true,
+          message: 'If an account exists, a reset link will be sent.',
+        };
       }
     }
 
@@ -339,9 +402,9 @@ export class AuthService {
 
     const resetToken = `${record.id}.${rawToken}`;
 
-    return { 
-      success: true, 
-      resetToken
+    return {
+      success: true,
+      resetToken,
     };
   }
 
@@ -393,7 +456,7 @@ export class AuthService {
         where: { id: userId },
         include: {
           role: {
-            include: { permissions: true }
+            include: { permissions: true },
           },
           branch: true,
         },
@@ -415,16 +478,28 @@ export class AuthService {
     }
   }
 
-  private async generateTokens(userId: string, userType: 'STAFF' | 'CUSTOMER', roleId?: string, roleName?: string, branchId?: string | null) {
-    const payload: JwtPayload = { sub: userId, userType, roleId, roleName, branchId };
-    
+  private async generateTokens(
+    userId: string,
+    userType: 'STAFF' | 'CUSTOMER',
+    roleId?: string,
+    roleName?: string,
+    branchId?: string | null,
+  ) {
+    const payload: JwtPayload = {
+      sub: userId,
+      userType,
+      roleId,
+      roleName,
+      branchId,
+    };
+
     const accessToken = this.jwtService.sign(payload, {
-      secret: this.configService.get('JWT_ACCESS_SECRET') || 'access-secret',
+      secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
       expiresIn: this.configService.get('JWT_ACCESS_EXPIRY') || '15m',
     });
 
     const refreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.get('JWT_REFRESH_SECRET') || 'refresh-secret',
+      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       expiresIn: this.configService.get('JWT_REFRESH_EXPIRY') || '7d',
     });
 

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { getAuthToken } from "@/lib/api-client";
+import { getAuthToken, API_BASE_URL } from "@/lib/api-client";
 
 export default function CreateAdPage() {
   const router = useRouter();
@@ -57,8 +57,7 @@ export default function CreateAdPage() {
       formData.append("image", file);
 
       const token = getAuthToken();
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
-      const res = await fetch(`${apiUrl}/ads`, {
+      const res = await fetch(`${API_BASE_URL}/ads`, {
         method: "POST",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),

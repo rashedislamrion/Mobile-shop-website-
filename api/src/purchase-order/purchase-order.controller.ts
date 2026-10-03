@@ -22,7 +22,11 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
-import { ModuleName, PermissionAction, PurchaseOrderStatus } from '@prisma/client';
+import {
+  ModuleName,
+  PermissionAction,
+  PurchaseOrderStatus,
+} from '@prisma/client';
 import { createMulterConfig } from '../common/upload/multer.config';
 
 @Controller(['purchase-orders', 'purchases'])
@@ -31,7 +35,10 @@ export class PurchaseOrderController {
   constructor(private readonly purchaseOrderService: PurchaseOrderService) {}
 
   @Get()
-  @RequirePermission({ module: ModuleName.PURCHASE, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.PURCHASE,
+    action: PermissionAction.READ,
+  })
   findAll(
     @Query('branch') branch?: string,
     @Query('supplier') supplier?: string,
@@ -57,23 +64,31 @@ export class PurchaseOrderController {
   }
 
   @Get(':id')
-  @RequirePermission({ module: ModuleName.PURCHASE, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.PURCHASE,
+    action: PermissionAction.READ,
+  })
   findOne(@Param('id') id: string) {
     return this.purchaseOrderService.findOne(id);
   }
 
   @Post()
-  @RequirePermission({ module: ModuleName.PURCHASE, action: PermissionAction.CREATE })
-  create(
-    @Body() dto: CreatePurchaseOrderDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  @RequirePermission({
+    module: ModuleName.PURCHASE,
+    action: PermissionAction.CREATE,
+  })
+  create(@Body() dto: CreatePurchaseOrderDto, @CurrentUser() user: JwtPayload) {
     return this.purchaseOrderService.create(dto, user.sub);
   }
 
   @Post(':id/document')
-  @RequirePermission({ module: ModuleName.PURCHASE, action: PermissionAction.UPDATE })
-  @UseInterceptors(FileInterceptor('document', createMulterConfig('purchase-documents')))
+  @RequirePermission({
+    module: ModuleName.PURCHASE,
+    action: PermissionAction.UPDATE,
+  })
+  @UseInterceptors(
+    FileInterceptor('document', createMulterConfig('purchase-documents')),
+  )
   uploadDocument(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
@@ -82,16 +97,19 @@ export class PurchaseOrderController {
   }
 
   @Patch(':id/receive')
-  @RequirePermission({ module: ModuleName.PURCHASE, action: PermissionAction.UPDATE })
-  receiveItems(
-    @Param('id') id: string,
-    @Body() dto: ReceivePurchaseOrderDto,
-  ) {
+  @RequirePermission({
+    module: ModuleName.PURCHASE,
+    action: PermissionAction.UPDATE,
+  })
+  receiveItems(@Param('id') id: string, @Body() dto: ReceivePurchaseOrderDto) {
     return this.purchaseOrderService.receiveItems(id, dto);
   }
 
   @Post(':id/return')
-  @RequirePermission({ module: ModuleName.PURCHASE, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.PURCHASE,
+    action: PermissionAction.UPDATE,
+  })
   returnItems(
     @Param('id') id: string,
     @Body() dto: ReturnPurchaseOrderDto,
@@ -101,16 +119,19 @@ export class PurchaseOrderController {
   }
 
   @Patch(':id/complete')
-  @RequirePermission({ module: ModuleName.PURCHASE, action: PermissionAction.UPDATE })
-  completePurchase(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  @RequirePermission({
+    module: ModuleName.PURCHASE,
+    action: PermissionAction.UPDATE,
+  })
+  completePurchase(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.purchaseOrderService.complete(id, user.sub);
   }
 
   @Patch(':id/cancel')
-  @RequirePermission({ module: ModuleName.PURCHASE, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.PURCHASE,
+    action: PermissionAction.UPDATE,
+  })
   cancel(@Param('id') id: string) {
     return this.purchaseOrderService.cancel(id);
   }

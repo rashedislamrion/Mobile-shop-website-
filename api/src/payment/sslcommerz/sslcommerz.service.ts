@@ -2,16 +2,14 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  OrderStatus,
-  PaymentGatewayName,
-  PaymentStatus,
-} from '@prisma/client';
+import { OrderStatus, PaymentGatewayName, PaymentStatus } from '@prisma/client';
 
 @Injectable()
 export class SslcommerzService {
+  private readonly logger = new Logger(SslcommerzService.name);
   constructor(private prisma: PrismaService) {}
 
   private async getCredentials() {
@@ -25,10 +23,13 @@ export class SslcommerzService {
 
     const creds = (config.credentials || {}) as Record<string, any>;
     const storeId = creds.storeId || creds.store_id;
-    const storePassword = creds.storePassword || creds.store_passwd || creds.storePasswd;
+    const storePassword =
+      creds.storePassword || creds.store_passwd || creds.storePasswd;
 
     if (!storeId || !storePassword) {
-      throw new BadRequestException('SSLCommerz credentials are not fully configured in admin settings.');
+      throw new BadRequestException(
+        'SSLCommerz credentials are not fully configured in admin settings.',
+      );
     }
 
     const isLive = config.mode === 'Live';
@@ -52,7 +53,8 @@ export class SslcommerzService {
 
     const { storeId, storePassword, baseUrl } = await this.getCredentials();
 
-    const apiBase = apiBaseUrl || process.env.API_URL || 'http://localhost:4000/api/v1';
+    const apiBase =
+      apiBaseUrl || process.env.API_URL || 'http://localhost:4000/api/v1';
     const successUrl = `${apiBase}/payments/sslcommerz/success?orderId=${order.id}`;
     const failUrl = `${apiBase}/payments/sslcommerz/fail?orderId=${order.id}`;
     const cancelUrl = `${apiBase}/payments/sslcommerz/cancel?orderId=${order.id}`;
@@ -69,8 +71,14 @@ export class SslcommerzService {
     params.append('cancel_url', cancelUrl);
     params.append('ipn_url', ipnUrl);
     params.append('cus_name', order.customer?.name || 'Valued Customer');
-    params.append('cus_email', order.customer?.email || 'customer@mobilehubbd.com');
-    params.append('cus_add1', order.shippingAddress?.fullAddress || 'Dhaka, Bangladesh');
+    params.append(
+      'cus_email',
+      order.customer?.email || 'customer@mobilehubbd.com',
+    );
+    params.append(
+      'cus_add1',
+      order.shippingAddress?.fullAddress || 'Dhaka, Bangladesh',
+    );
     params.append('cus_city', 'Dhaka');
     params.append('cus_country', 'Bangladesh');
     params.append('shipping_method', 'Courier');
@@ -108,7 +116,11 @@ export class SslcommerzService {
     };
   }
 
-  async validateAndMarkPaid(valId: string, tranId: string, bankTranId?: string) {
+  async validateAndMarkPaid(
+    valId: string,
+    tranId: string,
+    bankTranId?: string,
+  ) {
     const { storeId, storePassword, baseUrl } = await this.getCredentials();
 
     const valUrl = `${baseUrl}/validator/api/validationserverAPI.php?val_id=${encodeURIComponent(valId)}&store_id=${encodeURIComponent(storeId)}&store_passwd=${encodeURIComponent(storePassword)}&v=1&format=json`;
@@ -124,44 +136,130 @@ export class SslcommerzService {
         });
         if (!order) return;
 
-        if (order.paymentStatus !== PaymentStatus.PAID) {
-          for (const item of order.items) {
-            if (item.variantId) {
-              await tx.productVariant.update({
-                where: { id: item.variantId },
-                data: { stock: { decrement: item.quantity } },
+        // 1. Atomically claim the order inside tx
+        const claimResult = await tx.order.updateMany({
+          where: {
+            id: tranId,
+            paymentStatus: { not: PaymentStatus.PAID },
+          },
+          data: {
+            paymentStatus: PaymentStatus.PAID,
+            paymentMethod: 'SSLCOMMERZ',
+            paidAmount: order.totalAmount,
+            dueAmount: 0,
+            status: OrderStatus.CONFIRMED,
+          },
+        });
+
+        if (claimResult.count === 0) {
+          // Already claimed / processed by a concurrent or previous IPN
+          return;
+        }
+
+        // 2. Conditional stock decrements using the SAME transaction client (tx)
+        let stockDeducted = true;
+        let deficitReason = '';
+        const decrementedItems: { variantId: string; quantity: number; branchId?: string }[] = [];
+
+        for (const item of order.items) {
+          if (item.variantId) {
+            const variantUpdate = await tx.productVariant.updateMany({
+              where: {
+                id: item.variantId,
+                stock: { gte: item.quantity },
+              },
+              data: {
+                stock: { decrement: item.quantity },
+              },
+            });
+
+            if (variantUpdate.count === 0) {
+              stockDeducted = false;
+              deficitReason = `Insufficient global stock for variant ${item.variantId} (requested ${item.quantity})`;
+              break;
+            }
+
+            if (order.branchId) {
+              const branchUpdate = await tx.branchInventory.updateMany({
+                where: {
+                  branchId: order.branchId,
+                  productVariantId: item.variantId,
+                  quantity: { gte: item.quantity },
+                },
+                data: {
+                  quantity: { decrement: item.quantity },
+                },
+              });
+
+              if (branchUpdate.count === 0) {
+                // Revert this variant global decrement
+                await tx.productVariant.updateMany({
+                  where: { id: item.variantId },
+                  data: { stock: { increment: item.quantity } },
+                });
+                stockDeducted = false;
+                deficitReason = `Insufficient branch stock for variant ${item.variantId} at branch ${order.branchId} (requested ${item.quantity})`;
+                break;
+              }
+            }
+
+            decrementedItems.push({
+              variantId: item.variantId,
+              quantity: item.quantity,
+              branchId: order.branchId || undefined,
+            });
+          }
+        }
+
+        // If any item failed, revert all previous decrements in tx
+        if (!stockDeducted) {
+          for (const dec of decrementedItems) {
+            await tx.productVariant.updateMany({
+              where: { id: dec.variantId },
+              data: { stock: { increment: dec.quantity } },
+            });
+            if (dec.branchId) {
+              await tx.branchInventory.updateMany({
+                where: { branchId: dec.branchId, productVariantId: dec.variantId },
+                data: { quantity: { increment: dec.quantity } },
               });
             }
           }
 
-          await tx.order.update({
-            where: { id: tranId },
-            data: {
-              paymentStatus: PaymentStatus.PAID,
-              paymentMethod: 'SSLCOMMERZ',
-              paidAmount: order.totalAmount,
-              dueAmount: 0,
-              status: OrderStatus.CONFIRMED,
-            },
-          });
-
-          await tx.orderStatusHistory.create({
-            data: {
-              orderId: tranId,
-              status: OrderStatus.CONFIRMED,
-              note: `Payment validated via SSLCommerz (ValID: ${valId}, BankTranID: ${bankTranId || data.bank_tran_id || 'N/A'})`,
-            },
-          });
-
-          await tx.paymentAttempt.updateMany({
-            where: { orderId: tranId, gateway: PaymentGatewayName.SSLCOMMERZ },
-            data: {
-              status: 'SUCCESS',
-              gatewayRef: valId,
-              rawResponse: data,
-            },
-          });
+          this.logger.warn(
+            `[STOCK DEFICIT] Order ${order.id} paid via SSLCommerz (ValID: ${valId}) but conditional stock decrement failed: ${deficitReason}. Marked for stock review.`,
+          );
         }
+
+        // Update order stock review flags if stock was insufficient
+        await tx.order.update({
+          where: { id: tranId },
+          data: {
+            needsStockReview: !stockDeducted,
+            stockReviewNote: stockDeducted
+              ? null
+              : `Stock exhausted after payment: ${deficitReason}`,
+          },
+        });
+
+        await tx.orderStatusHistory.create({
+          data: {
+            orderId: tranId,
+            status: OrderStatus.CONFIRMED,
+            note: stockDeducted
+              ? `Payment validated via SSLCommerz (ValID: ${valId}, BankTranID: ${bankTranId || data.bank_tran_id || 'N/A'}). Stock decremented successfully.`
+              : `[NEEDS STOCK REVIEW] Payment validated via SSLCommerz (ValID: ${valId}), but insufficient inventory: ${deficitReason}. Inventory was NOT deducted.`,
+          },
+        });
+
+        await tx.paymentAttempt.updateMany({
+          where: { orderId: tranId, gateway: PaymentGatewayName.SSLCOMMERZ },
+          data: {
+            status: 'SUCCESS',
+            gatewayRef: valId,
+            rawResponse: data,
+          },
+        });
       });
       return true;
     }

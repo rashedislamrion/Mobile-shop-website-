@@ -5,7 +5,10 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateSalesReturnDto, RejectSalesReturnDto } from './dto/create-sales-return.dto';
+import {
+  CreateSalesReturnDto,
+  RejectSalesReturnDto,
+} from './dto/create-sales-return.dto';
 import { Prisma, ReturnStatus } from '@prisma/client';
 
 @Injectable()
@@ -105,7 +108,8 @@ export class SalesReturnService {
       },
     });
 
-    if (!returnRecord) throw new NotFoundException(`Sales return "${id}" not found.`);
+    if (!returnRecord)
+      throw new NotFoundException(`Sales return "${id}" not found.`);
     return returnRecord;
   }
 
@@ -114,10 +118,16 @@ export class SalesReturnService {
       where: { id: dto.orderId },
       include: { items: true },
     });
-    if (!order) throw new NotFoundException(`Order "${dto.orderId}" not found.`);
+    if (!order)
+      throw new NotFoundException(`Order "${dto.orderId}" not found.`);
 
-    const existingReturn = await this.prisma.salesReturn.findUnique({ where: { orderId: dto.orderId } });
-    if (existingReturn) throw new ConflictException(`A sales return for order "${order.orderCode}" already exists.`);
+    const existingReturn = await this.prisma.salesReturn.findUnique({
+      where: { orderId: dto.orderId },
+    });
+    if (existingReturn)
+      throw new ConflictException(
+        `A sales return for order "${order.orderCode}" already exists.`,
+      );
 
     let refundAmount = 0;
     const itemsData: any[] = [];
@@ -125,7 +135,9 @@ export class SalesReturnService {
     for (const item of dto.items) {
       const orderItem = order.items.find((oi) => oi.id === item.orderItemId);
       if (!orderItem) {
-        throw new BadRequestException(`OrderItem "${item.orderItemId}" not found in order "${order.orderCode}".`);
+        throw new BadRequestException(
+          `OrderItem "${item.orderItemId}" not found in order "${order.orderCode}".`,
+        );
       }
       if (item.quantity > orderItem.quantity) {
         throw new BadRequestException(
@@ -170,9 +182,12 @@ export class SalesReturnService {
         },
       },
     });
-    if (!salesReturn) throw new NotFoundException(`Sales return "${id}" not found.`);
+    if (!salesReturn)
+      throw new NotFoundException(`Sales return "${id}" not found.`);
     if (salesReturn.status !== ReturnStatus.REQUESTED) {
-      throw new BadRequestException(`Only returns with status REQUESTED can be approved. Current: ${salesReturn.status}`);
+      throw new BadRequestException(
+        `Only returns with status REQUESTED can be approved. Current: ${salesReturn.status}`,
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -195,27 +210,39 @@ export class SalesReturnService {
   }
 
   async reject(id: string, dto?: RejectSalesReturnDto) {
-    const salesReturn = await this.prisma.salesReturn.findUnique({ where: { id } });
-    if (!salesReturn) throw new NotFoundException(`Sales return "${id}" not found.`);
+    const salesReturn = await this.prisma.salesReturn.findUnique({
+      where: { id },
+    });
+    if (!salesReturn)
+      throw new NotFoundException(`Sales return "${id}" not found.`);
     if (salesReturn.status !== ReturnStatus.REQUESTED) {
-      throw new BadRequestException(`Only returns with status REQUESTED can be rejected. Current: ${salesReturn.status}`);
+      throw new BadRequestException(
+        `Only returns with status REQUESTED can be rejected. Current: ${salesReturn.status}`,
+      );
     }
 
     return this.prisma.salesReturn.update({
       where: { id },
       data: {
         status: ReturnStatus.REJECTED,
-        reason: dto?.reason ? `${salesReturn.reason} (Rejected: ${dto.reason})` : salesReturn.reason,
+        reason: dto?.reason
+          ? `${salesReturn.reason} (Rejected: ${dto.reason})`
+          : salesReturn.reason,
       },
       include: { order: true, items: true },
     });
   }
 
   async refund(id: string) {
-    const salesReturn = await this.prisma.salesReturn.findUnique({ where: { id } });
-    if (!salesReturn) throw new NotFoundException(`Sales return "${id}" not found.`);
+    const salesReturn = await this.prisma.salesReturn.findUnique({
+      where: { id },
+    });
+    if (!salesReturn)
+      throw new NotFoundException(`Sales return "${id}" not found.`);
     if (salesReturn.status !== ReturnStatus.APPROVED) {
-      throw new BadRequestException(`Only APPROVED returns can be marked as refunded. Current: ${salesReturn.status}`);
+      throw new BadRequestException(
+        `Only APPROVED returns can be marked as refunded. Current: ${salesReturn.status}`,
+      );
     }
 
     return this.prisma.salesReturn.update({

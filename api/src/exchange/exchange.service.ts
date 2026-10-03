@@ -5,7 +5,10 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateExchangeDto, RejectExchangeDto } from './dto/create-exchange.dto';
+import {
+  CreateExchangeDto,
+  RejectExchangeDto,
+} from './dto/create-exchange.dto';
 import { ExchangeStatus, Prisma } from '@prisma/client';
 
 @Injectable()
@@ -113,16 +116,23 @@ export class ExchangeService {
       where: { id: dto.orderId },
       include: { items: true },
     });
-    if (!order) throw new NotFoundException(`Order "${dto.orderId}" not found.`);
+    if (!order)
+      throw new NotFoundException(`Order "${dto.orderId}" not found.`);
 
     const oldOrderItem = order.items.find((oi) => oi.id === dto.oldOrderItemId);
-    if (!oldOrderItem) throw new NotFoundException(`OrderItem "${dto.oldOrderItemId}" not found in order.`);
+    if (!oldOrderItem)
+      throw new NotFoundException(
+        `OrderItem "${dto.oldOrderItemId}" not found in order.`,
+      );
 
     const newProduct = await this.prisma.product.findUnique({
       where: { id: dto.newProductId },
       include: { variants: true },
     });
-    if (!newProduct) throw new NotFoundException(`New product "${dto.newProductId}" not found.`);
+    if (!newProduct)
+      throw new NotFoundException(
+        `New product "${dto.newProductId}" not found.`,
+      );
 
     let newUnitPrice = Number(newProduct.regularPrice);
     if (dto.newVariantId) {
@@ -158,7 +168,9 @@ export class ExchangeService {
     const exchange = await this.prisma.exchange.findUnique({ where: { id } });
     if (!exchange) throw new NotFoundException(`Exchange "${id}" not found.`);
     if (exchange.status !== ExchangeStatus.REQUESTED) {
-      throw new BadRequestException(`Only REQUESTED exchanges can be approved. Current: ${exchange.status}`);
+      throw new BadRequestException(
+        `Only REQUESTED exchanges can be approved. Current: ${exchange.status}`,
+      );
     }
 
     return this.prisma.exchange.update({
@@ -175,7 +187,9 @@ export class ExchangeService {
     });
     if (!exchange) throw new NotFoundException(`Exchange "${id}" not found.`);
     if (exchange.status !== ExchangeStatus.APPROVED) {
-      throw new BadRequestException(`Only APPROVED exchanges can mark item received. Current: ${exchange.status}`);
+      throw new BadRequestException(
+        `Only APPROVED exchanges can mark item received. Current: ${exchange.status}`,
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -202,16 +216,22 @@ export class ExchangeService {
     });
     if (!exchange) throw new NotFoundException(`Exchange "${id}" not found.`);
     if (exchange.status !== ExchangeStatus.ITEM_RECEIVED) {
-      throw new BadRequestException(`Only ITEM_RECEIVED exchanges can be completed. Current: ${exchange.status}`);
+      throw new BadRequestException(
+        `Only ITEM_RECEIVED exchanges can be completed. Current: ${exchange.status}`,
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
       // Deduct stock of new item
       if (exchange.newVariantId) {
-        const newVariant = await tx.productVariant.findUnique({ where: { id: exchange.newVariantId } });
+        const newVariant = await tx.productVariant.findUnique({
+          where: { id: exchange.newVariantId },
+        });
         const qty = exchange.oldOrderItem?.quantity || 1;
         if (!newVariant || newVariant.stock < qty) {
-          throw new ConflictException(`Insufficient stock for exchange replacement variant.`);
+          throw new ConflictException(
+            `Insufficient stock for exchange replacement variant.`,
+          );
         }
         await tx.productVariant.update({
           where: { id: exchange.newVariantId },
@@ -231,7 +251,9 @@ export class ExchangeService {
     const exchange = await this.prisma.exchange.findUnique({ where: { id } });
     if (!exchange) throw new NotFoundException(`Exchange "${id}" not found.`);
     if (exchange.status === ExchangeStatus.COMPLETED) {
-      throw new BadRequestException(`Cannot reject an already completed exchange.`);
+      throw new BadRequestException(
+        `Cannot reject an already completed exchange.`,
+      );
     }
 
     return this.prisma.exchange.update({

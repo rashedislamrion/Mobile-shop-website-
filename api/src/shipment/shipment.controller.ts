@@ -17,7 +17,10 @@ import { ModuleName, PermissionAction, ShipmentStatus } from '@prisma/client';
 export class ShipmentController {
   constructor(private readonly shipmentService: ShipmentService) {}
 
-  @RequirePermission({ module: ModuleName.SALES, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.SALES,
+    action: PermissionAction.READ,
+  })
   @Get()
   findAll(
     @Query('courierPartner') courierPartner?: string,
@@ -35,19 +38,28 @@ export class ShipmentController {
     });
   }
 
-  @RequirePermission({ module: ModuleName.SALES, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.SALES,
+    action: PermissionAction.READ,
+  })
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.shipmentService.findOne(id);
   }
 
-  @RequirePermission({ module: ModuleName.SALES, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.SALES,
+    action: PermissionAction.CREATE,
+  })
   @Post()
   create(@Body() dto: CreateShipmentDto) {
     return this.shipmentService.create(dto);
   }
 
-  @RequirePermission({ module: ModuleName.SALES, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.SALES,
+    action: PermissionAction.UPDATE,
+  })
   @Patch(':id/status')
   updateStatus(@Param('id') id: string, @Body() dto: UpdateShipmentStatusDto) {
     return this.shipmentService.updateStatus(id, dto);

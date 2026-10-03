@@ -49,13 +49,19 @@ export class RoleController {
   }
 
   @Post()
-  @RequirePermission({ module: ModuleName.HRM, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.HRM,
+    action: PermissionAction.CREATE,
+  })
   create(@Body() createRoleDto: CreateRoleDto) {
     return this.roleService.create(createRoleDto);
   }
 
   @Patch(':id/permissions')
-  @RequirePermission({ module: ModuleName.HRM, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.HRM,
+    action: PermissionAction.UPDATE,
+  })
   updateRolePermissions(
     @Param('id') id: string,
     @Body() updateRolePermissionsDto: UpdateRolePermissionsDto,
@@ -64,7 +70,10 @@ export class RoleController {
   }
 
   @Patch(':id/branch-permissions')
-  @RequirePermission({ module: ModuleName.HRM, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.HRM,
+    action: PermissionAction.UPDATE,
+  })
   updateRoleBranchPermissions(
     @Param('id') id: string,
     @Body() updateRoleBranchPermissionsDto: UpdateRoleBranchPermissionsDto,
@@ -76,9 +85,11 @@ export class RoleController {
   }
 
   @Delete(':id')
-  @RequirePermission({ module: ModuleName.HRM, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.HRM,
+    action: PermissionAction.DELETE,
+  })
   remove(@Param('id') id: string) {
     return this.roleService.remove(id);
   }
 }
-

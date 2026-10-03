@@ -1,4 +1,11 @@
-import { IsArray, IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 import { StaffStatus } from '@prisma/client';
 

@@ -175,4 +175,3 @@ export class CreateSupplierPaymentDto {
   @IsOptional()
   notes?: string;
 }
-

@@ -5,9 +5,11 @@ import {
   ShoppingCart,
   Undo2,
   Replace,
+  Wrench,
   Layers,
   Package,
   Store,
+  ArrowLeftRight,
   SlidersHorizontal,
   Briefcase,
   PieChart,
@@ -79,7 +81,8 @@ export const adminNavConfig: NavGroup[] = [
     items: [
       { label: "Orders", href: "/admin/orders", icon: ShoppingCart, module: "ORDERS" },
       { label: "Sales Returns", href: "/admin/sales-returns", icon: Undo2, module: "SALES_RETURNS" },
-      { label: "Exchanges", href: "/admin/exchanges", icon: Replace, module: "EXCHANGES" }
+      { label: "Exchanges", href: "/admin/exchanges", icon: Replace, module: "EXCHANGES" },
+      { label: "Servicing", href: "/admin/servicing", icon: Wrench, module: "ORDERS" }
     ]
   },
   {
@@ -106,6 +109,7 @@ export const adminNavConfig: NavGroup[] = [
     groupLabel: "BRANCH/WAREHOUSE MANAGEMENT",
     items: [
       { label: "Branch", href: "/admin/branch", icon: Store, module: "BRANCH" },
+      { label: "Product Requests", href: "/admin/branch/product-requests", icon: ArrowLeftRight, module: "BRANCH" },
       { label: "Stock Adjustments", href: "/admin/stock-adjustments", icon: SlidersHorizontal, module: "STOCK_ADJUSTMENTS" }
     ]
   },

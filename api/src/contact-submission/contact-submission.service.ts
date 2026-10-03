@@ -10,7 +10,12 @@ import { ContactSubmissionStatus, Prisma } from '@prisma/client';
 export class ContactSubmissionService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(query?: { status?: ContactSubmissionStatus; search?: string; page?: number; limit?: number }) {
+  async findAll(query?: {
+    status?: ContactSubmissionStatus;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) {
     const page = Math.max(1, Number(query?.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(query?.limit) || 20));
     const skip = (page - 1) * limit;
@@ -48,8 +53,13 @@ export class ContactSubmissionService {
   }
 
   async findOne(id: string) {
-    const submission = await this.prisma.contactSubmission.findUnique({ where: { id } });
-    if (!submission) throw new NotFoundException(`Contact submission with ID "${id}" not found.`);
+    const submission = await this.prisma.contactSubmission.findUnique({
+      where: { id },
+    });
+    if (!submission)
+      throw new NotFoundException(
+        `Contact submission with ID "${id}" not found.`,
+      );
     return submission;
   }
 

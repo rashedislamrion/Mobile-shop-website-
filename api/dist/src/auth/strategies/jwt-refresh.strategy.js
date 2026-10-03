@@ -28,7 +28,7 @@ let JwtRefreshStrategy = class JwtRefreshStrategy extends (0, passport_1.Passpor
                 },
             ]),
             ignoreExpiration: false,
-            secretOrKey: configService.get('JWT_REFRESH_SECRET') || 'refresh-secret',
+            secretOrKey: configService.get('JWT_REFRESH_SECRET') || '',
             passReqToCallback: true,
         });
         this.configService = configService;

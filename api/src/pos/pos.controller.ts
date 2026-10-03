@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
 import { ProductService } from '../product/product.service';
 import { OrderService } from '../order/order.service';
 import { ServiceJobService } from '../service-job/service-job.service';
@@ -27,7 +20,10 @@ export class PosController {
     private readonly serviceJobService: ServiceJobService,
   ) {}
 
-  @RequirePermission({ module: ModuleName.SALES, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.SALES,
+    action: PermissionAction.READ,
+  })
   @Get('products')
   getPosProducts(
     @Query('search') search?: string,
@@ -47,12 +43,12 @@ export class PosController {
     });
   }
 
-  @RequirePermission({ module: ModuleName.SALES, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.SALES,
+    action: PermissionAction.CREATE,
+  })
   @Post('sales')
-  createPosSale(
-    @Body() dto: CreateOrderDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  createPosSale(@Body() dto: CreateOrderDto, @CurrentUser() user: JwtPayload) {
     return this.orderService.create(
       {
         ...dto,
@@ -62,7 +58,10 @@ export class PosController {
     );
   }
 
-  @RequirePermission({ module: ModuleName.SALES, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.SALES,
+    action: PermissionAction.READ,
+  })
   @Get('services')
   getPosServices(
     @Query('status') status?: any,
@@ -71,10 +70,19 @@ export class PosController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.serviceJobService.findAll({ status, branch, search, page, limit });
+    return this.serviceJobService.findAll({
+      status,
+      branch,
+      search,
+      page,
+      limit,
+    });
   }
 
-  @RequirePermission({ module: ModuleName.SALES, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.SALES,
+    action: PermissionAction.CREATE,
+  })
   @Post('service-jobs')
   createServiceJob(@Body() dto: CreateServiceJobDto) {
     return this.serviceJobService.create(dto);

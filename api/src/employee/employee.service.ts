@@ -163,11 +163,14 @@ export class EmployeeService {
         ...STAFF_SELECT_SAFE,
         managedBranches: { select: { id: true, name: true, code: true } },
         headOfDepartments: { select: { id: true, name: true } },
-        reports: { select: { id: true, name: true, employeeId: true, status: true } },
+        reports: {
+          select: { id: true, name: true, employeeId: true, status: true },
+        },
       },
     });
 
-    if (!staff) throw new NotFoundException(`Employee with ID "${id}" not found.`);
+    if (!staff)
+      throw new NotFoundException(`Employee with ID "${id}" not found.`);
     return this.mapStaffAccess(staff);
   }
 
@@ -176,12 +179,14 @@ export class EmployeeService {
     const passwordHash = await bcrypt.hash(rawPassword, 10);
     const employeeId = await this.generateNextEmployeeId();
 
-    const branchIds = dto.branchIds && dto.branchIds.length > 0
-      ? dto.branchIds
-      : dto.branchId
-      ? [dto.branchId]
-      : [];
-    const primaryBranchId = branchIds.length > 0 ? branchIds[0] : dto.branchId || null;
+    const branchIds =
+      dto.branchIds && dto.branchIds.length > 0
+        ? dto.branchIds
+        : dto.branchId
+          ? [dto.branchId]
+          : [];
+    const primaryBranchId =
+      branchIds.length > 0 ? branchIds[0] : dto.branchId || null;
 
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -195,13 +200,20 @@ export class EmployeeService {
             photo: dto.photo || null,
             address: dto.address || null,
             birthCertificateUrl: dto.birthCertificateUrl || null,
-            bonusLimit: dto.bonusLimit !== undefined ? new Prisma.Decimal(dto.bonusLimit) : new Prisma.Decimal(0),
+            bonusLimit:
+              dto.bonusLimit !== undefined
+                ? new Prisma.Decimal(dto.bonusLimit)
+                : new Prisma.Decimal(0),
             adminPanelAccess: dto.adminPanelAccess ?? false,
             isTechnician: dto.isTechnician ?? false,
-            commissionRate: dto.commissionRate !== undefined ? new Prisma.Decimal(dto.commissionRate) : new Prisma.Decimal(0),
+            commissionRate:
+              dto.commissionRate !== undefined
+                ? new Prisma.Decimal(dto.commissionRate)
+                : new Prisma.Decimal(0),
             emergencyContactName: dto.emergencyContactName || null,
             emergencyContactPhone: dto.emergencyContactPhone || null,
-            emergencyContactRelationship: dto.emergencyContactRelationship || null,
+            emergencyContactRelationship:
+              dto.emergencyContactRelationship || null,
             sendCredentialsEmailOnCreate: dto.sendCredentialsEmail ?? false,
             gender: dto.gender || null,
             dob: dto.dob ? new Date(dto.dob) : null,
@@ -210,10 +222,14 @@ export class EmployeeService {
             departmentId: dto.departmentId || null,
             branchId: primaryBranchId,
             employmentType: dto.employmentType || 'FULL_TIME',
-            joiningDate: dto.joiningDate ? new Date(dto.joiningDate) : new Date(),
+            joiningDate: dto.joiningDate
+              ? new Date(dto.joiningDate)
+              : new Date(),
             reportingManagerId: dto.reportingManagerId || null,
             status: dto.status || StaffStatus.ACTIVE,
-            basicSalary: dto.basicSalary ? new Prisma.Decimal(dto.basicSalary) : new Prisma.Decimal(0),
+            basicSalary: dto.basicSalary
+              ? new Prisma.Decimal(dto.basicSalary)
+              : new Prisma.Decimal(0),
             allowances: dto.allowances ? (dto.allowances as any) : undefined,
             paymentMethod: dto.paymentMethod || null,
             bankAccountNo: dto.bankAccountNo || null,
@@ -254,27 +270,41 @@ export class EmployeeService {
     const updateData: Prisma.StaffUpdateInput = {};
 
     if (dto.name !== undefined) updateData.name = dto.name;
-    if (dto.email !== undefined) updateData.email = dto.email.toLowerCase().trim();
+    if (dto.email !== undefined)
+      updateData.email = dto.email.toLowerCase().trim();
     if (dto.phone !== undefined) updateData.phone = dto.phone.trim();
     if (dto.password) {
       updateData.passwordHash = await bcrypt.hash(dto.password, 10);
     }
     if (dto.photo !== undefined) updateData.photo = dto.photo || null;
     if (dto.address !== undefined) updateData.address = dto.address || null;
-    if (dto.birthCertificateUrl !== undefined) updateData.birthCertificateUrl = dto.birthCertificateUrl || null;
-    if (dto.bonusLimit !== undefined) updateData.bonusLimit = new Prisma.Decimal(dto.bonusLimit);
-    if (dto.adminPanelAccess !== undefined) updateData.adminPanelAccess = dto.adminPanelAccess;
-    if (dto.isTechnician !== undefined) updateData.isTechnician = dto.isTechnician;
-    if (dto.commissionRate !== undefined) updateData.commissionRate = new Prisma.Decimal(dto.commissionRate);
-    if (dto.emergencyContactName !== undefined) updateData.emergencyContactName = dto.emergencyContactName || null;
-    if (dto.emergencyContactPhone !== undefined) updateData.emergencyContactPhone = dto.emergencyContactPhone || null;
-    if (dto.emergencyContactRelationship !== undefined) updateData.emergencyContactRelationship = dto.emergencyContactRelationship || null;
-    if (dto.sendCredentialsEmail !== undefined) updateData.sendCredentialsEmailOnCreate = dto.sendCredentialsEmail;
+    if (dto.birthCertificateUrl !== undefined)
+      updateData.birthCertificateUrl = dto.birthCertificateUrl || null;
+    if (dto.bonusLimit !== undefined)
+      updateData.bonusLimit = new Prisma.Decimal(dto.bonusLimit);
+    if (dto.adminPanelAccess !== undefined)
+      updateData.adminPanelAccess = dto.adminPanelAccess;
+    if (dto.isTechnician !== undefined)
+      updateData.isTechnician = dto.isTechnician;
+    if (dto.commissionRate !== undefined)
+      updateData.commissionRate = new Prisma.Decimal(dto.commissionRate);
+    if (dto.emergencyContactName !== undefined)
+      updateData.emergencyContactName = dto.emergencyContactName || null;
+    if (dto.emergencyContactPhone !== undefined)
+      updateData.emergencyContactPhone = dto.emergencyContactPhone || null;
+    if (dto.emergencyContactRelationship !== undefined)
+      updateData.emergencyContactRelationship =
+        dto.emergencyContactRelationship || null;
+    if (dto.sendCredentialsEmail !== undefined)
+      updateData.sendCredentialsEmailOnCreate = dto.sendCredentialsEmail;
 
     if (dto.gender !== undefined) updateData.gender = dto.gender || null;
-    if (dto.dob !== undefined) updateData.dob = dto.dob ? new Date(dto.dob) : null;
-    if (dto.nidNumber !== undefined) updateData.nidNumber = dto.nidNumber || null;
-    if (dto.roleId !== undefined) updateData.role = { connect: { id: dto.roleId } };
+    if (dto.dob !== undefined)
+      updateData.dob = dto.dob ? new Date(dto.dob) : null;
+    if (dto.nidNumber !== undefined)
+      updateData.nidNumber = dto.nidNumber || null;
+    if (dto.roleId !== undefined)
+      updateData.role = { connect: { id: dto.roleId } };
     if (dto.departmentId !== undefined) {
       updateData.department = dto.departmentId
         ? { connect: { id: dto.departmentId } }
@@ -283,14 +313,21 @@ export class EmployeeService {
 
     if (dto.branchIds !== undefined) {
       const primaryId = dto.branchIds.length > 0 ? dto.branchIds[0] : null;
-      updateData.branch = primaryId ? { connect: { id: primaryId } } : { disconnect: true };
+      updateData.branch = primaryId
+        ? { connect: { id: primaryId } }
+        : { disconnect: true };
     } else if (dto.branchId !== undefined) {
-      updateData.branch = dto.branchId ? { connect: { id: dto.branchId } } : { disconnect: true };
+      updateData.branch = dto.branchId
+        ? { connect: { id: dto.branchId } }
+        : { disconnect: true };
     }
 
-    if (dto.employmentType !== undefined) updateData.employmentType = dto.employmentType;
+    if (dto.employmentType !== undefined)
+      updateData.employmentType = dto.employmentType;
     if (dto.joiningDate !== undefined) {
-      updateData.joiningDate = dto.joiningDate ? new Date(dto.joiningDate) : undefined;
+      updateData.joiningDate = dto.joiningDate
+        ? new Date(dto.joiningDate)
+        : undefined;
     }
     if (dto.reportingManagerId !== undefined) {
       updateData.reportingManager = dto.reportingManagerId
@@ -298,10 +335,13 @@ export class EmployeeService {
         : { disconnect: true };
     }
     if (dto.status !== undefined) updateData.status = dto.status;
-    if (dto.basicSalary !== undefined) updateData.basicSalary = new Prisma.Decimal(dto.basicSalary);
-    if (dto.allowances !== undefined) updateData.allowances = dto.allowances as any;
-    if (dto.paymentMethod !== undefined) updateData.paymentMethod = dto.paymentMethod || null;
-    if (dto.bankAccountNo !== undefined) updateData.bankAccountNo = dto.bankAccountNo || null;
+    if (dto.basicSalary !== undefined)
+      updateData.basicSalary = new Prisma.Decimal(dto.basicSalary);
+    if (dto.allowances !== undefined) updateData.allowances = dto.allowances;
+    if (dto.paymentMethod !== undefined)
+      updateData.paymentMethod = dto.paymentMethod || null;
+    if (dto.bankAccountNo !== undefined)
+      updateData.bankAccountNo = dto.bankAccountNo || null;
 
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -335,7 +375,9 @@ export class EmployeeService {
       });
     } catch (e: any) {
       if (e.code === 'P2002') {
-        throw new ConflictException('An employee with this email or phone already exists.');
+        throw new ConflictException(
+          'An employee with this email or phone already exists.',
+        );
       }
       throw e;
     }
@@ -378,7 +420,8 @@ export class EmployeeService {
       },
     });
 
-    if (!staff) throw new NotFoundException(`Employee with ID "${id}" not found.`);
+    if (!staff)
+      throw new NotFoundException(`Employee with ID "${id}" not found.`);
 
     if (staff.managedBranches.length > 0) {
       throw new ConflictException(

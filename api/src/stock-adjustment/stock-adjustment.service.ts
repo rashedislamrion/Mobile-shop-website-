@@ -16,7 +16,9 @@ import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 export class StockAdjustmentService {
   constructor(private prisma: PrismaService) {}
 
-  private async resolveBranchId(branchParam?: string): Promise<string | undefined> {
+  private async resolveBranchId(
+    branchParam?: string,
+  ): Promise<string | undefined> {
     if (!branchParam || branchParam === 'all' || branchParam === 'GLOBAL') {
       return undefined;
     }
@@ -150,7 +152,9 @@ export class StockAdjustmentService {
     });
 
     if (!adjustment) {
-      throw new NotFoundException(`Stock adjustment with ID "${id}" not found.`);
+      throw new NotFoundException(
+        `Stock adjustment with ID "${id}" not found.`,
+      );
     }
 
     return adjustment;
@@ -158,7 +162,9 @@ export class StockAdjustmentService {
 
   async create(dto: CreateStockAdjustmentDto, user?: JwtPayload) {
     const branchId = (await this.resolveBranchId(dto.branchId)) || dto.branchId;
-    const branch = await this.prisma.branch.findUnique({ where: { id: branchId } });
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: branchId },
+    });
     if (!branch) throw new NotFoundException(`Branch not found.`);
 
     const product = await this.prisma.product.findUnique({
@@ -176,14 +182,21 @@ export class StockAdjustmentService {
     }
 
     if (!targetVariant) {
-      throw new BadRequestException(`No variant found for product "${product.name}".`);
+      throw new BadRequestException(
+        `No variant found for product "${product.name}".`,
+      );
     }
 
     // Resolve adjustedBy staff
     let adjustedById = user?.sub;
     if (!adjustedById || user?.userType !== 'STAFF') {
-      const firstStaff = await this.prisma.staff.findFirst({ select: { id: true } });
-      if (!firstStaff) throw new BadRequestException(`No staff record found to author adjustment.`);
+      const firstStaff = await this.prisma.staff.findFirst({
+        select: { id: true },
+      });
+      if (!firstStaff)
+        throw new BadRequestException(
+          `No staff record found to author adjustment.`,
+        );
       adjustedById = firstStaff.id;
     }
 
@@ -197,9 +210,19 @@ export class StockAdjustmentService {
       quantityChange = quantity;
       stockAfter = currentStock + quantity;
     } else if (dto.type === StockAdjustmentType.DECREASE) {
+      if (currentStock < quantity) {
+        throw new BadRequestException(
+          `Insufficient stock for "${product.name}" (${targetVariant.sku || 'N/A'}). Current stock: ${currentStock}, requested reduction: ${quantity}.`,
+        );
+      }
       quantityChange = -quantity;
-      stockAfter = Math.max(0, currentStock - quantity);
+      stockAfter = currentStock - quantity;
     } else if (dto.type === StockAdjustmentType.RECOUNT) {
+      if (quantity < 0) {
+        throw new BadRequestException(
+          `Recount quantity cannot be negative (${quantity}).`,
+        );
+      }
       quantityChange = quantity - currentStock;
       stockAfter = quantity;
     }
@@ -268,18 +291,27 @@ export class StockAdjustmentService {
 
   async createBatch(dto: CreateBatchStockAdjustmentDto, user?: JwtPayload) {
     const branchId = (await this.resolveBranchId(dto.branchId)) || dto.branchId;
-    const branch = await this.prisma.branch.findUnique({ where: { id: branchId } });
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: branchId },
+    });
     if (!branch) throw new NotFoundException(`Branch not found.`);
 
     if (!dto.items || dto.items.length === 0) {
-      throw new BadRequestException(`At least one adjustment item is required in the batch.`);
+      throw new BadRequestException(
+        `At least one adjustment item is required in the batch.`,
+      );
     }
 
     // Resolve adjustedBy staff
     let adjustedById = user?.sub;
     if (!adjustedById || user?.userType !== 'STAFF') {
-      const firstStaff = await this.prisma.staff.findFirst({ select: { id: true } });
-      if (!firstStaff) throw new BadRequestException(`No staff record found to author adjustment.`);
+      const firstStaff = await this.prisma.staff.findFirst({
+        select: { id: true },
+      });
+      if (!firstStaff)
+        throw new BadRequestException(
+          `No staff record found to author adjustment.`,
+        );
       adjustedById = firstStaff.id;
     }
 
@@ -301,7 +333,9 @@ export class StockAdjustmentService {
           include: { variants: true },
         });
         if (!product) {
-          throw new NotFoundException(`Product with ID "${item.productId}" not found.`);
+          throw new NotFoundException(
+            `Product with ID "${item.productId}" not found.`,
+          );
         }
 
         let targetVariant = item.variantId
@@ -313,7 +347,9 @@ export class StockAdjustmentService {
         }
 
         if (!targetVariant) {
-          throw new BadRequestException(`No variant found for product "${product.name}".`);
+          throw new BadRequestException(
+            `No variant found for product "${product.name}".`,
+          );
         }
 
         const currentStock = Number(targetVariant.stock || 0);

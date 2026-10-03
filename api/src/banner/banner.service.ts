@@ -1,6 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateBannerDto, UpdateBannerDto, ReorderBannersDto } from './dto/banner.dto';
+import {
+  CreateBannerDto,
+  UpdateBannerDto,
+  ReorderBannersDto,
+} from './dto/banner.dto';
 import { Prisma, StaffStatus } from '@prisma/client';
 
 @Injectable()
@@ -36,7 +40,8 @@ export class BannerService {
 
   async findOne(id: string) {
     const banner = await this.prisma.banner.findUnique({ where: { id } });
-    if (!banner) throw new NotFoundException(`Banner with ID "${id}" not found.`);
+    if (!banner)
+      throw new NotFoundException(`Banner with ID "${id}" not found.`);
     return banner;
   }
 
@@ -63,8 +68,18 @@ export class BannerService {
         title: dto.title !== undefined ? dto.title || null : undefined,
         linkUrl: dto.linkUrl,
         sortOrder: dto.sortOrder,
-        startDate: dto.startDate !== undefined ? (dto.startDate ? new Date(dto.startDate) : null) : undefined,
-        endDate: dto.endDate !== undefined ? (dto.endDate ? new Date(dto.endDate) : null) : undefined,
+        startDate:
+          dto.startDate !== undefined
+            ? dto.startDate
+              ? new Date(dto.startDate)
+              : null
+            : undefined,
+        endDate:
+          dto.endDate !== undefined
+            ? dto.endDate
+              ? new Date(dto.endDate)
+              : null
+            : undefined,
         status: dto.status,
       },
     });

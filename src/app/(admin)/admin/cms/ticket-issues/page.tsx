@@ -107,57 +107,63 @@ export default function TicketIssuesManagementPage() {
     }
   };
 
-  const columns = [
+  const columns: any[] = [
     {
+      accessorKey: "name",
       header: "Issue Type Name",
-      accessor: (item: TicketIssueTypeRecord) => (
-        <span className="font-bold text-slate-900">{item.name}</span>
+      cell: ({ row }: any) => (
+        <span className="font-bold text-slate-900">{row.original.name}</span>
       ),
     },
     {
+      accessorKey: "category",
       header: "Category",
-      accessor: (item: TicketIssueTypeRecord) => (
+      cell: ({ row }: any) => (
         <span className="px-2 py-0.5 text-xs font-semibold rounded-md bg-slate-100 text-slate-700">
-          {item.category.replace("_", " ")}
+          {row.original.category.replace("_", " ")}
         </span>
       ),
     },
     {
+      accessorKey: "autoAssignRole",
       header: "Auto-Assign Role",
-      accessor: (item: TicketIssueTypeRecord) => (
-        <span className="text-slate-600 text-xs font-mono">{item.autoAssignRole || "—"}</span>
+      cell: ({ row }: any) => (
+        <span className="text-slate-600 text-xs font-mono">{row.original.autoAssignRole || "—"}</span>
       ),
     },
     {
+      id: "activeTickets",
       header: "Active Tickets",
-      accessor: (item: TicketIssueTypeRecord) => (
-        <span className="text-slate-700 font-semibold text-xs">{item._count?.tickets || 0}</span>
+      cell: ({ row }: any) => (
+        <span className="text-slate-700 font-semibold text-xs">{row.original._count?.tickets || 0}</span>
       ),
     },
     {
+      accessorKey: "status",
       header: "Status",
-      accessor: (item: TicketIssueTypeRecord) => {
-        const s = item.status;
+      cell: ({ row }: any) => {
+        const s = row.original.status;
         const type = s === "ACTIVE" ? "success" : "neutral";
         return <StatusBadge status={s} type={type as any} />;
       },
     },
     {
+      id: "actions",
       header: "Action",
-      accessor: (item: TicketIssueTypeRecord) => (
+      cell: ({ row }: any) => (
         <div className="flex items-center gap-1.5 justify-end">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleToggleStatus(item)}
+            onClick={() => handleToggleStatus(row.original)}
             className="text-xs text-slate-600"
           >
-            {item.status === "ACTIVE" ? "Disable" : "Enable"}
+            {row.original.status === "ACTIVE" ? "Disable" : "Enable"}
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => handleDelete(item.id)}
+            onClick={() => handleDelete(row.original.id)}
             className="text-slate-400 hover:text-danger"
           >
             <Trash2 className="w-4 h-4" />

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { toast } from "sonner";
-import { apiGet, apiPost, getAuthToken, getImageUrl } from "@/lib/api-client";
+import { apiGet, apiPost, getAuthToken, getImageUrl, API_BASE_URL } from "@/lib/api-client";
 
 interface BlogCategory {
   id: string;
@@ -163,9 +163,7 @@ export default function CreateBlogPage() {
       }
 
       const token = getAuthToken();
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
-
-      const res = await fetch(`${apiUrl}/blogs`, {
+      const res = await fetch(`${API_BASE_URL}/blogs`, {
         method: "POST",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),

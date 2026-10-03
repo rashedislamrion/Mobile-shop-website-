@@ -11,6 +11,7 @@ import { Tag, Percent, Receipt } from "lucide-react";
 import Link from "next/link";
 import { apiGet } from "@/lib/api-client";
 import { toast } from "sonner";
+import { exportToCsv } from "@/lib/export-utils";
 
 interface DiscountOrderItem {
   id: string;
@@ -158,6 +159,36 @@ export default function DiscountReport() {
     },
   ];
 
+  const handleExport = () => {
+    if (!data || data.length === 0) {
+      toast.info("No discount data available to export");
+      return;
+    }
+    const headers = [
+      "Order Code",
+      "Date",
+      "Customer Name",
+      "Customer Phone",
+      "Branch",
+      "Final Total (BDT)",
+      "Discount Applied (BDT)",
+      "Discount %",
+      "Promo / Type",
+    ];
+    const rows = data.map((d) => [
+      d.orderNumber,
+      new Date(d.createdAt).toLocaleDateString("en-GB"),
+      d.customerName,
+      d.customerPhone,
+      d.branch,
+      d.orderTotal,
+      d.discount,
+      d.discountPercentage,
+      d.promoCode,
+    ]);
+    exportToCsv("discount-report", headers, rows);
+  };
+
   return (
     <div className="space-y-6">
       
@@ -174,7 +205,7 @@ export default function DiscountReport() {
           }}
           className="flex-1"
         />
-        <ReportExportButtons />
+        <ReportExportButtons onExportCsv={handleExport} filename="discount-report" />
       </div>
 
       {/* KPI Cards */}

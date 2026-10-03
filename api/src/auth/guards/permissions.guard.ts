@@ -1,7 +1,15 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../prisma/prisma.service';
-import { PERMISSION_KEY, RequiredPermission } from '../decorators/require-permission.decorator';
+import {
+  PERMISSION_KEY,
+  RequiredPermission,
+} from '../decorators/require-permission.decorator';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { ModuleName } from '@prisma/client';
 
@@ -43,7 +51,9 @@ export class PermissionsGuard implements CanActivate {
       );
     }
 
-    const role = await this.prisma.role.findUnique({ where: { id: user.roleId } });
+    const role = await this.prisma.role.findUnique({
+      where: { id: user.roleId },
+    });
 
     // STEP 2.5: Restrict global-only modules (Business Settings, CMS, Third Party Config) to GLOBAL scope
     const GLOBAL_ONLY_MODULES: ModuleName[] = [
@@ -51,7 +61,10 @@ export class PermissionsGuard implements CanActivate {
       ModuleName.CMS,
       ModuleName.THIRD_PARTY_CONFIG,
     ];
-    if (GLOBAL_ONLY_MODULES.includes(required.module) && role?.scope !== 'GLOBAL') {
+    if (
+      GLOBAL_ONLY_MODULES.includes(required.module) &&
+      role?.scope !== 'GLOBAL'
+    ) {
       throw new ForbiddenException(
         'Access restricted: Only Global Administrators can access or modify system-wide settings.',
       );

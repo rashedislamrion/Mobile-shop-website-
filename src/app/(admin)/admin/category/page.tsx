@@ -289,6 +289,29 @@ export default function CategoryManagementPage() {
     }
   };
 
+  const handleDeleteSingle = async () => {
+    if (!editingCategory) return;
+    if (
+      !confirm(
+        `Are you sure you want to delete category "${editingCategory.name}"? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      await apiDelete(`/categories/${editingCategory.id}`);
+      toast.success(`Category "${editingCategory.name}" deleted successfully.`);
+      handleResetForm();
+      fetchCategories();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete category");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Tree filter logic
   const filteredTree = useMemo(() => {
     if (!treeSearch.trim()) return categoriesTree;
@@ -731,6 +754,17 @@ export default function CategoryManagementPage() {
                 >
                   Reset
                 </Button>
+                {mode === "edit" && editingCategory && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={isSaving}
+                    onClick={handleDeleteSingle}
+                    className="rounded-xl px-4 font-semibold ml-auto"
+                  >
+                    Delete Category
+                  </Button>
+                )}
               </div>
             </form>
           </div>

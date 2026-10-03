@@ -18,15 +18,17 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "MobileHubBD - Online Mobile Parts & Accessories Store",
-  description: "E-commerce platform and ERP management system for mobile spare parts and accessories - mobilehubbd",
+  description: "E-commerce and business management platform for mobile spare parts and accessories - mobilehubbd",
 };
+
+import { API_BASE_URL } from "@/lib/api-client";
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const resolvedApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+  const resolvedApiUrl = API_BASE_URL;
   if (typeof window === "undefined") {
     console.log(`[MobileHubBD Server Startup] API URL resolved: ${resolvedApiUrl}`);
   }

@@ -18,7 +18,10 @@ import { ModuleName, PermissionAction } from '@prisma/client';
 export class BranchController {
   constructor(private readonly branchService: BranchService) {}
 
-  @RequirePermission({ module: ModuleName.BRANCH, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.BRANCH,
+    action: PermissionAction.READ,
+  })
   @Get()
   findAll() {
     return this.branchService.findAll();
@@ -30,13 +33,19 @@ export class BranchController {
     return this.branchService.findPublic();
   }
 
-  @RequirePermission({ module: ModuleName.BRANCH, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.BRANCH,
+    action: PermissionAction.READ,
+  })
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.branchService.findOne(id);
   }
 
-  @RequirePermission({ module: ModuleName.BRANCH, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.BRANCH,
+    action: PermissionAction.CREATE,
+  })
   @Post()
   create(@Body() dto: CreateBranchDto) {
     return this.branchService.create(dto);

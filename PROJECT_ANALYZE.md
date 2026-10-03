@@ -1,612 +1,563 @@
-# MobileHubBD — Full Ground-Truth Project Analysis (generated 2026-09-21)
+# MobileHubBD — Master Ground-Truth Project Analysis & Architecture Blueprint
 
-> **Auditor Note**: This document contains a strict, evidence-based assessment of the MobileHubBD project. Every statement is substantiated by verified file paths, verbatim code excerpts, or executed terminal output. Unverified assumptions have been relegated to Section 8.
-
----
-
-## 1. Stack & Identity
-
-### 1.1 Repository & Framework Versions
-
-#### Frontend (`package.json`)
-- **Package Name**: `temp_app` (Version: `0.1.0`, Private: `true`)
-- **Core Framework**: Next.js `14.2.35` (App Router)
-- **Runtime / Language**: React `^18`, React DOM `^18`, TypeScript `^5`
-- **Styling**: Tailwind CSS `^3.4.1`, PostCSS `^8`, `tailwindcss-animate` `^1.0.7`
-- **UI & State Primitives**: Radix UI suite (dialog, dropdown, tabs, select, etc.), Lucide React `^1.31.0`, TanStack React Table `^8.21.3`, Recharts `^3.10.1`, Sonner `^2.0.8`, React Hook Form `^7.85.0`, Zod `^4.4.3`
-- **Scripts**:
-  ```json
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  }
-  ```
-
-#### Backend API (`api/package.json`)
-- **Package Name**: `api` (Version: `0.0.1`, Private: `true`)
-- **Core Framework**: NestJS `^11.0.1` (`@nestjs/core`, `@nestjs/common`, `@nestjs/platform-express`)
-- **Database & ORM**: Prisma Client `^5.22.0`, Prisma CLI `^5.22.0`
-- **Authentication**: Passport `^0.7.0`, `@nestjs/passport` `^11.0.5`, `passport-jwt` `^4.0.1`, `@nestjs/jwt` `^11.0.2`, `bcrypt` `^6.0.0`
-- **Cloud Storage**: AWS S3 SDK `@aws-sdk/client-s3` `^3.1131.0` (used for Cloudflare R2 compatibility)
-- **Security & Utilities**: `helmet` `^8.3.0`, `compression` `^1.8.1`, `cookie-parser` `^1.4.7`, `@nestjs/throttler` `^6.5.0`, `class-validator` `^0.15.1`, `class-transformer` `^0.5.1`
-- **Scripts**:
-  ```json
-  "scripts": {
-    "build": "nest build",
-    "start": "nest start",
-    "start:dev": "nest start --watch",
-    "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
-    "seed:prod": "ts-node prisma/seed-prod.ts",
-    "test": "jest",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
-  }
-  ```
+> **Authoritative Technical Documentation & Implementation Catalog**  
+> **Last Updated**: Fix Pass 34 (September 2026)  
+> **Repository**: `Mobile-shop-website` (MobileHubBD Enterprise Monorepo)  
+> **Frontend**: Next.js 14.2.35 (React 18, TypeScript 5, Tailwind CSS, Radix UI) → `http://localhost:3000`  
+> **Backend API**: NestJS 11.0.1 (Prisma 5.22, PostgreSQL, Passport JWT) → `http://localhost:4000/api/v1`  
+> **Universal Demo Password**: `Admin@12345`
 
 ---
 
-### 1.2 Prisma Schema Models (`api/prisma/schema.prisma`)
-
-The database schema defines **83 distinct Prisma models**:
-
-| # | Model Name | Category / Purpose |
-|---|---|---|
-| 1–6 | `Role`, `RolePermission`, `RoleBranchPermission`, `Staff`, `StaffBranchAccess`, `RefreshToken` | RBAC & Staff Identity |
-| 7–10 | `Customer`, `Address`, `CustomerActivity`, `Payment` | Customer Accounts & Transactions |
-| 11–12 | `Branch`, `Department` | Organization Structure |
-| 13–18 | `Category`, `Brand`, `Series`, `Unit`, `Attribute`, `AttributeValue` | Product Taxonomies & Specs |
-| 19–26 | `Product`, `ProductImage`, `ProductVariant`, `BranchInventory`, `PhoneUnit`, `ProductSpecification`, `WantedProduct`, `WastedProduct` | Catalog & Inventory Tracking |
-| 27–30 | `Order`, `OrderItem`, `OrderStatusHistory`, `OrderNote` | E-Commerce & POS Orders |
-| 31–33 | `SalesReturn`, `SalesReturnItem`, `Exchange` | After-Sales Returns & Exchanges |
-| 34–38 | `ServiceJob`, `DeviceType`, `ServiceProblemType`, `ServiceWarrantyPeriod`, `ServiceJobMaterial` | Repair & Servicing Center |
-| 39–40 | `Shipment`, `StockAdjustment` | Courier Logistics & Stock Auditing |
-| 41–46 | `Payroll`, `WalletType`, `WalletTransaction`, `Purpose`, `ExpenseCategory`, `Expense` | HRM & Accounting Wallets |
-| 47–50 | `Supplier`, `SupplierPayment`, `PurchaseOrder`, `PurchaseOrderItem` | Procurement & Vendor Accounts |
-| 51–56 | `Banner`, `Ad`, `PromoCode`, `PushNotification`, `BlogCategory`, `Blog` | Marketing & CMS Content |
-| 57–62 | `Page`, `MenuItem`, `FooterSettings`, `MenuStructureItem`, `FooterColumn`, `FooterColumnItem` | Custom Pages & Nav Structure |
-| 63–65 | `Country`, `SocialLink`, `ContactSubmission` | Geographic & Public Contacts |
-| 66–69 | `TicketIssueType`, `SupportTicket`, `SupportTicketMessage`, `HelpNote` | Customer Support & Ticketing |
-| 70–71 | `Wishlist`, `Review` | Storefront Social Engagement |
-| 72–80 | `BusinessSetting`, `Currency`, `DeliveryChargeTier`, `PaymentGatewayConfig`, `SmsConfig`, `MailConfig`, `FirebaseConfig`, `RecaptchaConfig`, `MessageTemplate` | System Configuration |
-| 81–83 | `PasswordResetToken`, `PaymentAttempt` (plus indexes) | Auth Security & Gateways |
-
----
-
-### 1.3 Environment Variables Audit
-
-Cross-checking environment references in source files (`grep -rn "process.env\." src/ api/src/` and `ConfigService.get`):
-
-#### Frontend Environment References (`src/`)
-- `NEXT_PUBLIC_API_URL` (referenced in `src/lib/api-client.ts:2`, `src/components/admin/EmployeeForm.tsx:251`, `src/app/(admin)/admin/customers/create/page.tsx:78, 179`, etc.)
-- `NEXT_PUBLIC_BACKEND_URL` (referenced in `src/lib/api-client.ts:5`, `src/components/admin/CustomerAvatar.tsx:60`, `src/app/(admin)/admin/customers/[id]/edit/page.tsx:74`)
-
-#### Backend Environment References (`api/src/` & `api/prisma/`)
-- `PORT` (`api/src/main.ts:75`)
-- `NODE_ENV` (`api/src/auth/auth.controller.ts:88, 101, 117, 153, 164`, `api/src/app.controller.ts:23`)
-- `DATABASE_URL` (`api/prisma/schema.prisma:10`)
-- `JWT_ACCESS_SECRET`, `JWT_ACCESS_EXPIRY` (`api/src/auth/auth.service.ts:422-423`, `api/src/auth/strategies/jwt-access.strategy.ts:13`)
-- `JWT_REFRESH_SECRET`, `JWT_REFRESH_EXPIRY` (`api/src/auth/auth.service.ts:217, 427-428`, `api/src/auth/strategies/jwt-refresh.strategy.ts:22`)
-- `ALLOWED_ORIGINS` (`api/src/main.ts:27`)
-- `FRONTEND_URL` (`api/src/main.ts:32`, `api/src/payment/bkash/bkash.service.ts:127`, `api/src/payment/sslcommerz/sslcommerz.service.ts:184`)
-- `API_URL` (`api/src/payment/bkash/bkash.service.ts:79`, `api/src/payment/sslcommerz/sslcommerz.service.ts:55`)
-- `UPLOAD_ROOT` (`api/src/main.ts:23`, `api/src/common/upload/multer.config.ts:20`)
-- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL` (`api/src/common/upload/storage.service.ts:17-33`)
-
-#### Discrepancies vs `.env.example`
-1. Root `.env.example` only lists `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_BACKEND_URL`, pointing to Render URLs (`https://mobilehubbd-api.onrender.com`).
-2. `api/.env.example` still contains stale "NovaMobile" branding strings (`novamobile.vercel.app`, `novamobile-media`, `novamobile_sandbox`) rather than `mobilehubbd`.
-3. In local `api/.env`, the key `CORS_ORIGIN="http://localhost:3000"` is present, but `api/src/main.ts` actually parses `ALLOWED_ORIGINS` (comma-separated) and `FRONTEND_URL`. (However, `api/src/main.ts:62` contains a permissive fallback `callback(null, true);`).
+## Table of Contents
+1. [Executive Summary & Business Domain](#1-executive-summary--business-domain)
+2. [Technology Stack & Repository Layout](#2-technology-stack--repository-layout)
+3. [Database Architecture & Core Domain Models](#3-database-architecture--core-domain-models)
+4. [Complete Frontend Page Inventory (Every Page & Route)](#4-complete-frontend-page-inventory-every-page--route)
+   - [4.1 Point of Sale (POS) & Cashier Desk](#41-point-of-sale-pos--cashier-desk)
+   - [4.2 Device Servicing & Repair Center](#42-device-servicing--repair-center)
+   - [4.3 Technician Workspace & Reports](#43-technician-workspace--reports)
+   - [4.4 Sales & Order Management](#44-sales--order-management)
+   - [4.5 Sales Returns & Trade-In Exchanges](#45-sales-returns--trade-in-exchanges)
+   - [4.6 Product Catalog & Inventory Management](#46-product-catalog--inventory-management)
+   - [4.7 Stock Auditing & Adjustments](#47-stock-auditing--adjustments)
+   - [4.8 Procurement, Vendors & Suppliers](#48-procurement-vendors--suppliers)
+   - [4.9 Accounting, Wallets & Operational Expenses](#49-accounting-wallets--operational-expenses)
+   - [4.10 HRM, Employees & Multi-Line Payroll](#410-hrm-employees--multi-line-payroll)
+   - [4.11 Customer Relationship Management (CRM)](#411-customer-relationship-management-crm)
+   - [4.12 Executive Reports & Business Intelligence](#412-executive-reports--business-intelligence)
+   - [4.13 Marketing & Content Management System (CMS)](#413-marketing--content-management-system-cms)
+   - [4.14 Business Settings, Branch Administration & 3rd-Party Config](#414-business-settings-branch-administration--3rd-party-config)
+   - [4.15 Customer Support & Staff Notes](#415-customer-support--staff-notes)
+   - [4.16 Storefront E-Commerce Pages](#416-storefront-e-commerce-pages)
+5. [Complete Backend API Endpoints & Controller Map (All 51 Controllers)](#5-complete-backend-api-endpoints--controller-map-all-51-controllers)
+6. [Detailed Work Changelog (Fix Passes 20–34)](#6-detailed-work-changelog-fix-passes-2034)
+7. [Core Business Logic, Financial Formulas & Invariants](#7-core-business-logic-financial-formulas--invariants)
+8. [Role-Based Access Control (RBAC) & Verified Credentials](#8-role-based-access-control-rbac--verified-credentials)
+9. [Local Execution & Production Deployment Guide](#9-local-execution--production-deployment-guide)
 
 ---
 
-### 1.4 Git Repository State
+## 1. Executive Summary & Business Domain
 
-Command executed: `git branch --show-current && git log --oneline -10 && git status`
+### 1.1 What is MobileHubBD?
+**MobileHubBD** (formerly NovaMobile) is an enterprise-grade omnichannel retail, repair servicing, and back-office management platform built specifically for multi-branch mobile phone chain stores, smartphone repair workshops, and gadget e-commerce operations in Bangladesh.
 
+The platform unites four major systems into a cohesive application:
+1. **Public E-Commerce Storefront**: Modern responsive customer portal featuring multi-criteria smartphone filtering, product comparison, dynamic cart, Cash on Delivery (COD) / MFS online payment gateways (bKash & SSLCommerz), customer account dashboard, order tracking, and support ticketing.
+2. **Point of Sale (POS) Terminal**: High-speed cashier desk designed for retail counters. Supports physical barcode scanning, IMEI/Serial number assignment for mobile handsets, warranty tier selection, multi-channel split payments (Cash, bKash, Nagad, Bank Card), customer due tracking, pixel-accurate Color/Quality attribute variant picker modal, and a dedicated **POS Technician Mode** for instant repair intake.
+3. **Device Repair & Servicing Center**: Full 9-section repair intake workflow (device condition, problem tags, security pattern/PIN, accessories checklist, labor charge, material sourcing history with `OWN_STOCK`, `SUPPLIER`, and `OTHER` sources), Global Admin Servicing management with multi-criteria filtering, dedicated **Technician Workspace** with interactive job cards, and automated **50/50 technician profit sharing**.
+4. **Enterprise Back-Office ERP**: Multi-branch inventory tracking, serial/IMEI auditing, vendor procurement and supplier due running balances, double-entry expense and wallet accounting, dynamic custom role-based access control (RBAC), HRM & unified multi-line payroll, automated financial auditing, and CMS/marketing management.
+
+---
+
+## 2. Technology Stack & Repository Layout
+
+### 2.1 Monorepo Structure
 ```
-main
-8030e9e1 (HEAD -> main) Fix Pass 28 - Rebranding, route guards, UI alignment
-361b101d (origin/main, origin/HEAD) feat(deploy): add production automated deployment script deploy.sh
-50a9eab5 Complete rebrand, security fixes, automated tests (Fix Pass 26)
-e1e61c5c docs: add Fix Pass 23 real state verification and go-live checklist to QA_AUDIT_REPORT.md
-26f21b68 feat: complete Fix Pass 17-23 enterprise mobile shop with free-tier deployment blueprints, R2 adapter, servicing module, and human go-live guide
-51371bc4 Complete upgrade of POS terminal and all recent fixes
-bb462969 fix: ignore api folder in vercel deployment and tsconfig
-8a98f46d fix: make context hooks resilient for build prerendering
-511e1fb3 fix: resolve useFormField outside FormField error and add safe fallback
-5d0b7862 fix: add missing Plus icon in EmployeeForm
-
-On branch main
-Your branch is ahead of 'origin/main' by 1 commit.
-  (use "git push" to publish your local commits)
-
-nothing to commit, working tree clean
+Mobile-shop-website/
+├── src/                                  # Next.js 14 Frontend Application
+│   ├── app/                              # Next.js App Router (135 Page Routes)
+│   │   ├── (admin)/admin/                # 111 Admin & Back-Office Page Routes
+│   │   └── (storefront)/                 # 24 Customer Storefront Page Routes
+│   ├── components/                       # Shared UI & Admin Components
+│   │   ├── admin/                        # Admin sidebars, topbar, modals, data tables
+│   │   │   ├── hrm/                      # AddSalaryPayrollModal.tsx (Fix Pass 22)
+│   │   │   ├── pos/                      # PosProductModal.tsx (Fix Pass 21), PosInvoiceModal.tsx
+│   │   │   ├── servicing/                # ServiceMaterialHistoryPicker.tsx (Fix Pass 33)
+│   │   │   ├── AdminSidebar.tsx          # Responsive navigation sidebar
+│   │   │   └── AdminTopbar.tsx           # Global search, branch switcher, notification bell
+│   │   ├── storefront/                   # Storefront header, footer, product grid, banners
+│   │   └── ui/                           # Radix UI primitives & design tokens
+│   ├── context/                          # React Contexts (AuthContext, AdminPageContext)
+│   ├── hooks/                            # Custom React Hooks
+│   ├── lib/                              # Utilities & Centralized API Client (`api-client.ts`)
+│   └── types/                            # TypeScript interfaces & types
+├── api/                                  # NestJS 11 Backend API Application
+│   ├── prisma/                           # Database Schema & Seed Scripts
+│   │   ├── schema.prisma                 # 82 PostgreSQL Data Models & 46 Enums
+│   │   ├── seed.ts                       # Development seed script (Admin@12345)
+│   │   └── seed-prod.ts                  # Production initial seed
+│   ├── src/                              # 51 Feature Modules (Controller-Service-DTO)
+│   ├── uploads/                          # Static file uploads directory
+│   ├── docker-compose.yml                # Local PostgreSQL container definition
+│   ├── .env                              # Backend environment configuration
+│   └── package.json                      # NestJS Dependencies
+├── public/                               # Static images, icons, and placeholder assets
+├── scratch/                              # Audit runners & verification suites (MJS)
+├── PROJECT_ANALYZE.md                    # Single authoritative project blueprint
+└── package.json                          # Next.js Dependencies
 ```
 
-> [!CRITICAL]
-> The local branch `main` is ahead of `origin/main` by 1 commit (`8030e9e1: Fix Pass 28`). This means all changes from Fix Pass 28 (including logo extraction, admin login mockup match, color alignment, and route fixes) **have NOT yet been pushed to GitHub**. Therefore, any deployment running from GitHub on the VPS is still running commit `361b101d` or older.
+### 2.2 Framework & Dependency Versions
+- **Frontend Framework**: Next.js `14.2.35` (App Router)
+- **Frontend Stack**: React `18.x`, TypeScript `5.x`, Tailwind CSS `3.4.1`, Radix UI Suite, Lucide React (`^1.31.0`), Sonner (Toasts)
+- **Backend Framework**: NestJS `11.0.1` (`@nestjs/core`, `@nestjs/common`, `@nestjs/platform-express`)
+- **Database & ORM**: PostgreSQL, Prisma ORM `5.22.0`
+- **Authentication**: Passport.js, `@nestjs/passport`, `passport-jwt`, `@nestjs/jwt`, `bcrypt`
+- **Security**: Helmet `8.3.0`, Compression, Cookie-Parser, `@nestjs/throttler`
+- **Client Communication**: `src/lib/api-client.ts` centralizes `apiGet`, `apiPost`, `apiPatch`, `apiDelete` handling tokens, scopes, and direct JSON parsing.
 
 ---
 
-## 2. Admin Login "Failed to Fetch" — Root Cause Analysis
+## 3. Database Architecture & Core Domain Models
 
-### 2.1 Frontend Request Construction Code
+The database schema in `api/prisma/schema.prisma` contains **82 models** and **46 enums**:
 
-In `src/lib/api-client.ts`:
-```typescript
-// Line 1-2:
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+| Domain | Key Models | Core Purpose |
+| :--- | :--- | :--- |
+| **Authentication & RBAC** | `Role`, `RolePermission`, `RoleBranchPermission`, `Staff`, `StaffBranchAccess`, `RefreshToken`, `PasswordResetToken` | Multi-branch staff login, dynamic permissions (Narrow Roles), JWT refresh rotation. |
+| **Organization & Branches** | `Branch`, `Department` | Flagship, Outlet, and Warehouse branches; department hierarchy. |
+| **Product Catalog & Specs** | `Product`, `ProductVariant`, `ProductImage`, `Category`, `Brand`, `Series`, `Unit`, `Attribute`, `AttributeValue`, `ProductSpecification` | Hierarchical categories, brands, series, color/quality attributes, and specs. |
+| **Inventory & IMEI Tracking** | `BranchInventory`, `PhoneUnit`, `WantedProduct`, `WastedProduct`, `StockAdjustment`, `StockAdjustmentItem` | Stock counts per branch, unit-level IMEI tracking (`ACTIVE`, `SOLD`, `REPAIRED`, `DEFECTIVE`), physical inventory audits. |
+| **Orders & Point of Sale** | `Order`, `OrderItem`, `OrderStatusHistory`, `OrderNote`, `Payment`, `PaymentAttempt` | In-store POS sales, online orders, split payments, cash/MFS/card reconciliation, customer dues. |
+| **Repair & Servicing Center** | `ServiceJob`, `DeviceType`, `ServiceProblemType`, `ServiceWarrantyPeriod`, `ServiceJobMaterial` | 9-section repair intake, technician assignments, stock-independent parts history (`OWN_STOCK`, `SUPPLIER`, `OTHER`), 50/50 profit split. |
+| **Returns & Exchanges** | `SalesReturn`, `SalesReturnItem`, `Exchange` | Product returns, customer refunds, device trade-ins and exchanges. |
+| **Procurement & Vendors** | `Supplier`, `SupplierPayment`, `PurchaseOrder`, `PurchaseOrderItem` | Purchase orders from suppliers, payment logs, running supplier due ledger. |
+| **Accounting & Wallets** | `WalletType`, `WalletTransaction`, `Purpose`, `ExpenseCategory`, `Expense` | Double-entry cash/bank wallets, internal money transfers, categorized operational expenses. |
+| **HRM & Payroll** | `Payroll`, `Staff` | Salary calculation, commission tracking, bonus/deduction records, monthly payroll execution, multi-line wallet ledger dispatches. |
+| **Customer Engagement** | `Customer`, `Address`, `CustomerActivity`, `Wishlist`, `Review`, `SupportTicket`, `SupportTicketMessage`, `HelpNote` | Customer CRM, 12 stat cards, order history, support ticket conversations. |
+| **Marketing & CMS** | `Banner`, `Ad`, `PromoCode`, `PushNotification`, `BlogCategory`, `Blog`, `Page`, `MenuItem`, `FooterSettings`, `SocialLink`, `ContactSubmission` | Home sliders, promo codes, blog articles, custom CMS pages, header/footer navigation builders. |
+| **Business Configurations** | `BusinessSetting`, `Currency`, `DeliveryChargeTier`, `PaymentGatewayConfig`, `SmsConfig`, `MailConfig`, `FirebaseConfig`, `RecaptchaConfig`, `MessageTemplate` | Global settings, currencies (BDT ৳), courier delivery tiers, SMS gateways (SSL Wireless/Greenweb), bKash/Nagad/SSLCommerz credentials. |
 
-// Line 261-269:
-export async function apiFetch<T>(
-  endpoint: string,
-  options: ApiFetchOptions = {},
-  isRetry = false,
-): Promise<T> {
-  const url = endpoint.startsWith('http')
-    ? endpoint
-    : `${API_BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
-  ...
+---
+
+## 4. Complete Frontend Page Inventory (Every Page & Route)
+
+Below is the complete, exhaustive index of every single page in the application, including file paths, operational responsibilities, connected backend APIs, and access requirements.
+
+### 4.1 Point of Sale (POS) & Cashier Desk
+| Route | File Path | Description & Features | Connected APIs | RBAC / Permission |
+| :--- | :--- | :--- | :--- | :--- |
+| `/admin/pos` | `src/app/(admin)/admin/pos/page.tsx` | High-speed POS terminal. Barcode scan, product search, cart summary, discount, customer selection, split payments (Cash, bKash, Card), Color/Quality modal, IMEI assignment, and POS Technician Mode. | `GET /pos/products`, `POST /pos/sales`, `GET /pos/services`, `POST /pos/service-jobs`, `GET /customers`, `GET /phone-units/available` | `SALES:CREATE` |
+
+### 4.2 Device Servicing & Repair Center
+| Route | File Path | Description & Features | Connected APIs | RBAC / Permission |
+| :--- | :--- | :--- | :--- | :--- |
+| `/admin/servicing` | `src/app/(admin)/admin/servicing/page.tsx` | **Admin Servicing Management Page**. Lists all repair jobs across branches. Filters: by technician, by branch, by status, by date range. Search bar (invoice, customer, phone, device). View modal, edit job details/pricing, hard delete with cascade removal. | `GET /service-jobs`, `GET /branches`, `GET /employees/technicians`, `PATCH /service-jobs/:id`, `DELETE /service-jobs/:id` | `SALES:READ` (Global & Branch Admin only; Technicians blocked) |
+| `/admin/servicing/create` | `src/app/(admin)/admin/servicing/create/page.tsx` | **9-Section Repair Intake**. Customer info, device specs, condition, problem tags, lock PIN/pattern, accessories checklist, labor charge, material history (`OWN_STOCK`, `SUPPLIER`, `OTHER`), advance payment. | `GET /service-jobs/next-invoice-number`, `GET /service-lookups/*`, `GET /suppliers`, `POST /service-jobs/repair` | `SALES:CREATE` |
+| `/admin/sales/service` | `src/app/(admin)/admin/sales/service/page.tsx` | Sales service list view showing service jobs originating from sales channels with status transitions. | `GET /service-jobs`, `PATCH /service-jobs/:id/status` | `SALES:READ` |
+| `/admin/sales/service/create` | `src/app/(admin)/admin/sales/service/create/page.tsx` | Quick intake link directing to the comprehensive service intake form. | `GET /service-jobs/next-invoice-number` | `SALES:CREATE` |
+
+### 4.3 Technician Workspace & Reports
+| Route | File Path | Description & Features | Connected APIs | RBAC / Permission |
+| :--- | :--- | :--- | :--- | :--- |
+| `/admin/technician` | `src/app/(admin)/admin/technician/page.tsx` | **Technician Personal Workspace**. Job cards filtered to logged-in technician only (`/service-jobs/my`). Status updates (`IN_PROGRESS`, `READY_FOR_PICKUP`, `DELIVERED`), interactive Job Detail modal with full diagnostics. | `GET /service-jobs/my`, `GET /service-jobs/:id`, `PATCH /service-jobs/:id/status` | `SALES:READ` (Technician Scope) |
+| `/admin/technician/servicing-report` | `src/app/(admin)/admin/technician/servicing-report/page.tsx` | **Personal Servicing Financial Report**. Displays Total Repaired, Material Cost, Total Profit, and **"Your Profit" (50% share)**. Detail table with date filter and source badges. | `GET /reports/technician-servicing` | `REPORT:READ` (Technician Scope) |
+
+### 4.4 Sales & Order Management
+| Route | File Path | Description & Features | Connected APIs | RBAC / Permission |
+| :--- | :--- | :--- | :--- | :--- |
+| `/admin/orders` | `src/app/(admin)/admin/orders/page.tsx` | Master order ledger. Filter by channel (Storefront, POS), payment status, fulfillment status, branch, date range. Invoice print trigger. | `GET /orders`, `GET /branches` | `ORDERS:READ` |
+| `/admin/orders/[id]` | `src/app/(admin)/admin/orders/[id]/page.tsx` | Single order deep dive. Customer profile, itemized line items, assigned IMEI serials, payment split logs, delivery notes, status updater. | `GET /orders/:id`, `PATCH /orders/:id/status`, `POST /orders/:id/notes` | `ORDERS:READ`, `ORDERS:UPDATE` |
+| `/admin/sales/all` | `src/app/(admin)/admin/sales/all/page.tsx` | Omnichannel sales list (POS + E-commerce). Search by invoice number, customer phone, date filtering, payment breakdown. | `GET /orders?type=all` | `SALES:READ` |
+| `/admin/sales/courier` | `src/app/(admin)/admin/sales/courier/page.tsx` | Courier consignment assignment. Assign orders to Steadfast, Pathao, or RedX, track consignment numbers. | `GET /orders?fulfillment=COURIER`, `POST /shipments` | `SALES:UPDATE` |
+| `/admin/sales/courier-list` | `src/app/(admin)/admin/sales/courier-list/page.tsx` | Dispatched courier tracking ledger with delivery status reconciliation. | `GET /shipments` | `SALES:READ` |
+| `/admin/sales/diagnosing` | `src/app/(admin)/admin/sales/diagnosing/page.tsx` | Device diagnosing requests submitted via storefront or in-store counter. | `GET /service-jobs?type=diagnosing` | `SALES:READ` |
+
+### 4.5 Sales Returns & Trade-In Exchanges
+| Route | File Path | Description & Features | Connected APIs | RBAC / Permission |
+| :--- | :--- | :--- | :--- | :--- |
+| `/admin/sales-returns` | `src/app/(admin)/admin/sales-returns/page.tsx` | Sales returns list. Restocked quantity, refund method (Cash/Wallet), return reason, invoice reference. | `GET /sales-returns` | `SALES_RETURN:READ` |
+| `/admin/sales-returns/[id]` | `src/app/(admin)/admin/sales-returns/[id]/page.tsx` | Return voucher detail view with inspection notes and financial ledger adjustments. | `GET /sales-returns/:id` | `SALES_RETURN:READ` |
+| `/admin/exchanges` | `src/app/(admin)/admin/exchanges/page.tsx` | Device trade-in and exchange list. Customer old device valuation vs new purchase adjustment. | `GET /exchanges` | `EXCHANGE:READ` |
+| `/admin/exchanges/[id]` | `src/app/(admin)/admin/exchanges/[id]/page.tsx` | Exchange voucher details, inspection condition, IMEI of old vs new phone. | `GET /exchanges/:id` | `EXCHANGE:READ` |
+
+### 4.6 Product Catalog & Inventory Management
+| Route | File Path | Description & Features | Connected APIs | RBAC / Permission |
+| :--- | :--- | :--- | :--- | :--- |
+| `/admin/products` | `src/app/(admin)/admin/products/page.tsx` | Master product catalog table. Stock status badges, price, category, brand, active status toggles. | `GET /products`, `PATCH /products/:id/toggle` | `PRODUCTS:READ` |
+| `/admin/products/create` | `src/app/(admin)/admin/products/create/page.tsx` | Multi-tab product creation: basic info, categories, brand, variants (Color, Storage, Quality), IMEI tracking flag, images, SEO meta. | `GET /categories`, `GET /brands`, `GET /attributes`, `POST /products` | `PRODUCTS:CREATE` |
+| `/admin/products/[id]/edit` | `src/app/(admin)/admin/products/[id]/edit/page.tsx` | Product editor: modify specs, update prices, add variants, manage media gallery. | `GET /products/:id`, `PATCH /products/:id` | `PRODUCTS:UPDATE` |
+| `/admin/products/brands` | `src/app/(admin)/admin/products/brands/page.tsx` | Brand directory (Apple, Samsung, Xiaomi, etc.). Logo upload, website link, status. | `GET /brands`, `POST /brands`, `PATCH /brands/:id`, `DELETE /brands/:id` | `PRODUCTS:READ` |
+| `/admin/products/series` | `src/app/(admin)/admin/products/series/page.tsx` | Product series hierarchy (e.g. iPhone 15 Series, Galaxy S Series). | `GET /series`, `POST /series`, `PATCH /series/:id` | `PRODUCTS:READ` |
+| `/admin/category` | `src/app/(admin)/admin/category/page.tsx` | Hierarchical category builder with parent-child tree, icons, banners. | `GET /categories`, `POST /categories`, `PATCH /categories/:id`, `DELETE /categories/:id` | `CATEGORY:READ` |
+| `/admin/products/attributes` | `src/app/(admin)/admin/products/attributes/page.tsx` | Global attribute definitions (Color, Storage, RAM, Display Quality). | `GET /attributes`, `POST /attributes`, `DELETE /attributes/:id` | `PRODUCTS:READ` |
+| `/admin/products/attributes/[id]/values` | `src/app/(admin)/admin/products/attributes/[id]/values/page.tsx` | Value management for an attribute (e.g., Color values: Deep Purple, Titanium). | `GET /attributes/:id/values`, `POST /attributes/:id/values` | `PRODUCTS:READ` |
+| `/admin/products/units` | `src/app/(admin)/admin/products/units/page.tsx` | Measurement units (Pcs, Box, Set). | `GET /units`, `POST /units`, `DELETE /units/:id` | `PRODUCTS:READ` |
+| `/admin/products/bulk` | `src/app/(admin)/admin/products/bulk/page.tsx` | Bulk CSV import/export for product catalog and initial inventory. | `POST /products/bulk-upload` | `PRODUCTS:CREATE` |
+| `/admin/products/wanted` | `src/app/(admin)/admin/products/wanted/page.tsx` | Customer-requested out-of-stock items tracker. | `GET /wanted-products`, `POST /wanted-products` | `PRODUCTS:READ` |
+| `/admin/products/wasted` | `src/app/(admin)/admin/products/wasted/page.tsx` | Damaged, defective, or scrapped inventory logging with reason codes. | `GET /wasted-products`, `POST /wasted-products` | `PRODUCTS:READ` |
+
+### 4.7 Stock Auditing & Adjustments
+| Route | File Path | Description & Features | Connected APIs | RBAC / Permission |
+| :--- | :--- | :--- | :--- | :--- |
+| `/admin/stock-adjustments` | `src/app/(admin)/admin/stock-adjustments/page.tsx` | Physical stock audit history across branches. Discrepancy logs (excess vs shortage). | `GET /stock-adjustments`, `GET /branches` | `STOCK_ADJUSTMENT:READ` |
+| `/admin/stock-adjustments/create` | `src/app/(admin)/admin/stock-adjustments/create/page.tsx` | Audit reconciliation intake. Scan existing products/IMEIs, enter actual physical count, auto-calculate variance. | `GET /branches`, `GET /products`, `POST /stock-adjustments` | `STOCK_ADJUSTMENT:CREATE` |
+
+### 4.8 Procurement, Vendors & Suppliers
+| Route | File Path | Description & Features | Connected APIs | RBAC / Permission |
+| :--- | :--- | :--- | :--- | :--- |
+| `/admin/accounting/purchase` | `src/app/(admin)/admin/accounting/purchase/page.tsx` | Purchase order ledger. Track purchase date, supplier name, total amount, paid amount, and due balance. | `GET /purchases`, `GET /suppliers` | `PURCHASE:READ` |
+| `/admin/accounting/purchase/create` | `src/app/(admin)/admin/accounting/purchase/create/page.tsx` | New Purchase Order creator. Supplier selection, line-item products, buying price, batch IMEI entry, payment draw from wallet. | `GET /suppliers`, `GET /products`, `GET /wallets`, `POST /purchases` | `PURCHASE:CREATE` |
+| `/admin/accounting/purchase/[id]` | `src/app/(admin)/admin/accounting/purchase/[id]/page.tsx` | Purchase invoice deep dive showing received inventory, IMEI units registered, and payment receipts. | `GET /purchases/:id` | `PURCHASE:READ` |
+| `/admin/purchase/create` | `src/app/(admin)/admin/purchase/create/page.tsx` | Redirect alias pointing to `/admin/accounting/purchase/create`. | - | `PURCHASE:CREATE` |
+| `/admin/accounting/suppliers` | `src/app/(admin)/admin/accounting/suppliers/page.tsx` | Supplier directory. Contact person, phone, address, and live running due balance card. | `GET /suppliers` | `SUPPLIERS:READ` |
+| `/admin/accounting/suppliers/create` | `src/app/(admin)/admin/accounting/suppliers/create/page.tsx` | Add new vendor/supplier form. | `POST /suppliers` | `SUPPLIERS:CREATE` |
+| `/admin/accounting/suppliers/[id]` | `src/app/(admin)/admin/accounting/suppliers/[id]/page.tsx` | Supplier 360° ledger: all purchase history, payment logs, and current payable due balance. | `GET /suppliers/:id`, `GET /suppliers/:id/purchases`, `GET /suppliers/:id/payments` | `SUPPLIERS:READ` |
+| `/admin/accounting/suppliers/[id]/edit` | `src/app/(admin)/admin/accounting/suppliers/[id]/edit/page.tsx` | Edit supplier contact details and company terms. | `GET /suppliers/:id`, `PATCH /suppliers/:id` | `SUPPLIERS:UPDATE` |
+| `/admin/accounting/suppliers/payments` | `src/app/(admin)/admin/accounting/suppliers/payments/page.tsx` | Supplier payment history ledger with "Disburse Supplier Payment" modal drawing from cash/bank wallets. | `GET /suppliers/payments`, `POST /suppliers/payments`, `GET /wallets` | `SUPPLIERS:UPDATE` |
+
+### 4.9 Accounting, Wallets & Operational Expenses
+| Route | File Path | Description & Features | Connected APIs | RBAC / Permission |
+| :--- | :--- | :--- | :--- | :--- |
+| `/admin/accounting/wallet` | `src/app/(admin)/admin/accounting/wallet/page.tsx` | Master Wallet dashboard. Live balance cards for Cash in Hand, Bank Accounts, bKash/Nagad merchant wallets. Filterable transaction ledger. | `GET /wallets`, `GET /wallet-transactions` | `WALLET:READ` |
+| `/admin/accounting/wallet/types` | `src/app/(admin)/admin/accounting/wallet/types/page.tsx` | Configuration of wallet accounts (Cash Register, City Bank, bKash Merchant). | `GET /wallet-types`, `POST /wallet-types`, `PATCH /wallet-types/:id` | `WALLET:UPDATE` |
+| `/admin/accounting/wallet/purposes` | `src/app/(admin)/admin/accounting/wallet/purposes/page.tsx` | Transaction categorization purposes (Salary, Utility, Vendor Payment). | `GET /wallet-purposes`, `POST /wallet-purposes` | `WALLET:READ` |
+| `/admin/accounting/wallet/purpose` | `src/app/(admin)/admin/accounting/wallet/purpose/page.tsx` | Purpose management view alias. | `GET /wallet-purposes` | `WALLET:READ` |
+| `/admin/accounting/wallet/transfers` | `src/app/(admin)/admin/accounting/wallet/transfers/page.tsx` | Internal fund transfers between wallets (e.g. Counter Cash to Bank Deposit). | `GET /wallet-transfers`, `POST /wallet-transfers` | `WALLET:UPDATE` |
+| `/admin/accounting/wallet/deposits` | `src/app/(admin)/admin/accounting/wallet/deposits/page.tsx` | Capital injection and external deposit form. | `POST /wallet-deposits`, `GET /wallets` | `WALLET:UPDATE` |
+| `/admin/accounting/wallet/deposit-history` | `src/app/(admin)/admin/accounting/wallet/deposit-history/page.tsx` | Historical record of external deposits. | `GET /wallet-deposits` | `WALLET:READ` |
+| `/admin/accounting/wallet/lookup-types` | `src/app/(admin)/admin/accounting/wallet/lookup-types/page.tsx` | Financial lookup types directory. | `GET /wallet-lookup-types` | `WALLET:READ` |
+| `/admin/accounting/expense/all` | `src/app/(admin)/admin/accounting/expense/all/page.tsx` | Operational expense management. Add expense modal with receipt upload, wallet deduction, category selector. | `GET /expenses`, `POST /expenses`, `GET /wallets`, `GET /expense-categories` | `EXPENSE:READ` |
+| `/admin/accounting/expense/categories` | `src/app/(admin)/admin/accounting/expense/categories/page.tsx` | Expense categories directory (Rent, Electricity, Tea/Snacks, Marketing). | `GET /expense-categories`, `POST /expense-categories` | `EXPENSE:READ` |
+| `/admin/accounting/expense/history` | `src/app/(admin)/admin/accounting/expense/history/page.tsx` | Filtered historical expense logs by date, branch, and category. | `GET /expenses/history` | `EXPENSE:READ` |
+
+### 4.10 HRM, Employees & Multi-Line Payroll
+| Route | File Path | Description & Features | Connected APIs | RBAC / Permission |
+| :--- | :--- | :--- | :--- | :--- |
+| `/admin/hrm/employees` | `src/app/(admin)/admin/hrm/employees/page.tsx` | Staff directory table. Photo, Employee ID, designation, branch, base salary, status. | `GET /employees` | `HRM:READ` |
+| `/admin/hrm/employees/create` | `src/app/(admin)/admin/hrm/employees/create/page.tsx` | Add employee form: personal details, role, branch assignment, salary breakdown (basic, allowances), technician flags. | `GET /roles`, `GET /branches`, `GET /departments`, `POST /employees` | `HRM:CREATE` |
+| `/admin/hrm/employees/[id]/edit` | `src/app/(admin)/admin/hrm/employees/[id]/edit/page.tsx` | Employee profile editor: update compensation, status, branch permissions. | `GET /employees/:id`, `PATCH /employees/:id` | `HRM:UPDATE` |
+| `/admin/hrm/departments` | `src/app/(admin)/admin/hrm/departments/page.tsx` | Department hierarchy (Sales, Technical, Accounts, Logistics). | `GET /departments`, `POST /departments`, `PATCH /departments/:id` | `HRM:READ` |
+| `/admin/hrm/roles-permissions` | `src/app/(admin)/admin/hrm/roles-permissions/page.tsx` | **Custom Role Builder & Permission Matrix**. Matrix of all system modules vs CRUD actions. Branch scoping toggles. | `GET /roles`, `POST /roles`, `PATCH /roles/:id`, `GET /roles/:id/permissions`, `PUT /roles/:id/permissions` | `HRM:UPDATE` (Global Admin only) |
+| `/admin/hrm/technicians` | `src/app/(admin)/admin/hrm/technicians/page.tsx` | Specialized technician list showing assigned branch, profit share rate (50%), active repair jobs count, completed jobs count. | `GET /employees/technicians` | `HRM:READ` |
+| `/admin/hrm/payroll` | `src/app/(admin)/admin/hrm/payroll/page.tsx` | **Payroll Ledger & Payment History**. Summary cards: Total Paid, Monthly Budget. Search bar, wallet filter, date filter. Unified **"Add Salary / Payroll" modal** (`AddSalaryPayrollModal.tsx`). | `GET /payroll`, `GET /employees`, `GET /wallets`, `POST /wallet-transactions/disburse-staff-payment` | `HRM:READ`, `HRM:UPDATE` |
+| `/admin/hrm/payroll/run` | `src/app/(admin)/admin/hrm/payroll/run/page.tsx` | Bulk monthly payroll runner. Computes net payable for all active staff, previews total wallet deductions, executes batch disbursement. | `GET /payroll/preview-monthly`, `POST /payroll/execute-monthly` | `HRM:UPDATE` |
+
+### 4.11 Customer Relationship Management (CRM)
+| Route | File Path | Description & Features | Connected APIs | RBAC / Permission |
+| :--- | :--- | :--- | :--- | :--- |
+| `/admin/customers` | `src/app/(admin)/admin/customers/page.tsx` | Customer CRM directory. Customer name, phone, total orders, total spent, current due balance, loyalty points. | `GET /customers` | `CUSTOMERS:READ` |
+| `/admin/customers/create` | `src/app/(admin)/admin/customers/create/page.tsx` | Add customer form with address, alternative phone, and initial opening balance. | `POST /customers` | `CUSTOMERS:CREATE` |
+| `/admin/customers/[id]` | `src/app/(admin)/admin/customers/[id]/page.tsx` | **Customer 360° Profile with 12 Stat Cards**. Order history, repair jobs, due payments ledger, activity logs, address book. "Receive Due Payment" modal. | `GET /customers/:id`, `GET /customers/:id/summary`, `GET /customers/:id/orders`, `POST /customers/:id/payments` | `CUSTOMERS:READ` |
+| `/admin/customers/[id]/edit` | `src/app/(admin)/admin/customers/[id]/edit/page.tsx` | Edit customer information and addresses. | `GET /customers/:id`, `PATCH /customers/:id` | `CUSTOMERS:UPDATE` |
+
+### 4.12 Executive Reports & Business Intelligence
+| Route | File Path | Description & Features | Connected APIs | RBAC / Permission |
+| :--- | :--- | :--- | :--- | :--- |
+| `/admin` | `src/app/(admin)/admin/page.tsx` | **Executive Admin Dashboard**. 4 primary KPI cards (Total Sales, Revenue, Profits, Dues adhering to section 5 formulas), Sales trend chart, recent orders, fast action shortcuts. | `GET /reports/dashboard-stats`, `GET /orders/recent` | `REPORT:READ` |
+| `/admin/reports/summary` | `src/app/(admin)/admin/reports/summary/page.tsx` | High-level financial reconciliation summary. Income vs COGS vs Expenses vs Net Profit. | `GET /reports/summary` | `REPORT:READ` |
+| `/admin/reports/pos-sales` | `src/app/(admin)/admin/reports/pos-sales/page.tsx` | Detailed breakdown of in-store POS transactions by cashier, branch, and payment method. | `GET /reports/pos-sales` | `REPORT:READ` |
+| `/admin/reports/pos` | `src/app/(admin)/admin/reports/pos/page.tsx` | Fast alias view for POS sales analytics. | `GET /reports/pos-sales` | `REPORT:READ` |
+| `/admin/reports/website-sales` | `src/app/(admin)/admin/reports/website-sales/page.tsx` | E-commerce storefront sales performance: conversion rate, COD vs MFS gateway volumes. | `GET /reports/website-sales` | `REPORT:READ` |
+| `/admin/reports/service-sales` | `src/app/(admin)/admin/reports/service-sales/page.tsx` | **Global Admin Service Sales Report**. High-level repair metrics: billings, material costs, gross servicing profit. | `GET /reports/service-sales` | `REPORT:READ` |
+| `/admin/reports/purchase` | `src/app/(admin)/admin/reports/purchase/page.tsx` | Procurement expenditure report by supplier, product category, and payment method. | `GET /reports/purchase` | `REPORT:READ` |
+| `/admin/reports/expense` | `src/app/(admin)/admin/reports/expense/page.tsx` | Operational expense breakdown with category distribution and monthly comparisons. | `GET /reports/expense` | `REPORT:READ` |
+| `/admin/reports/transactions` | `src/app/(admin)/admin/reports/transactions/page.tsx` | Centralized financial audit trail. Every credit and debit across all wallets. | `GET /reports/transactions` | `REPORT:READ` |
+| `/admin/reports/customer-due` | `src/app/(admin)/admin/reports/customer-due/page.tsx` | Aging report of all outstanding customer dues with quick WhatsApp/SMS reminder triggers. | `GET /reports/customer-due` | `REPORT:READ` |
+| `/admin/reports/supplier-due` | `src/app/(admin)/admin/reports/supplier-due/page.tsx` | Supplier payable dues report with aging breakdown and payment scheduling. | `GET /reports/supplier-due` | `REPORT:READ` |
+| `/admin/reports/courier` | `src/app/(admin)/admin/reports/courier/page.tsx` | Courier consignment reconciliation: COD collection, courier charges, return ratios. | `GET /reports/courier` | `REPORT:READ` |
+| `/admin/reports/product-stock` | `src/app/(admin)/admin/reports/product-stock/page.tsx` | Live inventory valuation and stock levels across all branches. Low-stock warnings. | `GET /reports/product-stock` | `REPORT:READ` |
+| `/admin/reports/product-analytics` | `src/app/(admin)/admin/reports/product-analytics/page.tsx` | Best-selling products, profit margin per item, dead-stock inventory identification. | `GET /reports/product-analytics` | `REPORT:READ` |
+| `/admin/reports/discount` | `src/app/(admin)/admin/reports/discount/page.tsx` | Discount analytics: staff-applied manual discounts vs promo code deductions. | `GET /reports/discount` | `REPORT:READ` |
+
+### 4.13 Marketing & Content Management System (CMS)
+| Route | File Path | Description & Features | Connected APIs | RBAC / Permission |
+| :--- | :--- | :--- | :--- | :--- |
+| `/admin/marketing/banners` | `src/app/(admin)/admin/marketing/banners/page.tsx` | Storefront hero carousel banners. Target URL, display order, active status. | `GET /banners`, `PATCH /banners/:id` | `PROMOTIONAL_BANNER:READ` |
+| `/admin/marketing/banners/create` | `src/app/(admin)/admin/marketing/banners/create/page.tsx` | Banner upload form with desktop and mobile image crops. | `POST /banners` | `PROMOTIONAL_BANNER:CREATE` |
+| `/admin/marketing/ads` | `src/app/(admin)/admin/marketing/ads/page.tsx` | Mid-page promotional popup and banner advertisements. | `GET /ads`, `PATCH /ads/:id` | `ADS:READ` |
+| `/admin/marketing/ads/create` | `src/app/(admin)/admin/marketing/ads/create/page.tsx` | Create promotional advertisement form. | `POST /ads` | `ADS:CREATE` |
+| `/admin/marketing/promo-code` | `src/app/(admin)/admin/marketing/promo-code/page.tsx` | Discount voucher codes directory. Percentage vs flat amount, minimum order, validity dates. | `GET /promo-codes`, `DELETE /promo-codes/:id` | `PROMO_CODE:READ` |
+| `/admin/marketing/promo-code/create` | `src/app/(admin)/admin/marketing/promo-code/create/page.tsx` | Promo code creator. | `POST /promo-codes` | `PROMO_CODE:CREATE` |
+| `/admin/marketing/push-notification` | `src/app/(admin)/admin/marketing/push-notification/page.tsx` | Broadcast push notification sender to registered mobile and web users. | `POST /push-notifications/send` | `CMS:UPDATE` |
+| `/admin/marketing/blogs` | `src/app/(admin)/admin/marketing/blogs/page.tsx` | Blog articles management. Category, publication status, view count. | `GET /blogs`, `DELETE /blogs/:id` | `BLOGS:READ` |
+| `/admin/marketing/blogs/create` | `src/app/(admin)/admin/marketing/blogs/create/page.tsx` | Blog authoring form with rich text content, thumbnail upload, SEO tags. | `GET /blog-categories`, `POST /blogs` | `BLOGS:CREATE` |
+| `/admin/marketing/blogs/[id]/edit` | `src/app/(admin)/admin/marketing/blogs/[id]/edit/page.tsx` | Blog post editor. | `GET /blogs/:id`, `PATCH /blogs/:id` | `BLOGS:UPDATE` |
+| `/admin/cms/pages` | `src/app/(admin)/admin/cms/pages/page.tsx` | Custom static pages directory (About Us, Warranty Policy, Privacy, Terms). | `GET /pages` | `CMS:READ` |
+| `/admin/cms/pages/create` | `src/app/(admin)/admin/cms/pages/create/page.tsx` | Create static CMS page form. | `POST /pages` | `CMS:CREATE` |
+| `/admin/cms/pages/[id]/edit` | `src/app/(admin)/admin/cms/pages/[id]/edit/page.tsx` | Edit static CMS page content. | `GET /pages/:id`, `PATCH /pages/:id` | `CMS:UPDATE` |
+| `/admin/cms/menus` | `src/app/(admin)/admin/cms/menus/page.tsx` | Storefront header navigation menu tree builder. | `GET /menus`, `POST /menus`, `PUT /menus/order` | `CMS:UPDATE` |
+| `/admin/cms/footer` | `src/app/(admin)/admin/cms/footer/page.tsx` | Storefront footer columns, legal links, and payment method icons. | `GET /footer`, `PATCH /footer` | `CMS:UPDATE` |
+| `/admin/cms/social` | `src/app/(admin)/admin/cms/social/page.tsx` | Social media profiles configuration (Facebook, YouTube, Instagram, WhatsApp). | `GET /social-links`, `POST /social-links` | `CMS:UPDATE` |
+| `/admin/cms/ticket-issues` | `src/app/(admin)/admin/cms/ticket-issues/page.tsx` | Support ticket issue categories directory (Order Issue, Return, Servicing). | `GET /ticket-issue-types`, `POST /ticket-issue-types` | `CMS:READ` |
+| `/admin/cms/countries` | `src/app/(admin)/admin/cms/countries/page.tsx` | Permitted countries and phone dialing codes directory. | `GET /countries`, `POST /countries` | `CMS:READ` |
+| `/admin/cms/contact` | `src/app/(admin)/admin/cms/contact/page.tsx` | Customer messages submitted via storefront `/contact` page. | `GET /contact-submissions`, `PATCH /contact-submissions/:id` | `CMS:READ` |
+
+### 4.14 Business Settings, Branch Administration & 3rd-Party Config
+| Route | File Path | Description & Features | Connected APIs | RBAC / Permission |
+| :--- | :--- | :--- | :--- | :--- |
+| `/admin/business-settings` | `src/app/(admin)/admin/business-settings/page.tsx` | Settings landing directory. | - | `BUSINESS_SETTINGS:READ` |
+| `/admin/business-settings/general` | `src/app/(admin)/admin/business-settings/general/page.tsx` | Company name, logo, favicon, address, VAT/BIN registration number, timezone. | `GET /business-settings`, `PATCH /business-settings` | `BUSINESS_SETTINGS:UPDATE` |
+| `/admin/business-settings/currency` | `src/app/(admin)/admin/business-settings/currency/page.tsx` | Store currency configuration (BDT ৳ default, symbol position, decimals). | `GET /currencies`, `PATCH /currencies/:id` | `BUSINESS_SETTINGS:UPDATE` |
+| `/admin/business-settings/delivery-charge` | `src/app/(admin)/admin/business-settings/delivery-charge/page.tsx` | Delivery charge tiers (Inside Dhaka ৳60, Outside Dhaka ৳120, Express). | `GET /delivery-charges`, `POST /delivery-charges` | `BUSINESS_SETTINGS:UPDATE` |
+| `/admin/business-settings/setup` | `src/app/(admin)/admin/business-settings/setup/page.tsx` | Initial system setup wizard and feature toggle switches. | `GET /business-settings/setup`, `PATCH /business-settings/setup` | `BUSINESS_SETTINGS:UPDATE` |
+| `/admin/business-settings/verification` | `src/app/(admin)/admin/business-settings/verification/page.tsx` | OTP verification settings (SMS OTP login, email verification). | `GET /business-settings/verification` | `BUSINESS_SETTINGS:UPDATE` |
+| `/admin/business/general` | `src/app/(admin)/admin/business/general/page.tsx` | General business profile alias view. | `GET /business-settings` | `BUSINESS_SETTINGS:READ` |
+| `/admin/branch` | `src/app/(admin)/admin/branch/page.tsx` | Branch directory (Flagship, Outlets, Warehouses). Address, manager, contact. | `GET /branches` | `BRANCHES:READ` |
+| `/admin/branch/create` | `src/app/(admin)/admin/branch/create/page.tsx` | New branch creation form. | `POST /branches` | `BRANCHES:CREATE` |
+| `/admin/branch/[id]/edit` | `src/app/(admin)/admin/branch/[id]/edit/page.tsx` | Edit branch details and type. | `GET /branches/:id`, `PATCH /branches/:id` | `BRANCHES:UPDATE` |
+| `/admin/3rd-party` | `src/app/(admin)/admin/3rd-party/page.tsx` | Third-party integrations: SMS Gateways (Greenweb, SSL Wireless), Mail SMTP, Google Recaptcha, Firebase. | `GET /sms-config`, `PATCH /sms-config`, `GET /mail-config`, `PATCH /mail-config`, `GET /payment-gateways` | `THIRD_PARTY_CONFIG:UPDATE` |
+
+### 4.15 Customer Support & Staff Notes
+| Route | File Path | Description & Features | Connected APIs | RBAC / Permission |
+| :--- | :--- | :--- | :--- | :--- |
+| `/admin/support/requests` | `src/app/(admin)/admin/support/requests/page.tsx` | Help requests and tickets submitted by storefront customers. Reply thread and priority tags. | `GET /support-tickets`, `POST /support-tickets/:id/messages` | `HELP_REQUESTS:READ` |
+| `/admin/support/notes` | `src/app/(admin)/admin/support/notes/page.tsx` | Internal staff help notes and task checklist. | `GET /help-notes`, `POST /help-notes`, `DELETE /help-notes/:id` | `HELP_NOTES:READ` |
+| `/admin/login` | `src/app/(admin)/admin/login/page.tsx` | **Staff Portal Login**. Email and password authentication. Sets staff JWT token and role context. | `POST /auth/staff/login` | Public (Staff Only) |
+
+### 4.16 Storefront E-Commerce Pages
+| Route | File Path | Description & Features | Connected APIs |
+| :--- | :--- | :--- | :--- |
+| `/` | `src/app/(storefront)/page.tsx` | Homepage. Hero banner slider, brand logos, featured smartphones, new arrivals, promotional grids, customer testimonials. | `GET /banners`, `GET /products?featured=true`, `GET /brands` |
+| `/phones` | `src/app/(storefront)/phones/page.tsx` | **Smartphones Catalog Multi-Filter**. Filter by brand, price range, storage, RAM, operating system, condition. Sorting options. | `GET /products`, `GET /brands`, `GET /attributes` |
+| `/product/[slug]` | `src/app/(storefront)/product/[slug]/page.tsx` | **Product Detail Page (PDP)**. Image gallery with zoom, variant selector (Color/Storage), live stock badge, full specs table, customer reviews. | `GET /products/:slug`, `GET /products/:slug/reviews` |
+| `/category/[slug]` | `src/app/(storefront)/category/[slug]/page.tsx` | Category listing page with breadcrumbs and subcategory chips. | `GET /categories/:slug`, `GET /products?category=:slug` |
+| `/cart` | `src/app/(storefront)/cart/page.tsx` | Shopping cart. Item quantity stepper, subtotal calculation, delivery estimator, proceed to checkout button. | Local Cart Context |
+| `/checkout` | `src/app/(storefront)/checkout/page.tsx` | **Checkout Flow**. Delivery address form, courier charge selection, promo code validation, payment method selector (COD, bKash, SSLCommerz). | `POST /orders`, `POST /promo-codes/validate`, `GET /delivery-charges` |
+| `/order/confirmation/[orderId]` | `src/app/(storefront)/order/confirmation/[orderId]/page.tsx` | Order success page displaying order tracking code, items purchased, and delivery timeline. | `GET /orders/public/:orderId` |
+| `/order/payment-failed` | `src/app/(storefront)/order/payment-failed/page.tsx` | Payment failure handling with retry payment button. | - |
+| `/account` | `src/app/(storefront)/account/page.tsx` | Customer dashboard overview: recent orders, reward points, default shipping address. | `GET /customers/me` |
+| `/account/profile` | `src/app/(storefront)/account/profile/page.tsx` | Edit customer name, phone number, and avatar. | `GET /customers/me`, `PATCH /customers/me` |
+| `/account/orders` | `src/app/(storefront)/account/orders/page.tsx` | Customer order history with live delivery status tracker and PDF invoice download. | `GET /customers/me/orders` |
+| `/account/address` | `src/app/(storefront)/account/address/page.tsx` | Saved address book (Home, Office). Add, edit, or delete shipping addresses. | `GET /customers/me/addresses`, `POST /customers/me/addresses` |
+| `/account/wishlist` | `src/app/(storefront)/account/wishlist/page.tsx` | Customer saved wishlist items with quick "Move to Cart" button. | `GET /wishlist`, `DELETE /wishlist/:id` |
+| `/account/support` | `src/app/(storefront)/account/support/page.tsx` | Customer support ticket list and interactive messaging conversation thread. | `GET /support-tickets/my`, `POST /support-tickets` |
+| `/account/change-password` | `src/app/(storefront)/account/change-password/page.tsx` | Update customer account password. | `POST /auth/customer/change-password` |
+| `/blog` | `src/app/(storefront)/blog/page.tsx` | Tech news, phone unboxing articles, and repair guides directory. | `GET /blogs` |
+| `/blog/[slug]` | `src/app/(storefront)/blog/[slug]/page.tsx` | Full blog article view with social sharing links and related articles. | `GET /blogs/:slug` |
+| `/about` | `src/app/(storefront)/about/page.tsx` | About MobileHubBD company story, mission, and physical branch locations. | `GET /pages/about-us` |
+| `/contact` | `src/app/(storefront)/contact/page.tsx` | Customer contact form, customer care hotline, Google Maps branch locations. | `POST /contact-submissions` |
+| `/terms` | `src/app/(storefront)/terms/page.tsx` | Terms and conditions of service. | `GET /pages/terms` |
+| `/privacy` | `src/app/(storefront)/privacy/page.tsx` | Privacy and data protection policy. | `GET /pages/privacy` |
+| `/login` | `src/app/(storefront)/login/page.tsx` | Customer login with phone/email and password, or SMS OTP. | `POST /auth/customer/login` |
+| `/register` | `src/app/(storefront)/register/page.tsx` | Customer account registration form. | `POST /auth/customer/register` |
+
+---
+
+## 5. Complete Backend API Endpoints & Controller Map (All 51 Controllers)
+
+The NestJS backend application exposes RESTful endpoints across **51 controllers** mounted at prefix `/api/v1`:
+
+| Controller | Base Path | Key HTTP Endpoints | Description | Auth / Guard |
+| :--- | :--- | :--- | :--- | :--- |
+| `AuthController` | `/auth` | `POST /auth/staff/login`<br>`POST /auth/staff/refresh`<br>`POST /auth/customer/login`<br>`POST /auth/customer/register` | Authenticates staff and customers; issues JWT tokens and refreshes them. | Public |
+| `ServiceJobController` | `/service-jobs` | `GET /service-jobs`<br>`GET /service-jobs/my`<br>`GET /service-jobs/:id`<br>`GET /service-jobs/next-invoice-number`<br>`POST /service-jobs/repair`<br>`PATCH /service-jobs/:id`<br>`PATCH /service-jobs/:id/status`<br>`DELETE /service-jobs/:id` | Core repair job engine: listing, intake, status transition, technician private view, admin editing and cascade hard deletion. | `JwtAuthGuard`, `PermissionsGuard` (`SALES`) |
+| `ServiceLookupController` | `/service-lookups` | `GET /service-lookups/device-types`<br>`GET /service-lookups/problem-types`<br>`GET /service-lookups/warranty-periods` | Provides lookup options for repair intake dropdowns. | `JwtAuthGuard` |
+| `EmployeeController` | `/employees` | `GET /employees`<br>`GET /employees/technicians`<br>`GET /employees/eligible-for-technician`<br>`POST /employees`<br>`PATCH /employees/:id`<br>`DELETE /employees/:id` | Staff management: listing, technician filtering, employee profile creation and modification. | `JwtAuthGuard`, `PermissionsGuard` (`HRM`) |
+| `PosController` | `/pos` | `GET /pos/products`<br>`POST /pos/sales`<br>`GET /pos/services`<br>`POST /pos/service-jobs` | Ultra-fast in-store cashier endpoints for product catalog search and immediate sales checkout. | `JwtAuthGuard`, `PermissionsGuard` (`SALES`) |
+| `OrderController` | `/orders` | `GET /orders`<br>`GET /orders/:id`<br>`POST /orders`<br>`PATCH /orders/:id/status`<br>`POST /orders/:id/notes`<br>`DELETE /orders/:id` | Master orders processing: e-commerce checkout, status updates, fulfillment and invoice generation. | `JwtAuthGuard`, `PermissionsGuard` (`ORDERS`) |
+| `ProductController` | `/products` | `GET /products`<br>`GET /products/:id`<br>`POST /products`<br>`PATCH /products/:id`<br>`PATCH /products/:id/toggle`<br>`DELETE /products/:id` | Product catalog administration: creation, specification updates, variant management, and deletion. | `JwtAuthGuard`, `PermissionsGuard` (`PRODUCTS`) |
+| `PhoneUnitController` | `/phone-units` | `GET /phone-units`<br>`GET /phone-units/available`<br>`GET /phone-units/check-imei`<br>`POST /phone-units` | Unit-level physical mobile phone IMEI/Serial inventory tracking and status validation. | `JwtAuthGuard`, `PermissionsGuard` (`PRODUCTS`) |
+| `StockAdjustmentController` | `/stock-adjustments` | `GET /stock-adjustments`<br>`GET /stock-adjustments/:id`<br>`POST /stock-adjustments`<br>`POST /stock-adjustments/batch` | Physical inventory audit reconciliations and stock balance corrections. | `JwtAuthGuard`, `PermissionsGuard` (`STOCK_ADJUSTMENT`) |
+| `WastedProductController` | `/wasted-products` | `GET /wasted-products`<br>`POST /wasted-products`<br>`DELETE /wasted-products/:id` | Defective, damaged, or scrapped stock logging. | `JwtAuthGuard`, `PermissionsGuard` (`PRODUCTS`) |
+| `PurchaseOrderController` | `['/purchase-orders', '/purchases']` | `GET /purchases`<br>`GET /purchases/:id`<br>`POST /purchases`<br>`PATCH /purchases/:id` | Vendor procurement orders, receiving inventory, and logging supplier dues. | `JwtAuthGuard`, `PermissionsGuard` (`PURCHASE`) |
+| `SupplierController` | `/suppliers` | `GET /suppliers`<br>`GET /suppliers/:id`<br>`POST /suppliers`<br>`PATCH /suppliers/:id`<br>`GET /suppliers/payments`<br>`POST /suppliers/payments` | Vendor directory and supplier payment disbursement ledger. | `JwtAuthGuard`, `PermissionsGuard` (`SUPPLIERS`) |
+| `WalletController` | `/wallets` | `GET /wallets`<br>`GET /wallet-types`<br>`GET /wallet-transactions`<br>`POST /wallet-transactions/disburse-staff-payment`<br>`POST /wallet-transfers`<br>`POST /wallet-deposits` | Double-entry wallet system: cash, banks, MFS balances, multi-line salary dispatches, and transfers. | `JwtAuthGuard`, `PermissionsGuard` (`WALLET`) |
+| `ExpenseController` | `/expenses` | `GET /expenses`<br>`POST /expenses`<br>`GET /expense-categories`<br>`POST /expense-categories` | Operational expenditures tracking with wallet balance decrement. | `JwtAuthGuard`, `PermissionsGuard` (`EXPENSE`) |
+| `PayrollController` | `/payroll` | `GET /payroll`<br>`POST /payroll/disburse`<br>`GET /payroll/preview-monthly`<br>`POST /payroll/execute-monthly` | Monthly employee payroll calculations and historical disbursement tracking. | `JwtAuthGuard`, `PermissionsGuard` (`HRM`) |
+| `CustomerController` | `/customers` | `GET /customers`<br>`GET /customers/:id`<br>`GET /customers/:id/summary`<br>`GET /customers/:id/orders`<br>`POST /customers`<br>`PATCH /customers/:id`<br>`POST /customers/:id/payments` | Customer CRM: 12 stat cards, due collections, order history, and address book. | `JwtAuthGuard`, `PermissionsGuard` (`CUSTOMERS`) |
+| `ReportController` | `/reports` | `GET /reports/dashboard-stats`<br>`GET /reports/summary`<br>`GET /reports/pos-sales`<br>`GET /reports/service-sales`<br>`GET /reports/technician-servicing`<br>`GET /reports/customer-due`<br>`GET /reports/supplier-due` | Executive BI, financial reconciliations, and technician 50/50 profit reports. | `JwtAuthGuard`, `PermissionsGuard` (`REPORT`) |
+| `BranchController` | `/branches` | `GET /branches`<br>`GET /branches/:id`<br>`POST /branches`<br>`PATCH /branches/:id` | Multi-branch management (Dhaka Flagship, Chittagong Outlet, Sylhet Warehouse). | `JwtAuthGuard`, `PermissionsGuard` (`BRANCHES`) |
+| `RoleController` | `/roles` | `GET /roles`<br>`POST /roles`<br>`PATCH /roles/:id`<br>`GET /roles/:id/permissions`<br>`PUT /roles/:id/permissions` | Custom role builder and granular CRUD permissions assignment. | `JwtAuthGuard` (Global Admin only) |
+| `CategoryController` | `/categories` | `GET /categories`<br>`GET /categories/:slug`<br>`POST /categories`<br>`PATCH /categories/:id`<br>`DELETE /categories/:id` | Hierarchical category builder with slug routing. | `Public` / `PermissionsGuard` (`CATEGORY`) |
+| `BrandController` | `/brands` | `GET /brands`<br>`POST /brands`<br>`PATCH /brands/:id`<br>`DELETE /brands/:id` | Brand directory and logo management. | `Public` / `PermissionsGuard` (`PRODUCTS`) |
+| `SeriesController` | `/series` | `GET /series`<br>`POST /series`<br>`PATCH /series/:id` | Product series hierarchy. | `Public` / `PermissionsGuard` (`PRODUCTS`) |
+| `AttributeController` | `/attributes` | `GET /attributes`<br>`POST /attributes`<br>`GET /attributes/:id/values`<br>`POST /attributes/:id/values` | Attribute definition and value management (Color, Storage, Display Quality). | `JwtAuthGuard`, `PermissionsGuard` (`PRODUCTS`) |
+| `UnitController` | `/units` | `GET /units`<br>`POST /units`<br>`DELETE /units/:id` | Measurement unit options. | `JwtAuthGuard`, `PermissionsGuard` (`PRODUCTS`) |
+| `SalesReturnController` | `/sales-returns` | `GET /sales-returns`<br>`GET /sales-returns/:id`<br>`POST /sales-returns` | Customer product returns and refund processing. | `JwtAuthGuard`, `PermissionsGuard` (`SALES_RETURN`) |
+| `ExchangeController` | `/exchanges` | `GET /exchanges`<br>`GET /exchanges/:id`<br>`POST /exchanges` | Trade-in exchange valuations and swap vouchers. | `JwtAuthGuard`, `PermissionsGuard` (`EXCHANGE`) |
+| `ShipmentController` | `/shipments` | `GET /shipments`<br>`POST /shipments`<br>`PATCH /shipments/:id/status` | Courier dispatch management (Steadfast, Pathao, RedX). | `JwtAuthGuard`, `PermissionsGuard` (`SALES`) |
+| `BannerController` | `/banners` | `GET /banners`<br>`POST /banners`<br>`PATCH /banners/:id`<br>`DELETE /banners/:id` | Storefront carousel banner management. | `Public` / `PermissionsGuard` (`PROMOTIONAL_BANNER`) |
+| `AdController` | `/ads` | `GET /ads`<br>`POST /ads`<br>`PATCH /ads/:id` | Promotional advertisements and popup banners. | `Public` / `PermissionsGuard` (`ADS`) |
+| `PromoCodeController` | `/promo-codes` | `GET /promo-codes`<br>`POST /promo-codes`<br>`POST /promo-codes/validate`<br>`DELETE /promo-codes/:id` | Promotional voucher codes and checkout validation. | `Public` / `PermissionsGuard` (`PROMO_CODE`) |
+| `BlogController` | `/blogs` | `GET /blogs`<br>`GET /blogs/:slug`<br>`POST /blogs`<br>`PATCH /blogs/:id`<br>`DELETE /blogs/:id` | Blog articles and news management. | `Public` / `PermissionsGuard` (`BLOGS`) |
+| `BlogCategoryController` | `/blog-categories` | `GET /blog-categories`<br>`POST /blog-categories` | Blog post categorization. | `Public` / `PermissionsGuard` (`BLOGS`) |
+| `PageController` | `/pages` | `GET /pages`<br>`GET /pages/:slug`<br>`POST /pages`<br>`PATCH /pages/:id` | Custom CMS pages (About, Terms, Privacy). | `Public` / `PermissionsGuard` (`CMS`) |
+| `MenuController` | `/menus` | `GET /menus`<br>`POST /menus`<br>`PUT /menus/order` | Header navigation menu builder. | `Public` / `PermissionsGuard` (`CMS`) |
+| `FooterController` | `/footer` | `GET /footer`<br>`PATCH /footer` | Footer columns, legal text, and payment badges. | `Public` / `PermissionsGuard` (`CMS`) |
+| `FooterSettingsController`| `/footer-settings` | `GET /footer-settings`<br>`PATCH /footer-settings` | Granular footer configurations. | `Public` / `PermissionsGuard` (`CMS`) |
+| `SocialLinkController` | `/social-links` | `GET /social-links`<br>`POST /social-links` | Social media profile URLs. | `Public` / `PermissionsGuard` (`CMS`) |
+| `SupportTicketController` | `/support-tickets` | `GET /support-tickets`<br>`GET /support-tickets/my`<br>`POST /support-tickets`<br>`POST /support-tickets/:id/messages` | Customer support ticketing and messaging threads. | `JwtAuthGuard` |
+| `HelpNoteController` | `/help-notes` | `GET /help-notes`<br>`POST /help-notes`<br>`DELETE /help-notes/:id` | Staff internal memo notes. | `JwtAuthGuard` |
+| `TicketIssueTypeController`| `/ticket-issue-types` | `GET /ticket-issue-types`<br>`POST /ticket-issue-types` | Categorization for support ticket topics. | `Public` / `PermissionsGuard` (`CMS`) |
+| `ContactSubmissionController`| `/contact-submissions` | `GET /contact-submissions`<br>`POST /contact-submissions` | Storefront contact form message submissions. | `Public` / `PermissionsGuard` (`CMS`) |
+| `PushNotificationController` | `/push-notifications` | `POST /push-notifications/send` | Broadcast push notification sender. | `JwtAuthGuard`, `PermissionsGuard` (`CMS`) |
+| `BusinessSettingsController`| `/business-settings` | `GET /business-settings`<br>`PATCH /business-settings` | Global store settings, company identity, VAT/BIN. | `JwtAuthGuard`, `PermissionsGuard` (`BUSINESS_SETTINGS`) |
+| `CurrencyController` | `/currencies` | `GET /currencies`<br>`POST /currencies`<br>`PATCH /currencies/:id` | Currency symbols and formatting. | `JwtAuthGuard`, `PermissionsGuard` (`BUSINESS_SETTINGS`) |
+| `DeliveryChargeController` | `/delivery-charges` | `GET /delivery-charges`<br>`POST /delivery-charges`<br>`DELETE /delivery-charges/:id` | Shipping charge tiers by location. | `Public` / `PermissionsGuard` (`BUSINESS_SETTINGS`) |
+| `DepartmentController` | `/departments` | `GET /departments`<br>`POST /departments`<br>`PATCH /departments/:id` | Staff department hierarchy. | `JwtAuthGuard`, `PermissionsGuard` (`HRM`) |
+| `CountryController` | `/countries` | `GET /countries`<br>`POST /countries` | Dialing codes and countries directory. | `Public` / `PermissionsGuard` (`CMS`) |
+| `BkashController` | `/payments/bkash` | `POST /payments/bkash/initiate`<br>`POST /payments/bkash/callback` | bKash online payment gateway integration. | `Public` |
+| `SslcommerzController` | `/payments/sslcommerz` | `POST /payments/sslcommerz/initiate`<br>`POST /payments/sslcommerz/success`<br>`POST /payments/sslcommerz/fail` | SSLCommerz multi-card/MFS online checkout gateway. | `Public` |
+| `ThirdPartyConfigController`| `/` | `GET /sms-config`<br>`PATCH /sms-config`<br>`GET /mail-config`<br>`PATCH /mail-config`<br>`GET /payment-gateways` | Credentials for SMS gateways, SMTP mail, and payment providers. | `JwtAuthGuard` (Global Admin only) |
+| `AppController` | `/` | `GET /health` | Health check probe returning server uptime and status. | `Public` |
+
+---
+
+## 6. Detailed Work Changelog (Fix Passes 20–34)
+
+### Fix Pass 21 — POS "Add to Cart" Product Modal Rebuild (`PosProductModal.tsx`)
+- Separated variants into distinct **COLOR** and **QUALITY** sections with horizontal wrapped pill buttons.
+- Styled selected pill with emerald outline (`ring-2 ring-emerald-500/20`, `border-emerald-600`, `bg-emerald-50`).
+- Displayed zero-stock combinations as disabled with clear indicator (`(0 in stock)`).
+- Single-attribute products omit redundant section headers.
+- Quantity stepper (`−` / input / `+`) and editable **Override Price (৳)** aligned on the same row.
+- Retained Fix Pass 20 physical phone unit IMEI selection and warranty selection.
+
+### Fix Pass 22 — HRM Unified "Add Salary / Payroll" Modal (`AddSalaryPayrollModal.tsx`)
+- Rebuilt single-entry payment form into a comprehensive multi-line salary disbursement modal.
+- Row 1: Employee selector + Salary Month picker (`YYYY-MM`).
+- Row 2: Source Wallet dropdown (with live balance indicator) + Salary Base Amount.
+- Row 3: Bonus Amount + Allowance Amount (with frequency selector and auto-fill badge).
+- Row 4: Deduction Amount (reduces employee net payout without reducing wallet draw) + Notes.
+- Dynamic calculation banner: Gross Wallet Draw vs Deductions vs Net Payout.
+- Atomically dispatches distinct `WalletTransaction` records (`SALARY`, `BONUS`, `ALLOWANCE`) while updating `Payroll` table records.
+
+### Fix Pass 32 & 33 — Servicing Report, Job Detail Modal & Sourcing
+- Built dedicated Servicing Report at `src/app/(admin)/admin/technician/servicing-report/page.tsx`.
+- Summary metrics: Material Cost, Total Profit, and **"Your Profit" (50% technician share)**.
+- Per-job servicing details table with source badges.
+- Material sourcing history with `sourceType` (`OWN_STOCK`, `SUPPLIER`, `OTHER`) and notes.
+- Kept repaired materials strictly **stock-independent** (no branch inventory decrement).
+- POS Technician Mode quick repair intake automatically creates `DELIVERED` service jobs with 50/50 profit sharing.
+
+### Fix Pass 34 — Admin "Servicing Management" Page & Bug Fix
+- **New Admin Page**: Created `src/app/(admin)/admin/servicing/page.tsx` accessible from the sidebar.
+- **Filter Suite**: Filter jobs by technician, by branch (Global Admin), by status, and by custom date range (`startDate`, `endDate`).
+- **Live Search**: Instant search by invoice number, customer name, phone number, device, and issue.
+- **Job Editing**: Edit modal allows modifying device, issue description, labor cost, total bill, discount, advance payment, due amount, and status.
+- **Hard Deletion**: Cascade-deletes `ServiceJob` along with its associated `ServiceJobMaterial`, `Payment`, and `Order` records without leaving orphan rows.
+- **Bug Fix ("Failed to load service jobs")**:
+  - *Root Cause*: `src/app/(admin)/admin/servicing/page.tsx` was checking `res.success`, but `apiGet` from `src/lib/api-client.ts` directly returns the backend JSON body (`{ data: [...], meta: {...} }`). Because `res.success` was undefined, execution fell into the error handler.
+  - *Fix Applied*: Updated response parsing to verify `Array.isArray(res.data)`. Updated dropdown routes to `/employees/technicians` (fixing 404 on `/staff`), and corrected profit calculation from `finalAmount - materialCost`.
+
+---
+
+## 7. Core Business Logic, Financial Formulas & Invariants
+
+Any engineer or AI agent working on this codebase **must strictly honor** these established business rules:
+
+### 7.1 Dashboard Financial Formulas
+1. **Total Sales Reconciliation**:
+   $$\text{Total Sales} = \text{Phone Sales} + \text{Display Sales} + \text{Gadget Sales} + \text{Service Sales}$$
+   Every dashboard widget and financial report adheres strictly to this formula.
+2. **Profit Sanity Rule**:
+   $$\text{Profit} \le \text{Total Sales}$$
+   Profit is calculated using real purchase costs (`buyingPrice` on variants or `cost` on service materials). Under no circumstance may profit exceed total revenue.
+3. **Supplier Due Balance**:
+   $$\text{Supplier Due} \ge 0$$
+   Running balances are computed from real purchase orders minus completed supplier payments.
+
+### 7.2 Repair Servicing & Technician Rules
+1. **Technician 50/50 Profit Share**:
+   $$\text{Labor Profit} = \text{Total Service Bill} - \text{Material Cost}$$
+   $$\text{Technician Profit Share} = 0.50 \times \text{Labor Profit}$$
+   Default share is strictly 50%, guaranteed by backend fallbacks in `ReportService` and `ServiceJobService`.
+2. **Stock-Independent Parts & Sourcing**:
+   - Repair technicians are free to add any material or spare part to a service job **without any branch inventory stock decrement or stock availability checks**.
+   - Each material row features a **Source Type** selector (`OWN_STOCK`, `SUPPLIER`, `OTHER`):
+     - `OWN_STOCK`: From shop's own spare parts (informational tag; no inventory decrement).
+     - `SUPPLIER`: Requires choosing a registered `Supplier`.
+     - `OTHER`: Requires providing a free-text sourcing note (e.g., *"Bought urgent from local vendor"*).
+3. **Technician Data Isolation**:
+   - Technicians can only view their own assigned jobs. Accessing another technician's job returns a strict **HTTP 403 Forbidden**.
+4. **POS Technician Mode Integration**:
+   - Quick repair services recorded at the POS terminal automatically create a real `ServiceJob` record marked as `DELIVERED`, assigned to the technician with 50% profit sharing, feeding directly into the technician's Servicing Report.
+
+### 7.3 Inventory & Phone Serial/IMEI Tracking
+1. **Unit-Level Tracking**: Mobile phones have individual records in `PhoneUnit` mapped to an `IMEI` or `Serial Number`.
+2. **Public API Privacy**: Raw IMEI numbers are strictly scrubbed and never exposed in customer-facing public APIs.
+3. **Branch Scoping**: Products and inventory are tracked per branch via `BranchInventory`. Branch Admins can only view and manage stock belonging to their designated branch.
+
+---
+
+## 8. Role-Based Access Control (RBAC) & Verified Credentials
+
+All demo accounts in development and staging environments are seeded with the universal password: **`Admin@12345`**
+
+| Role | Email | Password | Scope & Key Capabilities |
+| :--- | :--- | :--- | :--- |
+| **Super Admin** | `admin@mobilehubbd.test` | `Admin@12345` | **Unrestricted Global Access**: Full control over all 51 backend controllers, 111 admin pages, financial audits, settings, and branches. |
+| **Demo Admin** | `demo.admin@mobilehubbd.test` | `Admin@12345` | Global admin profile for client demonstrations. |
+| **Dhaka Branch Admin** | `demo.branchadmin@mobilehubbd.test` | `Admin@12345` | **Branch Scope**: Manages Dhaka Main branch operations, sales, local stock, and staff. Blocked from global business settings. |
+| **Technician (Rajib Paul)** | `demo.technician@mobilehubbd.test` | `Admin@12345` | **Technician Scope**: Access to Technician Workspace (`/admin/technician`), Job Detail modal, and personal Servicing Report. Blocked from other technician jobs. |
+| **Counter Sales Staff** | `sales@mobilehubbd.test` | `Admin@12345` | **POS & Sales**: Counter sales checkout, barcode scanning, customer receipts. |
+| **Branch Manager** | `ctg.manager@mobilehubbd.test` | `Admin@12345` | **Branch Scope**: Manages Chittagong Outlet branch operations. |
+| **Inventory Auditor** | `demo.auditor@mobilehubbd.test` | `Admin@12345` | **Stock Auditing**: Physical inventory counts, stock adjustments, wasted products. Blocked from financial settings. |
+| **SEO Specialist** | `seo@mobilehubbd.test` | `Admin@12345` | **Marketing & CMS**: Banners, promo codes, blog articles, SEO metadata. |
+| **Storefront Customer** | Registered via `/register` | User defined | **Storefront**: Orders, wishlist, profile, support tickets. |
+
+---
+
+## 9. Local Execution & Production Deployment Guide
+
+### 9.1 Local Development Commands
+The project runs locally across two terminal processes:
+
+#### Terminal 1 — Backend API (Port 4000):
+```bash
+cd api
+npm install
+npx prisma db push
+npm run start:dev
+```
+*Health probe:* `http://localhost:4000/api/v1/health`
+
+#### Terminal 2 — Frontend Application (Port 3000):
+```bash
+# In project root
+npm install
+npm run dev
+```
+*Local URL:* `http://localhost:3000`  
+*Admin Portal:* `http://localhost:3000/admin`
+
+### 9.2 Automated Verification & Audit Scripts
+Run these verification scripts from the root directory to confirm full system integrity:
+```bash
+# Full pre-deployment verification
+npm run build                      # Next.js frontend compilation check
+cd api && npm run build            # NestJS backend compilation check
+
+# Automated verification test suites
+node scratch/test-pass21-pos-modal.mjs
+node scratch/test-pass22-payroll-modal.mjs
+node scratch/verify-pass33.mjs
+node scratch/verify-pass32.mjs
 ```
 
-In `src/context/AuthContext.tsx` (lines 300-318):
-```typescript
-const login = async (credentials: { emailOrPhone: string; password: string; email?: string }) => {
-  setIsLoading(true);
-  try {
-    const payload = {
-      email: credentials.email || credentials.emailOrPhone,
-      emailOrPhone: credentials.emailOrPhone || credentials.email,
-      password: credentials.password,
-    };
-    const res = await apiPost<{ accessToken: string }>("/auth/staff/login", payload, { authScope: "STAFF" });
-    if (res?.accessToken) {
-      setStaffToken(res.accessToken);
-      const profile = await fetchCurrentUser();
-      return profile;
+### 9.3 Production Deployment Blueprint (Ubuntu VPS)
+- **Process Manager**: PM2 running `mobilehubbd-web` (port 3000) and `mobilehubbd-api` (port 4000)
+- **Web Server & Reverse Proxy**: Nginx with Let's Encrypt SSL
+- **Database**: PostgreSQL 15/16 on `localhost:5432`
+
+#### Nginx Configuration Snippet (`/etc/nginx/sites-available/mobilehubbd`):
+```nginx
+server {
+    server_name mobilehubbd.tech www.mobilehubbd.tech;
+    client_max_body_size 50M;
+
+    # Backend API Routing
+    location /api/ {
+        proxy_pass http://127.0.0.1:4000/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
-    throw new Error("Failed to obtain staff access token");
-  } finally {
-    setIsLoading(false);
-  }
-};
-```
 
-#### Build-Time Inlining Behavior
-In Next.js, variables prefixed with `NEXT_PUBLIC_` are **replaced inline with string literals at build time** (`npm run build` / `next build`). They are **not** evaluated dynamically at client runtime in the browser. 
-- If `next build` is executed without `NEXT_PUBLIC_API_URL` set in the environment, the string `'http://localhost:4000/api/v1'` is compiled directly into the client-side JavaScript chunk.
-- When a user on their home computer or mobile device navigates to `https://mobilehubbd.tech/admin/login`, their browser executes the JavaScript and attempts to connect to `http://localhost:4000/api/v1/auth/staff/login`. Because the user's personal device does not have the API running on its own localhost port 4000, the connection is instantly rejected with the browser error: `TypeError: Failed to fetch`.
+    # Uploads Static Media
+    location /uploads/ {
+        proxy_pass http://127.0.0.1:4000/uploads/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
 
----
-
-### 2.2 Local Production Environment Files
-
-Commands executed: `cat .env.local` and `cat api/.env`
-- `.env.production` does **not** exist locally in the repository.
-- Root `.env.local` content:
-  ```
-  NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
-  NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
-  ```
-- Backend `api/.env` content:
-  ```
-  DATABASE_URL="postgresql://postgres:postgres@localhost:5432/novamobile?schema=public"
-  JWT_ACCESS_SECRET="access-secret"
-  JWT_ACCESS_EXPIRY="15m"
-  JWT_REFRESH_SECRET="refresh-secret"
-  JWT_REFRESH_EXPIRY="7d"
-  PORT="4000"
-  CORS_ORIGIN="http://localhost:3000"
-  ```
-
----
-
-### 2.3 CORS Configuration (`api/src/main.ts`)
-
-```typescript
-// Line 27-30:
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
-  .split(',')
-  .map((o) => o.trim().replace(/\/$/, ''))
-  .filter(Boolean);
-
-const frontendUrl = (process.env.FRONTEND_URL || '').trim().replace(/\/$/, '');
-
-app.enableCors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (/^https?:\/\/localhost(:\d+)?$/.test(origin) || /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) return callback(null, true);
-    if (/^https:\/\/[a-zA-Z0-9-]+\.vercel\.app$/.test(origin) || /^https:\/\/.*\.vercel\.app$/.test(origin)) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    if (frontendUrl && origin === frontendUrl) return callback(null, true);
-
-    // Permissive fallback for demo environments
-    callback(null, true);
-  },
-  credentials: true,
-});
-```
-The CORS policy in `api/src/main.ts:62` contains a permissive fallback (`callback(null, true)`), meaning CORS origin rejection is **not** the cause of `Failed to fetch`.
-
----
-
-### 2.4 Why Requests from `https://mobilehubbd.tech` Fail
-
-If the live site runs at `https://mobilehubbd.tech`, a login request fails under any of these real-world deployment conditions:
-1. **Mixed Content Violation (Most Probable Cause #1)**:
-   If `NEXT_PUBLIC_API_URL` on the VPS was set to `http://mobilehubbd.tech:4000/api/v1` or `http://187.53.143.166:4000/api/v1`, the web page loaded over `https://` is blocked by modern browsers from making insecure `http://` network calls. The browser throws a `Mixed Content` security error and aborts the request before it leaves the client, surfacing in React as `Failed to fetch`.
-2. **Inlined Localhost URL (Most Probable Cause #2)**:
-   If `npm run build` was run on the VPS without an explicit `.env.production` file containing `NEXT_PUBLIC_API_URL=https://mobilehubbd.tech/api/v1`, Next.js baked `http://localhost:4000/api/v1` into the production client bundle.
-3. **Missing Nginx Reverse Proxy Route**:
-   If `NEXT_PUBLIC_API_URL=https://mobilehubbd.tech/api/v1`, but Nginx is not configured to forward `/api/` traffic to `http://127.0.0.1:4000`, Nginx returns an HTTP 404 or 502, or fails SSL negotiation on custom ports if port 4000 is accessed directly.
-4. **Backend Process Stopped / Unreachable**:
-   If the `mobilehubbd-api` PM2 process is stopped or crashed on the VPS, all API requests fail.
-
----
-
-### 2.5 Local vs. VPS Limitations
-
-> [!NOTE]
-> The exact values inside `/var/www/mobilehubbd/.env.production` and `/var/www/mobilehubbd/api/.env` on the VPS cannot be read from this local IDE. Section 6 provides the manual verification steps required to check the live VPS files.
-
----
-
-### 2.6 Local Login Request Verification (Verbatim Test)
-
-To confirm that the staff login logic itself functions correctly when configured with proper URLs, a live POST request was executed against the running local servers:
-
-```bash
-curl -i -X POST http://localhost:4000/api/v1/auth/staff/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@mobilehubbd.test","password":"Admin@12345"}'
-```
-
-**Verbatim Response Received**:
-```http
-HTTP/1.1 201 Created
-Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests
-Cross-Origin-Opener-Policy: same-origin
-Cross-Origin-Resource-Policy: cross-origin
-Origin-Agent-Cluster: ?1
-Referrer-Policy: no-referrer
-Strict-Transport-Security: max-age=31536000; includeSubDomains
-X-Content-Type-Options: nosniff
-X-DNS-Prefetch-Control: off
-X-Download-Options: noopen
-X-Frame-Options: SAMEORIGIN
-X-Permitted-Cross-Domain-Policies: none
-X-XSS-Protection: 0
-Vary: Origin, Accept-Encoding
-Access-Control-Allow-Credentials: true
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 99
-X-RateLimit-Reset: 60
-Set-Cookie: staff_refresh_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; Max-Age=604800; Path=/; Expires=Mon, 28 Sep 2026 14:09:44 GMT; HttpOnly; SameSite=Lax
-Content-Type: application/json; charset=utf-8
-Content-Length: 656
-ETag: W/"290-kX2gNJnk4MNxzEV49g0bjSqw0vw"
-Date: Mon, 21 Sep 2026 14:09:44 GMT
-Connection: keep-alive
-Keep-Alive: timeout=5
-
-{"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...","user":{"id":"cmsugs7v601gag7dhwajkuqqr","name":"Super Admin","email":"admin@mobilehubbd.test","phone":"+8801700000000","userType":"STAFF","role":{"id":"cmsugs7l10000g7dhgndy5da6","name":"Admin","description":null,"scope":"GLOBAL","isSystem":true,"createdAt":"2026-08-15T14:21:30.853Z","updatedAt":"2026-09-19T11:27:22.311Z"},"branchId":null}}
-```
-**Conclusion**: The backend auth controller, database connection, Bcrypt hash validation, JWT generation, and HTTP cookie generation are working locally.
-
----
-
-## 3. Security: Account Route Protection — Real Test Results
-
-### 3.1 Middleware Code (`src/middleware.ts`)
-
-```typescript
-// Lines 46-57:
-// Check customer account routes
-const isAccountRoute = PROTECTED_CUSTOMER_PATHS.some(p => pathname.startsWith(p));
-if (isAccountRoute) {
-  const hasCustomerRefresh = request.cookies.has('customer_refresh_token');
-  const hasCustomerAuth = request.cookies.has('customer_authenticated');
-
-  if (!hasCustomerRefresh && !hasCustomerAuth) {
-    const response = NextResponse.next();
-    response.headers.set('x-auth-check', 'required');
-    return response;
-  }
+    # Frontend Next.js Routing
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 }
 ```
-
-### 3.2 Client-Side Account Guard (`src/app/(storefront)/account/layout.tsx`)
-
-```typescript
-// Lines 49-55:
-// Auth guard: redirect to login if not authenticated
-useEffect(() => {
-  const token = getCustomerToken();
-  if (!token && !isAuthenticated) {
-    router.replace("/login");
-  }
-}, [isAuthenticated, router]);
-```
-
----
-
-### 3.3 Live Curl Test: Unauthenticated Request to `/account/address`
-
-Command executed:
-```bash
-curl -s -I http://localhost:3000/account/address
-```
-
-**Verbatim HTTP Response Headers**:
-```http
-HTTP/1.1 200 OK
-x-auth-check: required
-Vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Accept-Encoding
-Cache-Control: no-store, must-revalidate
-X-Powered-By: Next.js
-Content-Type: text/html; charset=utf-8
-Date: Mon, 21 Sep 2026 14:10:09 GMT
-Connection: keep-alive
-Keep-Alive: timeout=5
-```
-
-Live Curl Test: Unauthenticated Request to Customer API Endpoint:
-```bash
-curl -i http://localhost:4000/api/v1/customers/test-id/addresses
-```
-**Verbatim API Response**:
-```http
-HTTP/1.1 401 Unauthorized
-Content-Type: application/json; charset=utf-8
-{"message":"Unauthorized access","error":"Unauthorized","statusCode":401}
-```
-
----
-
-### 3.4 Honest State Assessment: Partially Fixed / Client-Side Only
-
-- **Server-Side Edge Protection**: **NOT IMPLEMENTED**. `src/middleware.ts` returns `NextResponse.next()` with status `200 OK`. It does **not** issue an HTTP `307` or `302` redirect on the server. A curl client, web scraper, or client without JavaScript receives the full initial page HTML.
-- **Client-Side SPA Protection**: **WORKING**. In an interactive browser session, `AccountLayout`'s `useEffect` detects the absence of a token in `localStorage` and triggers `router.replace("/login")`.
-- **API Protection**: **WORKING**. The backend REST endpoint strictly returns `401 Unauthorized`.
-
----
-
-### 3.5 Trace of "John Doe" Demo Address Data
-
-Command executed: `grep -rn "John Doe" src/`
-- Only **1 match** exists in the entire active codebase:
-  - `src/app/(storefront)/register/page.tsx:83`: `placeholder="e.g. John Doe"` (input field placeholder text).
-- In `src/app/(storefront)/account/address/page.tsx`, the hardcoded array:
-  ```typescript
-  const mockAddresses = [
-    { id: 1, name: "John Doe", phone: "01711223344", address: "House 12, Road 5, Block C, Banani", city: "Dhaka", zip: "1213", tag: "Home", isDefault: true },
-  ];
-  ```
-  was removed in commit `8030e9e1` (Fix Pass 28) and replaced with:
-  ```typescript
-  const mockAddresses: any[] = [];
-  ```
-
----
-
-## 4. Brand Assets — Real File Check
-
-### 4.1 Asset Files Added to Repository
-
-Command executed: `find public src -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.svg" -o -name "*.ico" -o -name "*.webp" \) -exec ls -lh {} +`
-
-| File Path | Size | Description |
-|---|---|---|
-| `public/images/logo-icon.jpeg` | 155 KB | Extracted high-resolution MH icon badge |
-| `public/images/logo-full.jpeg` | 81 KB | Extracted full "MOBILE HUB BD" horizontal lockup |
-| `public/images/logo-512.png` | 202 KB | Square icon asset for PWA/manifest |
-| `public/images/logo-192.png` | 41 KB | Square icon asset |
-| `public/images/logo-40.png` | 3.2 KB | Small icon asset |
-| `src/app/favicon.ico` | 102 KB | Generated multi-res favicon replacing Vercel default |
-| `public/images/pdf1_page1_img1.jpeg` | 155 KB | Raw image extracted from client PDF |
-| `public/images/pdf2_page1_img1.jpeg` | 136 KB | Raw image extracted from client PDF |
-| `public/images/pdf3_page1_img1.jpeg` | 142 KB | Raw image extracted from client PDF |
-| `public/images/pdf4_page1_img1.jpeg` | 142 KB | Raw image extracted from client PDF |
-| `public/images/pdf5_page1_img1.jpeg` | 81 KB | Raw image extracted from client PDF |
-
----
-
-### 4.2 Code References to Brand Assets
-
-Command executed: `grep -rn "/images/logo" src/`
-- **Admin Sidebar** (`src/components/admin/AdminSidebar.tsx`):
-  - Line 200: `<Image src="/images/logo-icon.jpeg" alt="Logo" width={32} height={32} className="rounded-full" />`
-  - Line 208: `<Image src="/images/logo-icon.jpeg" alt="Logo" width={32} height={32} className="rounded-full" />`
-- **Admin Login Page** (`src/app/(admin)/admin/login/page.tsx`):
-  - Line 70: `<Image src="/images/logo-icon.jpeg" alt="Mobile Hub BD Logo" width={80} height={80} className="rounded-full" priority />`
-- **Storefront Header** (`src/components/storefront/Header.tsx`):
-  - Line 101: `<Image src="/images/logo-full.jpeg" alt="MobileHubBD" width={200} height={40} className="w-auto h-8" />`
-  - Line 135: `<Image src="/images/logo-full.jpeg" alt="MobileHubBD" width={200} height={40} className="w-auto h-8 sm:h-10" />`
-  - Line 142: `<Image src="/images/logo-full.jpeg" alt="MobileHubBD" width={240} height={48} className="w-auto h-12" />`
-- **Stale References**:
-  - `src/app/(admin)/admin/business-settings/general/page.tsx:145`: Still references fallback `/images/logo.png`.
-
----
-
-### 4.3 Admin Login Page Structure vs. Client Mockup
-
-Examined file: `src/app/(admin)/admin/login/page.tsx`
-
-| Mockup Element | Present? | Code Evidence / Line |
-|---|---|---|
-| Centered circular logo at top | **YES** | Lines 68–77: `<Image src="/images/logo-icon.jpeg" width={80} height={80} className="rounded-full" />` |
-| "Welcome to Mobile Hub BD" | **YES** | Lines 86–88: `Welcome to <span className="font-bold text-primary">Mobile Hub BD</span>` |
-| "Login To Admin" subtitle | **YES** | Line 89: `<p className="text-center text-sm text-slate-500 mb-8">Login To Admin</p>` |
-| Email field with Mail icon | **YES** | Lines 93–105: `<Mail className="absolute left-3.5 ..." />` and input `identifier` |
-| Password field with Lock & Eye icons | **YES** | Lines 107–127: `<Lock className="absolute left-3.5 ..." />` and show/hide password toggle |
-| Green gradient Login button with arrow icon | **YES** | Lines 130–143: `className="... bg-gradient-to-r from-primary-600 to-primary-500 ..."` with `<LogIn className="w-5 h-5" /> Login` |
-| "Secure Access" badge with Shield icon | **YES** | Lines 147–150: `<ShieldCheck className="w-4 h-4 text-primary" /><span ...>Secure Access</span>` |
-
-**Conclusion**: All visual components requested in the client's mockup are present in `src/app/(admin)/admin/login/page.tsx`.
-
----
-
-### 4.4 Primary Brand Color
-
-- In `src/app/globals.css` (lines 16 & 45):
-  ```css
-  --primary: 107 57% 44%;
-  --ring: 107 57% 44%;
-  ```
-  `hsl(107, 57%, 44%)` translates to hex `#4CAF30` (Apple/Leaf Green matching the client's logo).
-- In `tailwind.config.ts` (lines 35–36):
-  ```typescript
-  500: '#4caf30',
-  600: '#3a8c22',
-  ```
-- **Git Diff Proof**:
-  `git log -p -2 src/app/globals.css` proves that in commit `8030e9e1`, `--primary` was modified from `--primary: 158 96% 31%` (dark teal green `#039b5b`) to `--primary: 107 57% 44%` (`#4caf30`).
-
----
-
-## 5. Nav/Upload Bugs — Current Code State
-
-### 5.1 Admin Nav Active-State Bug
-
-File: `src/components/admin/AdminSidebar.tsx` (lines 30–35):
-```typescript
-function NavItemComponent({ item, isCollapsed, level = 0 }: { item: NavItem, isCollapsed: boolean, level?: number }) {
-  const pathname = usePathname();
-  const isActive = item.href ? (pathname === item.href || pathname.startsWith(`${item.href}/`)) : false;
-  const isParentActive = item.children?.some(child => pathname === child.href || pathname.startsWith(`${child.href}/`));
-  const [isOpen, setIsOpen] = useState(isParentActive);
-```
-
-#### The Real Bug Identified
-1. **False Multi-Highlighting**: The Dashboard item has `item.href = "/admin"`. When the user is on any other subpage (e.g. `pathname = "/admin/products"` or `"/admin/orders"`), `pathname.startsWith("/admin/")` evaluates to `true`. As a result, the **Dashboard link remains highlighted as active simultaneously with the subpage**.
-2. **Stuck Collapsible State**: `const [isOpen, setIsOpen] = useState(isParentActive)` executes only once when the component mounts. When a user navigates between routes client-side, `isOpen` does not re-sync unless a `useEffect` updates it.
-
----
-
-### 5.2 Uploaded Image URL Construction
-
-File: `src/lib/api-client.ts` (lines 4–5 & 149–157):
-```typescript
-export const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-
-export function getImageUrl(path?: string | null, fallback = '/images/placeholder.png'): string {
-  if (!path) return fallback;
-  if (typeof path !== 'string') return fallback;
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  if (path.startsWith('/uploads/')) return `${BACKEND_URL}${path}`;
-  if (path.startsWith('uploads/')) return `${BACKEND_URL}/${path}`;
-  if (path.startsWith('/')) return path;
-  return `${BACKEND_URL}/uploads/${path}`;
-}
-```
-
-#### Real State
-- Uploaded media relies on `BACKEND_URL`.
-- If `NEXT_PUBLIC_BACKEND_URL` is omitted in the production frontend build, `getImageUrl` resolves to `http://localhost:4000/uploads/...`, causing all uploaded product images and avatars to fail to load in the user's browser.
-
----
-
-## 6. VPS Live-Server Verification Checklist (Run These Yourself)
-
-Execute these numbered commands in your Hostinger VPS SSH terminal to establish the ground truth on the live server:
-
-### Step 1: Inspect Live Environment Configurations
-```bash
-echo "=== FRONTEND PRODUCTION ENV ===" && cat /var/www/mobilehubbd/.env.production 2>/dev/null || cat /var/www/mobilehubbd/.env.local 2>/dev/null || echo "MISSING"
-echo "=== BACKEND ENV ===" && cat /var/www/mobilehubbd/api/.env 2>/dev/null || echo "MISSING"
-```
-*Verification Check*:
-- Does `NEXT_PUBLIC_API_URL` equal `https://mobilehubbd.tech/api/v1`? (If it has `http://`, requests will be blocked as Mixed Content).
-- Does `ALLOWED_ORIGINS` include `https://mobilehubbd.tech`?
-- Does `DATABASE_URL` point to a reachable PostgreSQL instance?
-
-### Step 2: Check PM2 Process Health and Restart Counts
-```bash
-pm2 status
-```
-*Verification Check*:
-- Look at the `↺` (restarts) column for `mobilehubbd-api` and `mobilehubbd-web`. If the number is in the hundreds or thousands, the process is crash-looping.
-
-### Step 3: Check Backend Error Logs
-```bash
-pm2 logs mobilehubbd-api --lines 50 --nostream
-```
-*Verification Check*:
-- Look for database connection errors (`P1001: Can't reach database server`), JWT secret errors, or port conflicts.
-
-### Step 4: Verify Git Commit On Live Server
-```bash
-cd /var/www/mobilehubbd && git log --oneline -5
-```
-*Verification Check*:
-- Check if commit `8030e9e1` ("Fix Pass 28") is present. (It will **not** be present until you run `git push origin main` locally and `git pull` on the VPS).
-
-### Step 5: Test Backend API Reachability Directly on the Live Server
-```bash
-curl -I http://127.0.0.1:4000/api/v1/brands
-curl -I https://mobilehubbd.tech/api/v1/brands
-```
-*Verification Check*:
-- If `http://127.0.0.1:4000` returns `HTTP 200` but `https://mobilehubbd.tech/api/v1/brands` returns `502 Bad Gateway` or `404 Not Found`, the issue is in your Nginx reverse proxy block.
-
-### Step 6: Browser Visual Inspection
-1. Open `https://mobilehubbd.tech/admin/login` in an Incognito window.
-2. Open Browser DevTools (`F12`) -> **Console** & **Network** tabs.
-3. Check if `/images/logo-icon.jpeg` loads or returns 404.
-4. Enter credentials: `admin@mobilehubbd.test` / `Admin@12345`.
-5. Click **Login** and check the Network tab:
-   - What is the exact Request URL?
-   - Is the Status `(blocked:mixed-content)`, `(failed)`, or `201`?
-
----
-
-## 7. Full Feature Inventory
-
-| Module | Exists Locally? | Frontend File Path | Backend Controller / Service | Real API Connected? |
-|---|:---:|---|---|:---:|
-| **Products** | **YES** | `src/app/(admin)/admin/products/page.tsx` | `api/src/product/product.controller.ts` | **YES** (`/products`) |
-| **Customers** | **YES** | `src/app/(admin)/admin/customers/page.tsx` | `api/src/customer/customer.controller.ts` | **YES** (`/customers`) |
-| **POS Terminal** | **YES** | `src/app/(admin)/admin/pos/page.tsx` | `api/src/pos/pos.controller.ts` | **YES** (`/pos/products`, `/orders/pos`) |
-| **Purchase Orders** | **YES** | `src/app/(admin)/admin/accounting/purchase/page.tsx` | `api/src/purchase-order/purchase-order.controller.ts` | **YES** (`/purchase-orders`) |
-| **Servicing / Repairs** | **YES** | `src/app/(admin)/admin/sales/service/page.tsx` | `api/src/service-job/service-job.controller.ts` | **YES** (`/service-jobs`) |
-| **HRM / Employees** | **YES** | `src/app/(admin)/admin/hrm/employees/page.tsx` | `api/src/employee/employee.controller.ts` | **YES** (`/employees`) |
-| **Reports** | **YES** | `src/app/(admin)/admin/reports/summary/page.tsx` | `api/src/report/report.controller.ts` | **YES** (`/reports/summary`) |
-| **CMS Pages** | **YES** | `src/app/(admin)/admin/cms/pages/page.tsx` | `api/src/page/page.controller.ts` | **YES** (`/pages`) |
-| **Marketing / Banners** | **YES** | `src/app/(admin)/admin/marketing/banners/page.tsx` | `api/src/banner/banner.controller.ts` | **YES** (`/banners`) |
-| **Business Settings** | **YES** | `src/app/(admin)/admin/business-settings/general/page.tsx` | `api/src/business-settings/business-settings.controller.ts` | **YES** (`/business-settings/general`) |
-| **Storefront Home** | **YES** | `src/app/(storefront)/page.tsx` | `api/src/product/product.controller.ts` | **YES** (`/products/featured`, `/banners`) |
-| **Storefront Checkout** | **YES** | `src/app/(storefront)/checkout/page.tsx` | `api/src/order/order.controller.ts` | **YES** (`/orders/checkout`) |
-
----
-
-## 8. Could Not Verify Locally
-
-The following items cannot be confirmed from this local development session and depend on the live VPS:
-1. **Live `.env.production` Content**: The actual URL string configured inside `/var/www/mobilehubbd/.env.production` on the Hostinger VPS.
-2. **Nginx Configuration**: The active site file in `/etc/nginx/sites-available/` or `/etc/nginx/conf.d/` routing traffic between port 80/443, Next.js (port 3000), and NestJS (port 4000).
-3. **Live SSL Certificate**: The validity and configuration of Let's Encrypt / Certbot SSL certificates on `https://mobilehubbd.tech`.
-4. **Live PM2 State**: Whether `pm2` processes on the VPS are running or in an error/restart cycle.
-5. **Live VPS Database State**: Whether migrations (`npx prisma migrate deploy`) and seed (`npm run seed:prod`) have been executed on the production PostgreSQL instance.
-6. **Remote Git Sync**: Local commit `8030e9e1` is ahead of `origin/main` by 1 commit. The remote repository does not yet contain these fixes.
-
----
-
-## 9. Honest Summary
-
-- **What Is Genuinely Working**:
-  - The complete application code (83 Prisma models, all admin modules, POS terminal, servicing, and customer storefront) exists locally and compiles with zero build errors (`npm run build` succeeds).
-  - The backend authentication controller, Bcrypt password checking, and JWT issuance are functioning locally (verified via curl `201 Created` with valid token).
-  - The client's extracted logo assets, green color theme (`#4CAF30`), and admin login screen mockup elements exist in the active local files.
-  - Backend API routes for customer data and staff operations strictly require authentication (`401 Unauthorized`).
-
-- **What Is Genuinely Broken**:
-  - **Admin Navigation**: `/admin` (Dashboard) remains falsely highlighted on every admin subpage due to `pathname.startsWith('/admin/')`.
-  - **Account Route Edge Security**: `src/middleware.ts` does not execute an HTTP 307/302 redirect on the server; route protection is deferred to client-side JavaScript.
-  - **Remote Git Deployment**: The latest commit (`8030e9e1`) has not been pushed to `origin/main`. Any deployment reading from GitHub is running outdated code.
-
-- **What Is Unknown Until VPS Checklist Is Run**:
-  - Whether the live server is throwing "Failed to fetch" because of Mixed Content (`http://` vs `https://`), baked-in `localhost:4000` URLs during the last VPS `npm run build`, an unconfigured Nginx proxy, or a crashed PM2 backend process. Running the checklist in Section 6 will definitively isolate this.

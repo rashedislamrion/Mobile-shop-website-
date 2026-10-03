@@ -9,7 +9,10 @@ import {
 } from 'class-validator';
 import { Type, Transform, plainToInstance } from 'class-transformer';
 import { ProductStatus } from '@prisma/client';
-import { ProductVariantDto, ProductSpecificationDto } from './create-product.dto';
+import {
+  ProductVariantDto,
+  ProductSpecificationDto,
+} from './create-product.dto';
 
 export class UpdateProductDto {
   @IsString()
@@ -68,28 +71,40 @@ export class UpdateProductDto {
   @IsOptional()
   unitId?: string;
 
-  @Transform(({ value }) => (value !== undefined && value !== '' ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : undefined,
+  )
   @IsNumber()
   @IsOptional()
   regularPrice?: number;
 
-  @Transform(({ value }) => (value !== undefined ? (value === '' ? null : Number(value)) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined ? (value === '' ? null : Number(value)) : undefined,
+  )
   @IsOptional()
   salePrice?: number | null;
 
-  @Transform(({ value }) => (value !== undefined ? (value === '' ? null : Number(value)) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined ? (value === '' ? null : Number(value)) : undefined,
+  )
   @IsOptional()
   costPrice?: number | null;
 
-  @Transform(({ value }) => (value !== undefined ? (value === '' ? null : Number(value)) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined ? (value === '' ? null : Number(value)) : undefined,
+  )
   @IsOptional()
   buyingPrice?: number | null;
 
-  @Transform(({ value }) => (value !== undefined ? (value === '' ? null : Number(value)) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined ? (value === '' ? null : Number(value)) : undefined,
+  )
   @IsOptional()
   wholesalePrice?: number | null;
 
-  @Transform(({ value }) => (value !== undefined && value !== '' ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : undefined,
+  )
   @IsNumber()
   @IsOptional()
   minOrderQty?: number;
@@ -175,7 +190,9 @@ export class UpdateProductDto {
       }
     }
     if (Array.isArray(parsed)) {
-      return parsed.map((item) => plainToInstance(ProductSpecificationDto, item));
+      return parsed.map((item) =>
+        plainToInstance(ProductSpecificationDto, item),
+      );
     }
     return parsed;
   })

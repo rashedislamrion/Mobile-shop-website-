@@ -75,8 +75,12 @@ let AuthService = class AuthService {
     recordFailedAttempt(identifier) {
         const key = identifier.toLowerCase().trim();
         const now = Date.now();
-        const record = this.failedAttempts.get(key) || { count: 0, firstAttemptAt: now };
-        if (now - record.firstAttemptAt > 60000 && (!record.lockedUntil || now > record.lockedUntil)) {
+        const record = this.failedAttempts.get(key) || {
+            count: 0,
+            firstAttemptAt: now,
+        };
+        if (now - record.firstAttemptAt > 60000 &&
+            (!record.lockedUntil || now > record.lockedUntil)) {
             record.count = 1;
             record.firstAttemptAt = now;
             delete record.lockedUntil;
@@ -140,7 +144,11 @@ let AuthService = class AuthService {
                 : identifier;
         const customer = await this.prisma.customer.findFirst({
             where: {
-                OR: [{ email: identifier }, { email: altIdentifier }, { phone: identifier }],
+                OR: [
+                    { email: identifier },
+                    { email: altIdentifier },
+                    { phone: identifier },
+                ],
             },
         });
         if (!customer) {
@@ -184,7 +192,11 @@ let AuthService = class AuthService {
                 : identifier;
         const staff = await this.prisma.staff.findFirst({
             where: {
-                OR: [{ email: identifier }, { email: altIdentifier }, { phone: identifier }],
+                OR: [
+                    { email: identifier },
+                    { email: altIdentifier },
+                    { phone: identifier },
+                ],
             },
             include: { role: true },
         });
@@ -222,7 +234,7 @@ let AuthService = class AuthService {
         let decoded;
         try {
             decoded = this.jwtService.verify(refreshToken, {
-                secret: this.configService.get('JWT_REFRESH_SECRET') || 'refresh-secret',
+                secret: this.configService.get('JWT_REFRESH_SECRET'),
             });
         }
         catch (e) {
@@ -230,12 +242,11 @@ let AuthService = class AuthService {
         }
         const allTokensForUser = await this.prisma.refreshToken.findMany({
             where: {
-                OR: [
-                    { staffId: decoded.sub },
-                    { customerId: decoded.sub }
-                ],
-                revoked: false
+                OR: [{ staffId: decoded.sub }, { customerId: decoded.sub }],
+                revoked: false,
             },
+            orderBy: { createdAt: 'desc' },
+            take: 20,
         });
         let matchedToken = null;
         for (const t of allTokensForUser) {
@@ -256,12 +267,11 @@ let AuthService = class AuthService {
     async logout(refreshToken, userId) {
         const allTokensForUser = await this.prisma.refreshToken.findMany({
             where: {
-                OR: [
-                    { staffId: userId },
-                    { customerId: userId }
-                ],
-                revoked: false
+                OR: [{ staffId: userId }, { customerId: userId }],
+                revoked: false,
             },
+            orderBy: { createdAt: 'desc' },
+            take: 20,
         });
         for (const t of allTokensForUser) {
             if (await bcrypt.compare(refreshToken, t.tokenHash)) {
@@ -276,7 +286,9 @@ let AuthService = class AuthService {
     }
     async changePassword(userId, userType, dto) {
         if (userType === 'STAFF') {
-            const user = await this.prisma.staff.findUnique({ where: { id: userId } });
+            const user = await this.prisma.staff.findUnique({
+                where: { id: userId },
+            });
             if (!user)
                 throw new common_1.NotFoundException('User not found');
             const isValid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
@@ -289,7 +301,9 @@ let AuthService = class AuthService {
             });
         }
         else {
-            const user = await this.prisma.customer.findUnique({ where: { id: userId } });
+            const user = await this.prisma.customer.findUnique({
+                where: { id: userId },
+            });
             if (!user)
                 throw new common_1.NotFoundException('User not found');
             const isValid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
@@ -306,19 +320,26 @@ let AuthService = class AuthService {
     async forgotPassword(dto) {
         let userId;
         let userType;
-        const staff = await this.prisma.staff.findUnique({ where: { email: dto.email } });
+        const staff = await this.prisma.staff.findUnique({
+            where: { email: dto.email },
+        });
         if (staff) {
             userId = staff.id;
             userType = 'STAFF';
         }
         else {
-            const customer = await this.prisma.customer.findUnique({ where: { email: dto.email } });
+            const customer = await this.prisma.customer.findUnique({
+                where: { email: dto.email },
+            });
             if (customer) {
                 userId = customer.id;
                 userType = 'CUSTOMER';
             }
             else {
-                return { success: true, message: 'If an account exists, a reset link will be sent.' };
+                return {
+                    success: true,
+                    message: 'If an account exists, a reset link will be sent.',
+                };
             }
         }
         const { randomBytes } = await import('crypto');
@@ -337,7 +358,7 @@ let AuthService = class AuthService {
         const resetToken = `${record.id}.${rawToken}`;
         return {
             success: true,
-            resetToken
+            resetToken,
         };
     }
     async resetPassword(dto) {
@@ -381,7 +402,7 @@ let AuthService = class AuthService {
                 where: { id: userId },
                 include: {
                     role: {
-                        include: { permissions: true }
+                        include: { permissions: true },
                     },
                     branch: true,
                 },
@@ -404,13 +425,19 @@ let AuthService = class AuthService {
         }
     }
     async generateTokens(userId, userType, roleId, roleName, branchId) {
-        const payload = { sub: userId, userType, roleId, roleName, branchId };
+        const payload = {
+            sub: userId,
+            userType,
+            roleId,
+            roleName,
+            branchId,
+        };
         const accessToken = this.jwtService.sign(payload, {
-            secret: this.configService.get('JWT_ACCESS_SECRET') || 'access-secret',
+            secret: this.configService.get('JWT_ACCESS_SECRET'),
             expiresIn: this.configService.get('JWT_ACCESS_EXPIRY') || '15m',
         });
         const refreshToken = this.jwtService.sign(payload, {
-            secret: this.configService.get('JWT_REFRESH_SECRET') || 'refresh-secret',
+            secret: this.configService.get('JWT_REFRESH_SECRET'),
             expiresIn: this.configService.get('JWT_REFRESH_EXPIRY') || '7d',
         });
         const tokenHash = await bcrypt.hash(refreshToken, 10);

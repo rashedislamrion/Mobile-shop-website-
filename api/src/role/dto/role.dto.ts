@@ -69,4 +69,3 @@ export class UpdateRoleBranchPermissionsDto {
   @Type(() => RoleBranchPermissionItemDto)
   branchPermissions: RoleBranchPermissionItemDto[];
 }
-

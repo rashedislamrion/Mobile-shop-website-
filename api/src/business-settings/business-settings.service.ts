@@ -26,7 +26,8 @@ const defaultSettings = {
     appleStoreLink: 'https://apple.com/app-store',
     showAdminFooter: true,
     hotlineNumber: '+880 9612-000000',
-    footerText: 'Bangladesh\'s leading destination for original spare parts and repair services.',
+    footerText:
+      "Bangladesh's leading destination for original spare parts and repair services.",
     paymentMethodsSetup: {
       codEnabled: true,
       onlinePaymentEnabled: true,
@@ -90,12 +91,30 @@ export class BusinessSettingsService {
       });
     }
 
-    const general = { ...defaultSettings.general, ...(settings.general as any) };
-    const branding = { ...defaultSettings.branding, ...(settings.branding as any) };
-    const currencyTax = { ...defaultSettings.currencyTax, ...(settings.currencyTax as any) };
-    const orderSettings = { ...defaultSettings.orderSettings, ...(settings.orderSettings as any) };
-    const notifications = { ...defaultSettings.notifications, ...(settings.notifications as any) };
-    const verification = { ...defaultSettings.verification, ...(settings.verification as any) };
+    const general = {
+      ...defaultSettings.general,
+      ...(settings.general as any),
+    };
+    const branding = {
+      ...defaultSettings.branding,
+      ...(settings.branding as any),
+    };
+    const currencyTax = {
+      ...defaultSettings.currencyTax,
+      ...(settings.currencyTax as any),
+    };
+    const orderSettings = {
+      ...defaultSettings.orderSettings,
+      ...(settings.orderSettings as any),
+    };
+    const notifications = {
+      ...defaultSettings.notifications,
+      ...(settings.notifications as any),
+    };
+    const verification = {
+      ...defaultSettings.verification,
+      ...(settings.verification as any),
+    };
 
     return {
       ...settings,
@@ -113,10 +132,22 @@ export class BusinessSettingsService {
 
     const currentGeneral = { ...existing.general, ...(dto.general || {}) };
     const currentBranding = { ...existing.branding, ...(dto.branding || {}) };
-    const currentCurrencyTax = { ...existing.currencyTax, ...(dto.currencyTax || {}) };
-    const currentOrderSettings = { ...existing.orderSettings, ...(dto.orderSettings || {}) };
-    const currentNotifications = { ...existing.notifications, ...(dto.notifications || {}) };
-    const currentVerification = { ...existing.verification, ...(dto.verification || {}) };
+    const currentCurrencyTax = {
+      ...existing.currencyTax,
+      ...(dto.currencyTax || {}),
+    };
+    const currentOrderSettings = {
+      ...existing.orderSettings,
+      ...(dto.orderSettings || {}),
+    };
+    const currentNotifications = {
+      ...existing.notifications,
+      ...(dto.notifications || {}),
+    };
+    const currentVerification = {
+      ...existing.verification,
+      ...(dto.verification || {}),
+    };
 
     if (dto.removeFields && Array.isArray(dto.removeFields)) {
       for (const field of dto.removeFields) {
@@ -149,15 +180,17 @@ export class BusinessSettingsService {
 
   async getSetup() {
     const settings = await this.getSettings();
-    const general = settings.general as any;
-    const currencyTax = settings.currencyTax as any;
+    const general = settings.general;
+    const currencyTax = settings.currencyTax;
 
     return {
       companyName: general.companyName || 'mobilehubbd Bangladesh',
-      companyEmail: general.emailAddress || general.email || 'contact@mobilehubbd.com',
+      companyEmail:
+        general.emailAddress || general.email || 'contact@mobilehubbd.com',
       companyPhone: general.mobileNumber || general.phone || '+880 1700-000000',
       businessModel: general.businessModel || 'SINGLE_STORE',
-      currencyPosition: general.currencyPosition || currencyTax.symbolPosition || 'LEFT',
+      currencyPosition:
+        general.currencyPosition || currencyTax.symbolPosition || 'LEFT',
       timeZone: general.timeZone || 'UTC/GMT +06:00 - Asia/Dhaka',
       paymentMethodsSetup: general.paymentMethodsSetup || {
         codEnabled: true,
@@ -168,8 +201,8 @@ export class BusinessSettingsService {
 
   async updateSetup(dto: UpdateBusinessSetupDto) {
     const existing = await this.getSettings();
-    const general = { ...(existing.general as any) };
-    const currencyTax = { ...(existing.currencyTax as any) };
+    const general = { ...existing.general };
+    const currencyTax = { ...existing.currencyTax };
 
     if (dto.companyName !== undefined) general.companyName = dto.companyName;
     if (dto.companyEmail !== undefined) {
@@ -180,7 +213,8 @@ export class BusinessSettingsService {
       general.phone = dto.companyPhone;
       general.mobileNumber = dto.companyPhone;
     }
-    if (dto.businessModel !== undefined) general.businessModel = dto.businessModel;
+    if (dto.businessModel !== undefined)
+      general.businessModel = dto.businessModel;
     if (dto.currencyPosition !== undefined) {
       general.currencyPosition = dto.currencyPosition;
       currencyTax.symbolPosition = dto.currencyPosition;
@@ -212,7 +246,7 @@ export class BusinessSettingsService {
   async updateVerification(dto: UpdateVerificationDto) {
     const existing = await this.getSettings();
     const verification = {
-      ...(existing.verification as any),
+      ...existing.verification,
       ...dto,
     };
 

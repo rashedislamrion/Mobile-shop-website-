@@ -113,7 +113,8 @@ export class SupplierService {
       },
     });
 
-    if (!supplier) throw new NotFoundException(`Supplier with ID "${id}" not found.`);
+    if (!supplier)
+      throw new NotFoundException(`Supplier with ID "${id}" not found.`);
     return supplier;
   }
 
@@ -144,16 +145,21 @@ export class SupplierService {
       where: { id },
       data: {
         name: dto.name,
-        companyName: dto.companyName !== undefined ? dto.companyName || null : undefined,
+        companyName:
+          dto.companyName !== undefined ? dto.companyName || null : undefined,
         logo: dto.logo !== undefined ? dto.logo || null : undefined,
         contactPerson: dto.contactPerson,
         phone: dto.phone,
         email: dto.email !== undefined ? dto.email || null : undefined,
         address: dto.address,
-        productsCategory: dto.productsCategory !== undefined ? dto.productsCategory || null : undefined,
+        productsCategory:
+          dto.productsCategory !== undefined
+            ? dto.productsCategory || null
+            : undefined,
         productsSupplied: dto.productsSupplied,
         paymentTerms: dto.paymentTerms,
-        advanceBalance: dto.advanceBalance !== undefined ? dto.advanceBalance : undefined,
+        advanceBalance:
+          dto.advanceBalance !== undefined ? dto.advanceBalance : undefined,
         status: dto.status,
       },
     });
@@ -195,7 +201,8 @@ export class SupplierService {
     const where: Prisma.SupplierPaymentWhereInput = {};
 
     if (query?.supplier) where.supplierId = query.supplier;
-    if (query?.method) where.method = { contains: query.method, mode: 'insensitive' };
+    if (query?.method)
+      where.method = { contains: query.method, mode: 'insensitive' };
 
     if (query?.dateFrom || query?.dateTo) {
       where.createdAt = {};
@@ -261,7 +268,8 @@ export class SupplierService {
       const wallet = await tx.walletType.findUnique({
         where: { id: dto.walletTypeId },
       });
-      if (!wallet) throw new NotFoundException('Selected payment wallet not found.');
+      if (!wallet)
+        throw new NotFoundException('Selected payment wallet not found.');
 
       const currentBal = Number(wallet.currentBalance);
       if (currentBal < amount) {
@@ -279,9 +287,10 @@ export class SupplierService {
       const referenceNo = `SPAY-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
 
       const noteText = dto.notes || dto.note || '';
-      const fullNote = extraDiscount > 0 
-        ? `Payment: ৳${amount.toLocaleString()} + Discount: ৳${extraDiscount.toLocaleString()}${noteText ? ` (${noteText})` : ''}`
-        : noteText;
+      const fullNote =
+        extraDiscount > 0
+          ? `Payment: ৳${amount.toLocaleString()} + Discount: ৳${extraDiscount.toLocaleString()}${noteText ? ` (${noteText})` : ''}`
+          : noteText;
 
       const walletTxn = await tx.walletTransaction.create({
         data: {

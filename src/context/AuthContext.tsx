@@ -113,17 +113,24 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     let mounted = true;
     (async () => {
       try {
+        if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin")) {
+          if (mounted) setIsLoading(false);
+          return;
+        }
+
         const token = getCustomerToken();
+        const hasSavedUser = typeof window !== "undefined" && !!localStorage.getItem(CUSTOMER_USER_KEY);
+
         if (token) {
           const profile = await fetchCurrentUser();
-          if (!profile) {
+          if (!profile && hasSavedUser) {
             const res = await apiPost<{ accessToken: string }>("/auth/customer/refresh", undefined, { authScope: "CUSTOMER" });
             if (res?.accessToken) {
               setCustomerToken(res.accessToken);
               if (mounted) await fetchCurrentUser();
             }
           }
-        } else {
+        } else if (hasSavedUser) {
           const res = await apiPost<{ accessToken: string }>("/auth/customer/refresh", undefined, { authScope: "CUSTOMER" });
           if (res?.accessToken) {
             setCustomerToken(res.accessToken);
@@ -262,16 +269,18 @@ export function StaffAuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const token = getStaffToken();
+        const hasSavedStaff = typeof window !== "undefined" && !!localStorage.getItem(STAFF_USER_KEY);
+
         if (token) {
           const profile = await fetchCurrentUser();
-          if (!profile) {
+          if (!profile && hasSavedStaff) {
             const res = await apiPost<{ accessToken: string }>("/auth/staff/refresh", undefined, { authScope: "STAFF" });
             if (res?.accessToken) {
               setStaffToken(res.accessToken);
               if (mounted) await fetchCurrentUser();
             }
           }
-        } else {
+        } else if (hasSavedStaff) {
           const res = await apiPost<{ accessToken: string }>("/auth/staff/refresh", undefined, { authScope: "STAFF" });
           if (res?.accessToken) {
             setStaffToken(res.accessToken);

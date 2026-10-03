@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { apiGet, apiPatch } from "@/lib/api-client";
+import { apiGet, apiPatch, getStaffToken, API_BASE_URL, BACKEND_URL } from "@/lib/api-client";
 import { toast } from "sonner";
 
 const CUSTOMER_SOURCES = [
@@ -71,7 +71,7 @@ export default function EditCustomerPage() {
           setProfileImageUrl(photo);
           const resolved = photo.startsWith("http")
             ? photo
-            : `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000"}${photo.startsWith("/") ? "" : "/"}${photo}`;
+            : `${BACKEND_URL}${photo.startsWith("/") ? "" : "/"}${photo}`;
           setImagePreview(resolved);
         }
       } catch (err: any) {
@@ -109,11 +109,11 @@ export default function EditCustomerPage() {
       formData.append("image", file);
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"}/customers/upload`,
+        `${API_BASE_URL}/customers/upload`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+            Authorization: `Bearer ${getStaffToken() || ""}`,
           },
           body: formData,
         }

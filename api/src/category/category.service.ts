@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -86,8 +90,14 @@ export class CategoryService {
       slug = `category-${Date.now()}`;
     }
 
-    const imagePath = file ? ((await resolveUploadedFile(file, 'categories')) || `/uploads/categories/${file.filename}`) : dto.image || null;
-    const parentId = dto.parentId && dto.parentId !== 'null' && dto.parentId !== '' ? dto.parentId : null;
+    const imagePath = file
+      ? (await resolveUploadedFile(file, 'categories')) ||
+        `/uploads/categories/${file.filename}`
+      : dto.image || null;
+    const parentId =
+      dto.parentId && dto.parentId !== 'null' && dto.parentId !== ''
+        ? dto.parentId
+        : null;
 
     try {
       return await this.prisma.category.create({
@@ -110,8 +120,13 @@ export class CategoryService {
         },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException(`Category slug "${slug}" already exists. Please choose a different name or slug.`);
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          `Category slug "${slug}" already exists. Please choose a different name or slug.`,
+        );
       }
       throw error;
     }
@@ -125,21 +140,29 @@ export class CategoryService {
     if (dto.slug !== undefined) data.slug = slugify(dto.slug);
     if (dto.icon !== undefined) data.icon = dto.icon;
     if (dto.altTag !== undefined) data.altTag = dto.altTag || null;
-    if (dto.description !== undefined) data.description = dto.description || null;
+    if (dto.description !== undefined)
+      data.description = dto.description || null;
     if (dto.isGadget !== undefined) data.isGadget = dto.isGadget;
     if (dto.featured !== undefined) data.featured = dto.featured;
     if (dto.metaTitle !== undefined) data.metaTitle = dto.metaTitle || null;
-    if (dto.metaDescription !== undefined) data.metaDescription = dto.metaDescription || null;
+    if (dto.metaDescription !== undefined)
+      data.metaDescription = dto.metaDescription || null;
     if (dto.status !== undefined) data.status = dto.status;
 
     if (file) {
-      data.image = (await resolveUploadedFile(file, 'categories')) || `/uploads/categories/${file.filename}`;
+      data.image =
+        (await resolveUploadedFile(file, 'categories')) ||
+        `/uploads/categories/${file.filename}`;
     } else if (dto.image !== undefined) {
       data.image = dto.image;
     }
 
     if (dto.parentId !== undefined) {
-      if (dto.parentId === 'null' || dto.parentId === '' || dto.parentId === null) {
+      if (
+        dto.parentId === 'null' ||
+        dto.parentId === '' ||
+        dto.parentId === null
+      ) {
         data.parent = { disconnect: true };
       } else {
         if (dto.parentId === id) {
@@ -158,7 +181,10 @@ export class CategoryService {
         },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
         throw new ConflictException(`Category slug already exists.`);
       }
       throw error;
@@ -215,9 +241,13 @@ export class CategoryService {
     const conflicts: string[] = [];
     categories.forEach((cat) => {
       const issues: string[] = [];
-      const unselectedChildren = cat.children.filter((ch) => !ids.includes(ch.id));
+      const unselectedChildren = cat.children.filter(
+        (ch) => !ids.includes(ch.id),
+      );
       if (unselectedChildren.length > 0) {
-        issues.push(`${unselectedChildren.length} child category(ies) not selected for deletion`);
+        issues.push(
+          `${unselectedChildren.length} child category(ies) not selected for deletion`,
+        );
       }
       if (cat.products.length > 0) {
         issues.push(`${cat.products.length} linked product(s)`);

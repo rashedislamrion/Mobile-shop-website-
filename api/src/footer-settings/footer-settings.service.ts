@@ -288,7 +288,9 @@ export class FooterSettingsService implements OnModuleInit {
   }
 
   async addItem(columnKey: string, dto: CreateFooterColumnItemDto) {
-    let column = await this.prisma.footerColumn.findUnique({ where: { key: columnKey } });
+    let column = await this.prisma.footerColumn.findUnique({
+      where: { key: columnKey },
+    });
     if (!column) {
       column = await this.prisma.footerColumn.create({
         data: {
@@ -307,10 +309,12 @@ export class FooterSettingsService implements OnModuleInit {
 
     let extraData = dto.extraData || {};
     let navigationLabel = dto.navigationLabel;
-    let url = dto.url || '#';
+    const url = dto.url || '#';
 
     if (dto.sourceType === 'BRANCH' && dto.sourceId) {
-      const branch = await this.prisma.branch.findUnique({ where: { id: dto.sourceId } });
+      const branch = await this.prisma.branch.findUnique({
+        where: { id: dto.sourceId },
+      });
       if (branch) {
         navigationLabel = navigationLabel || branch.name;
         extraData = {
@@ -336,14 +340,22 @@ export class FooterSettingsService implements OnModuleInit {
     });
   }
 
-  async updateItem(columnKey: string, id: string, dto: UpdateFooterColumnItemDto) {
-    const item = await this.prisma.footerColumnItem.findUnique({ where: { id } });
+  async updateItem(
+    columnKey: string,
+    id: string,
+    dto: UpdateFooterColumnItemDto,
+  ) {
+    const item = await this.prisma.footerColumnItem.findUnique({
+      where: { id },
+    });
     if (!item) throw new NotFoundException(`FooterColumnItem ${id} not found`);
 
     return this.prisma.footerColumnItem.update({
       where: { id },
       data: {
-        ...(dto.navigationLabel !== undefined ? { navigationLabel: dto.navigationLabel } : {}),
+        ...(dto.navigationLabel !== undefined
+          ? { navigationLabel: dto.navigationLabel }
+          : {}),
         ...(dto.url !== undefined ? { url: dto.url } : {}),
         ...(dto.extraData !== undefined ? { extraData: dto.extraData } : {}),
       },
@@ -351,7 +363,9 @@ export class FooterSettingsService implements OnModuleInit {
   }
 
   async disableItem(id: string) {
-    const item = await this.prisma.footerColumnItem.findUnique({ where: { id } });
+    const item = await this.prisma.footerColumnItem.findUnique({
+      where: { id },
+    });
     if (!item) throw new NotFoundException(`FooterColumnItem ${id} not found`);
 
     return this.prisma.footerColumnItem.update({
@@ -361,7 +375,9 @@ export class FooterSettingsService implements OnModuleInit {
   }
 
   async enableItem(id: string) {
-    const item = await this.prisma.footerColumnItem.findUnique({ where: { id } });
+    const item = await this.prisma.footerColumnItem.findUnique({
+      where: { id },
+    });
     if (!item) throw new NotFoundException(`FooterColumnItem ${id} not found`);
 
     return this.prisma.footerColumnItem.update({
@@ -371,7 +387,9 @@ export class FooterSettingsService implements OnModuleInit {
   }
 
   async deleteItem(id: string) {
-    const item = await this.prisma.footerColumnItem.findUnique({ where: { id } });
+    const item = await this.prisma.footerColumnItem.findUnique({
+      where: { id },
+    });
     if (!item) throw new NotFoundException(`FooterColumnItem ${id} not found`);
 
     return this.prisma.footerColumnItem.delete({ where: { id } });

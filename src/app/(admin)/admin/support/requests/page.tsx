@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useAdminPage } from "@/contexts/AdminPageContext";
-import { ChevronRight, ChevronDown, MessageSquare, Clock, User, Phone, CheckCircle2, AlertCircle } from "lucide-react";
+import { ChevronRight, ChevronDown, MessageSquare, Clock, User, Phone, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { apiGet, apiPatch } from "@/lib/api-client";
+import { apiGet, apiPatch, apiDelete } from "@/lib/api-client";
 import { format } from "date-fns";
 
 export interface SupportTicketRecord {
@@ -65,6 +65,19 @@ export default function SupportRequestsPage() {
       fetchTickets();
     } catch (err: any) {
       toast.error(err.message || "Failed to update ticket status");
+    }
+  };
+
+  const handleDeleteTicket = async (ticket: SupportTicketRecord) => {
+    if (!confirm(`Are you sure you want to delete ticket "${ticket.ticketCode}"? This cannot be undone.`)) {
+      return;
+    }
+    try {
+      await apiDelete(`/support-tickets/${ticket.id}`);
+      toast.success(`Ticket ${ticket.ticketCode} deleted`);
+      fetchTickets();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete ticket");
     }
   };
 
@@ -243,6 +256,15 @@ export default function SupportRequestsPage() {
                           onClick={() => handleUpdateStatus(ticket.id, "COMPLETED")}
                         >
                           Completed
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                          onClick={() => handleDeleteTicket(ticket)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1" />
+                          Delete
                         </Button>
                       </div>
                     </div>

@@ -13,9 +13,11 @@ function AdminContentWrapper({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { user, isLoading, isAuthenticated } = useStaffAuth();
   const isLoginPage = pathname === "/admin/login";
+  const isPrintPage = pathname?.startsWith("/admin/pos/invoice-print");
 
   // Role-based route redirection for Technician and Branch Admin
   useEffect(() => {
+    if (isPrintPage) return;
     if (!isLoading && isAuthenticated && user && user.userType === "STAFF") {
       const roleName = user.role?.name?.toLowerCase() || "";
       const isTech = roleName.includes("technician");
@@ -44,10 +46,10 @@ function AdminContentWrapper({ children }: { children: ReactNode }) {
         }
       }
     }
-  }, [isLoading, isAuthenticated, user, pathname, router]);
+  }, [isLoading, isAuthenticated, user, pathname, router, isPrintPage]);
 
-  // If on login page, render children cleanly without dashboard chrome
-  if (isLoginPage) {
+  // If on login page or print-only page, render children cleanly without dashboard chrome
+  if (isLoginPage || isPrintPage) {
     return <>{children}</>;
   }
 

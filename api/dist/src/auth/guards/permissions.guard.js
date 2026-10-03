@@ -43,13 +43,16 @@ let PermissionsGuard = class PermissionsGuard {
         if (!permission?.allowed) {
             throw new common_1.ForbiddenException(`Your role does not have ${required.action} permission on ${required.module}.`);
         }
-        const role = await this.prisma.role.findUnique({ where: { id: user.roleId } });
+        const role = await this.prisma.role.findUnique({
+            where: { id: user.roleId },
+        });
         const GLOBAL_ONLY_MODULES = [
             client_1.ModuleName.BUSINESS_SETTINGS,
             client_1.ModuleName.CMS,
             client_1.ModuleName.THIRD_PARTY_CONFIG,
         ];
-        if (GLOBAL_ONLY_MODULES.includes(required.module) && role?.scope !== 'GLOBAL') {
+        if (GLOBAL_ONLY_MODULES.includes(required.module) &&
+            role?.scope !== 'GLOBAL') {
             throw new common_1.ForbiddenException('Access restricted: Only Global Administrators can access or modify system-wide settings.');
         }
         if (role?.scope === 'OWN_BRANCH' && required.branchParam) {

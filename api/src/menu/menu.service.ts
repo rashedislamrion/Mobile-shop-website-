@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   AddMenuBuilderItemsDto,
@@ -14,7 +18,11 @@ import { MenuType, Prisma, StaffStatus } from '@prisma/client';
 export class MenuService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(query?: { menuType?: MenuType; status?: StaffStatus; search?: string }) {
+  async findAll(query?: {
+    menuType?: MenuType;
+    status?: StaffStatus;
+    search?: string;
+  }) {
     const where: Prisma.MenuItemWhereInput = {};
     if (query?.menuType) where.menuType = query.menuType;
     if (query?.status) where.status = query.status;
@@ -64,7 +72,8 @@ export class MenuService {
 
   async findOne(id: string) {
     const item = await this.prisma.menuItem.findUnique({ where: { id } });
-    if (!item) throw new NotFoundException(`Menu item with ID "${id}" not found.`);
+    if (!item)
+      throw new NotFoundException(`Menu item with ID "${id}" not found.`);
     return item;
   }
 
@@ -149,7 +158,9 @@ export class MenuService {
     const activePageSlugs = new Set(
       activeItems
         .filter((item) => item.sourceType === 'PAGE')
-        .map((item) => item.urlSlug.replace(/^\/pages\//, '').replace(/^\//, '')),
+        .map((item) =>
+          item.urlSlug.replace(/^\/pages\//, '').replace(/^\//, ''),
+        ),
     );
 
     const pagesWithAdded = pages.map((p) => ({
@@ -225,7 +236,9 @@ export class MenuService {
       }
     } else if (dto.sourceType === 'CUSTOM') {
       if (!dto.label || !dto.url) {
-        throw new BadRequestException('Label and URL are required for custom link');
+        throw new BadRequestException(
+          'Label and URL are required for custom link',
+        );
       }
 
       const item = await this.prisma.menuStructureItem.create({
@@ -245,15 +258,21 @@ export class MenuService {
   }
 
   async updateBuilderItem(id: string, dto: UpdateMenuBuilderItemDto) {
-    const item = await this.prisma.menuStructureItem.findUnique({ where: { id } });
+    const item = await this.prisma.menuStructureItem.findUnique({
+      where: { id },
+    });
     if (!item) throw new NotFoundException(`MenuStructureItem ${id} not found`);
 
     return this.prisma.menuStructureItem.update({
       where: { id },
       data: {
         ...(dto.urlSlug !== undefined ? { urlSlug: dto.urlSlug } : {}),
-        ...(dto.navigationLabel !== undefined ? { navigationLabel: dto.navigationLabel } : {}),
-        ...(dto.titleAttribute !== undefined ? { titleAttribute: dto.titleAttribute } : {}),
+        ...(dto.navigationLabel !== undefined
+          ? { navigationLabel: dto.navigationLabel }
+          : {}),
+        ...(dto.titleAttribute !== undefined
+          ? { titleAttribute: dto.titleAttribute }
+          : {}),
       },
     });
   }
@@ -270,7 +289,9 @@ export class MenuService {
   }
 
   async removeBuilderItem(id: string) {
-    const item = await this.prisma.menuStructureItem.findUnique({ where: { id } });
+    const item = await this.prisma.menuStructureItem.findUnique({
+      where: { id },
+    });
     if (!item) throw new NotFoundException(`MenuStructureItem ${id} not found`);
 
     return this.prisma.menuStructureItem.update({
@@ -280,7 +301,9 @@ export class MenuService {
   }
 
   async restoreBuilderItem(id: string) {
-    const item = await this.prisma.menuStructureItem.findUnique({ where: { id } });
+    const item = await this.prisma.menuStructureItem.findUnique({
+      where: { id },
+    });
     if (!item) throw new NotFoundException(`MenuStructureItem ${id} not found`);
 
     return this.prisma.menuStructureItem.update({
@@ -290,7 +313,9 @@ export class MenuService {
   }
 
   async deleteBuilderItem(id: string) {
-    const item = await this.prisma.menuStructureItem.findUnique({ where: { id } });
+    const item = await this.prisma.menuStructureItem.findUnique({
+      where: { id },
+    });
     if (!item) throw new NotFoundException(`MenuStructureItem ${id} not found`);
 
     return this.prisma.menuStructureItem.delete({ where: { id } });

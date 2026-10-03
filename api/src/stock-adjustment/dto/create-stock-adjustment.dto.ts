@@ -79,4 +79,3 @@ export class CreateBatchStockAdjustmentDto {
   @Type(() => BatchStockAdjustmentItemDto)
   items: BatchStockAdjustmentItemDto[];
 }
-

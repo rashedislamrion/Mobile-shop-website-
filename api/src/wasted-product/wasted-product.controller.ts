@@ -19,7 +19,10 @@ import { ModuleName, PermissionAction } from '@prisma/client';
 export class WastedProductController {
   constructor(private readonly wastedProductService: WastedProductService) {}
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.READ,
+  })
   @Get()
   findAll(
     @Query('search') search?: string,
@@ -41,13 +44,19 @@ export class WastedProductController {
     });
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.READ,
+  })
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.wastedProductService.findOne(id);
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.CREATE,
+  })
   @Post()
   create(
     @Body() dto: CreateWastedProductDto,
@@ -56,16 +65,19 @@ export class WastedProductController {
     return this.wastedProductService.create(dto, staffId);
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.UPDATE,
+  })
   @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() dto: UpdateWastedProductDto,
-  ) {
+  update(@Param('id') id: string, @Body() dto: UpdateWastedProductDto) {
     return this.wastedProductService.update(id, dto);
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.DELETE,
+  })
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.wastedProductService.remove(id);

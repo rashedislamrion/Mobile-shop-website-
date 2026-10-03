@@ -29,7 +29,8 @@ export class CountryService {
 
   async findOne(id: string) {
     const country = await this.prisma.country.findUnique({ where: { id } });
-    if (!country) throw new NotFoundException(`Country with ID "${id}" not found.`);
+    if (!country)
+      throw new NotFoundException(`Country with ID "${id}" not found.`);
     return country;
   }
 
@@ -37,7 +38,8 @@ export class CountryService {
     const existing = await this.prisma.country.findUnique({
       where: { name: dto.name.trim() },
     });
-    if (existing) throw new ConflictException(`Country "${dto.name}" already exists.`);
+    if (existing)
+      throw new ConflictException(`Country "${dto.name}" already exists.`);
 
     return this.prisma.country.create({
       data: {
@@ -56,7 +58,8 @@ export class CountryService {
       const existing = await this.prisma.country.findFirst({
         where: { name: dto.name.trim(), NOT: { id } },
       });
-      if (existing) throw new ConflictException(`Country "${dto.name}" already exists.`);
+      if (existing)
+        throw new ConflictException(`Country "${dto.name}" already exists.`);
     }
 
     return this.prisma.country.update({

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAdDto, UpdateAdDto, TrackAdDto } from './dto/ad.dto';
 import { AdPlacement, Prisma, PromoAdStatus } from '@prisma/client';
@@ -7,7 +11,11 @@ import { AdPlacement, Prisma, PromoAdStatus } from '@prisma/client';
 export class AdService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(query?: { placement?: AdPlacement; status?: PromoAdStatus; search?: string }) {
+  async findAll(query?: {
+    placement?: AdPlacement;
+    status?: PromoAdStatus;
+    search?: string;
+  }) {
     const where: Prisma.AdWhereInput = {};
     if (query?.placement) where.placement = query.placement;
     if (query?.status) where.status = query.status;
@@ -61,7 +69,9 @@ export class AdService {
         },
       });
       if (activeFeaturedCount >= 2) {
-        throw new BadRequestException('Maximum 2 featured ads allowed on homepage. Please unfeature another ad first.');
+        throw new BadRequestException(
+          'Maximum 2 featured ads allowed on homepage. Please unfeature another ad first.',
+        );
       }
     }
 
@@ -88,8 +98,14 @@ export class AdService {
 
   async update(id: string, dto: UpdateAdDto) {
     const existing = await this.findOne(id);
-    const willBeFeatured = dto.isFeatured !== undefined ? Boolean(dto.isFeatured) : existing.isFeatured;
-    const willBeActive = dto.status !== undefined ? dto.status === PromoAdStatus.ACTIVE : existing.status === PromoAdStatus.ACTIVE;
+    const willBeFeatured =
+      dto.isFeatured !== undefined
+        ? Boolean(dto.isFeatured)
+        : existing.isFeatured;
+    const willBeActive =
+      dto.status !== undefined
+        ? dto.status === PromoAdStatus.ACTIVE
+        : existing.status === PromoAdStatus.ACTIVE;
 
     if (willBeFeatured && willBeActive) {
       const otherActiveFeaturedCount = await this.prisma.ad.count({
@@ -100,24 +116,46 @@ export class AdService {
         },
       });
       if (otherActiveFeaturedCount >= 2) {
-        throw new BadRequestException('Maximum 2 featured ads allowed on homepage. Please unfeature another ad first.');
+        throw new BadRequestException(
+          'Maximum 2 featured ads allowed on homepage. Please unfeature another ad first.',
+        );
       }
     }
 
-    const imageUrl = dto.imageUrl !== undefined ? dto.imageUrl : (dto.thumbnailUrl !== undefined ? dto.thumbnailUrl : undefined);
+    const imageUrl =
+      dto.imageUrl !== undefined
+        ? dto.imageUrl
+        : dto.thumbnailUrl !== undefined
+          ? dto.thumbnailUrl
+          : undefined;
 
     return this.prisma.ad.update({
       where: { id },
       data: {
         imageUrl,
         title: dto.title,
-        description: dto.description !== undefined ? dto.description || null : undefined,
+        description:
+          dto.description !== undefined ? dto.description || null : undefined,
         placement: dto.placement,
         linkUrl: dto.linkUrl,
-        mobileThumbnailUrl: dto.mobileThumbnailUrl !== undefined ? dto.mobileThumbnailUrl || null : undefined,
-        isFeatured: dto.isFeatured !== undefined ? Boolean(dto.isFeatured) : undefined,
-        startDate: dto.startDate !== undefined ? (dto.startDate ? new Date(dto.startDate) : null) : undefined,
-        endDate: dto.endDate !== undefined ? (dto.endDate ? new Date(dto.endDate) : null) : undefined,
+        mobileThumbnailUrl:
+          dto.mobileThumbnailUrl !== undefined
+            ? dto.mobileThumbnailUrl || null
+            : undefined,
+        isFeatured:
+          dto.isFeatured !== undefined ? Boolean(dto.isFeatured) : undefined,
+        startDate:
+          dto.startDate !== undefined
+            ? dto.startDate
+              ? new Date(dto.startDate)
+              : null
+            : undefined,
+        endDate:
+          dto.endDate !== undefined
+            ? dto.endDate
+              ? new Date(dto.endDate)
+              : null
+            : undefined,
         status: dto.status,
       },
     });

@@ -32,7 +32,7 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { apiGet, apiPost, apiPatch } from "@/lib/api-client";
+import { apiGet, apiPost, apiPatch, getStaffToken, API_BASE_URL } from "@/lib/api-client";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -247,8 +247,8 @@ export function EmployeeForm({ initialData, isEdit }: EmployeeFormProps) {
       // Our apiPost/apiPatch can accept FormData directly
       const url = isEdit ? `/employees/${initialData.id}` : "/employees";
 
-      const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"}${url}`, {
+      const token = getStaffToken();
+      const res = await fetch(`${API_BASE_URL}${url}`, {
         method: isEdit ? "PATCH" : "POST",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),

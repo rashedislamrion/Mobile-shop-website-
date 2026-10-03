@@ -46,31 +46,43 @@ export class ProductVariantDto {
   @IsOptional()
   quality?: string;
 
-  @Transform(({ value }) => (value !== undefined && value !== null ? Number(value) : 0))
+  @Transform(({ value }) =>
+    value !== undefined && value !== null ? Number(value) : 0,
+  )
   @IsNumber()
   price: number;
 
-  @Transform(({ value }) => (value !== undefined && value !== null ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== null ? Number(value) : undefined,
+  )
   @IsNumber()
   @IsOptional()
   buyingPrice?: number;
 
-  @Transform(({ value }) => (value !== undefined && value !== null ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== null ? Number(value) : undefined,
+  )
   @IsNumber()
   @IsOptional()
   wholesalePrice?: number;
 
-  @Transform(({ value }) => (value !== undefined && value !== null ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== null ? Number(value) : undefined,
+  )
   @IsNumber()
   @IsOptional()
   discountedPrice?: number;
 
-  @Transform(({ value }) => (value !== undefined && value !== null ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== null ? Number(value) : undefined,
+  )
   @IsNumber()
   @IsOptional()
   offerPrice?: number;
 
-  @Transform(({ value }) => (value !== undefined && value !== null ? Number(value) : 0))
+  @Transform(({ value }) =>
+    value !== undefined && value !== null ? Number(value) : 0,
+  )
   @IsNumber()
   stock: number;
 
@@ -157,27 +169,45 @@ export class CreateProductDto {
   @IsNumber()
   regularPrice: number;
 
-  @Transform(({ value }) => (value !== undefined && value !== '' && value !== null ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' && value !== null
+      ? Number(value)
+      : undefined,
+  )
   @IsNumber()
   @IsOptional()
   salePrice?: number;
 
-  @Transform(({ value }) => (value !== undefined && value !== '' && value !== null ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' && value !== null
+      ? Number(value)
+      : undefined,
+  )
   @IsNumber()
   @IsOptional()
   costPrice?: number;
 
-  @Transform(({ value }) => (value !== undefined && value !== '' && value !== null ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' && value !== null
+      ? Number(value)
+      : undefined,
+  )
   @IsNumber()
   @IsOptional()
   buyingPrice?: number;
 
-  @Transform(({ value }) => (value !== undefined && value !== '' && value !== null ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' && value !== null
+      ? Number(value)
+      : undefined,
+  )
   @IsNumber()
   @IsOptional()
   wholesalePrice?: number;
 
-  @Transform(({ value }) => (value !== undefined && value !== '' && value !== null ? Number(value) : 1))
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' && value !== null ? Number(value) : 1,
+  )
   @IsNumber()
   @IsOptional()
   minOrderQty?: number = 1;
@@ -252,7 +282,9 @@ export class CreateProductDto {
       }
     }
     if (Array.isArray(parsed)) {
-      return parsed.map((item) => plainToInstance(ProductSpecificationDto, item));
+      return parsed.map((item) =>
+        plainToInstance(ProductSpecificationDto, item),
+      );
     }
     return parsed;
   })

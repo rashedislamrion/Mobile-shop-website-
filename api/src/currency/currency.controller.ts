@@ -21,31 +21,46 @@ export class CurrencyController {
   constructor(private readonly currencyService: CurrencyService) {}
 
   @Get()
-  @RequirePermission({ module: ModuleName.BUSINESS_SETTINGS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.BUSINESS_SETTINGS,
+    action: PermissionAction.READ,
+  })
   findAll() {
     return this.currencyService.findAll();
   }
 
   @Get(':id')
-  @RequirePermission({ module: ModuleName.BUSINESS_SETTINGS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.BUSINESS_SETTINGS,
+    action: PermissionAction.READ,
+  })
   findOne(@Param('id') id: string) {
     return this.currencyService.findOne(id);
   }
 
   @Post()
-  @RequirePermission({ module: ModuleName.BUSINESS_SETTINGS, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.BUSINESS_SETTINGS,
+    action: PermissionAction.CREATE,
+  })
   create(@Body() createDto: CreateCurrencyDto) {
     return this.currencyService.create(createDto);
   }
 
   @Patch(':id')
-  @RequirePermission({ module: ModuleName.BUSINESS_SETTINGS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.BUSINESS_SETTINGS,
+    action: PermissionAction.UPDATE,
+  })
   update(@Param('id') id: string, @Body() updateDto: UpdateCurrencyDto) {
     return this.currencyService.update(id, updateDto);
   }
 
   @Delete(':id')
-  @RequirePermission({ module: ModuleName.BUSINESS_SETTINGS, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.BUSINESS_SETTINGS,
+    action: PermissionAction.DELETE,
+  })
   remove(@Param('id') id: string) {
     return this.currencyService.remove(id);
   }

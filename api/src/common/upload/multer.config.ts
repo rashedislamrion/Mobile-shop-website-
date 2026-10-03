@@ -14,6 +14,15 @@ const ALLOWED_MIME_TYPES = [
   'image/svg+xml',
   'application/pdf',
 ];
+const ALLOWED_EXTENSIONS = [
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+  '.gif',
+  '.svg',
+  '.pdf',
+];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export function getUploadRoot(): string {
@@ -21,10 +30,13 @@ export function getUploadRoot(): string {
 }
 
 export function createMulterConfig(subfolder: string): MulterOptions {
+  // Prevent directory traversal: sanitize subfolder to alphanumeric, dash, and underscore
+  const safeSubfolder = subfolder.replace(/[^a-zA-Z0-9_-]/g, '');
+
   return {
     storage: diskStorage({
       destination: (req, file, callback) => {
-        const uploadDir = join(getUploadRoot(), subfolder);
+        const uploadDir = join(getUploadRoot(), safeSubfolder);
         if (!fs.existsSync(uploadDir)) {
           fs.mkdirSync(uploadDir, { recursive: true });
         }
@@ -32,20 +44,33 @@ export function createMulterConfig(subfolder: string): MulterOptions {
       },
       filename: (req, file, callback) => {
         const fileExt = extname(file.originalname).toLowerCase();
+        if (!ALLOWED_EXTENSIONS.includes(fileExt)) {
+          return callback(
+            new BadRequestException(
+              `Disallowed file extension "${fileExt}". Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`,
+            ),
+            '',
+          );
+        }
         const baseName = file.originalname
           .replace(fileExt, '')
           .toLowerCase()
-          .replace(/[^a-z0-9]/g, '-');
+          .replace(/[^a-z0-9]/g, '-')
+          .slice(0, 50); // Prevent excessively long filenames
         const uniqueId = crypto.randomUUID();
         const safeFilename = `${uniqueId}-${baseName}${fileExt}`;
         callback(null, safeFilename);
       },
     }),
     fileFilter: (req, file, callback) => {
-      if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      const fileExt = extname(file.originalname).toLowerCase();
+      if (
+        !ALLOWED_MIME_TYPES.includes(file.mimetype) ||
+        !ALLOWED_EXTENSIONS.includes(fileExt)
+      ) {
         return callback(
           new BadRequestException(
-            `Invalid file type: ${file.mimetype}. Allowed types: jpg, jpeg, png, webp, gif, svg, pdf`,
+            `Invalid file: ${file.mimetype} with extension ${fileExt}. Allowed extensions: ${ALLOWED_EXTENSIONS.join(', ')}`,
           ),
           false,
         );

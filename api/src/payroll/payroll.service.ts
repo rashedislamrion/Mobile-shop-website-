@@ -5,7 +5,12 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RunPayrollDto, MarkPaidDto } from './dto/payroll.dto';
-import { PayrollStatus, Prisma, StaffStatus, WalletTxnType } from '@prisma/client';
+import {
+  PayrollStatus,
+  Prisma,
+  StaffStatus,
+  WalletTxnType,
+} from '@prisma/client';
 
 @Injectable()
 export class PayrollService {
@@ -144,7 +149,8 @@ export class PayrollService {
       },
     });
 
-    if (!payroll) throw new NotFoundException(`Payroll record "${id}" not found.`);
+    if (!payroll)
+      throw new NotFoundException(`Payroll record "${id}" not found.`);
     return payroll;
   }
 
@@ -212,7 +218,9 @@ export class PayrollService {
             staffId: staff.id,
             month: monthDate,
             basicSalary,
-            allowances: staff.allowances ? (staff.allowances as any) : undefined,
+            allowances: staff.allowances
+              ? (staff.allowances as any)
+              : undefined,
             netSalary,
             status: PayrollStatus.PENDING,
             paymentMethod: staff.paymentMethod,
@@ -247,9 +255,12 @@ export class PayrollService {
       include: { staff: true },
     });
 
-    if (!payroll) throw new NotFoundException(`Payroll record "${id}" not found.`);
+    if (!payroll)
+      throw new NotFoundException(`Payroll record "${id}" not found.`);
     if (payroll.status === PayrollStatus.PAID) {
-      throw new BadRequestException('This payroll record has already been marked as PAID.');
+      throw new BadRequestException(
+        'This payroll record has already been marked as PAID.',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -259,7 +270,8 @@ export class PayrollService {
         const wallet = await tx.walletType.findUnique({
           where: { id: dto.walletTypeId },
         });
-        if (!wallet) throw new NotFoundException('Designated payment wallet not found.');
+        if (!wallet)
+          throw new NotFoundException('Designated payment wallet not found.');
 
         const netSalary = Number(payroll.netSalary);
         const currentBal = Number(wallet.currentBalance);
@@ -281,9 +293,10 @@ export class PayrollService {
         let runningBal = currentBal;
 
         const basicSalary = Number(payroll.basicSalary || 0);
-        const allowancesObj = payroll.allowances && typeof payroll.allowances === 'object'
-          ? (payroll.allowances as Record<string, number>)
-          : {};
+        const allowancesObj =
+          payroll.allowances && typeof payroll.allowances === 'object'
+            ? (payroll.allowances as Record<string, number>)
+            : {};
 
         const hasAllowances = Object.keys(allowancesObj).length > 0;
 
@@ -298,7 +311,9 @@ export class PayrollService {
               staffId: payroll.staffId,
               amount: salaryAmount,
               referenceNo: `PAY-SAL-${payroll.id.slice(-6).toUpperCase()}-${Date.now()}`,
-              note: dto.note || `Salary payment for ${payroll.staff.name} (${payroll.staff.employeeId}) for ${monthStr}`,
+              note:
+                dto.note ||
+                `Salary payment for ${payroll.staff.name} (${payroll.staff.employeeId}) for ${monthStr}`,
               recordedById,
               balanceAfter: runningBal,
             },

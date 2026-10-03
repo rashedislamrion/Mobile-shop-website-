@@ -52,7 +52,13 @@ export class BranchService {
           select: { id: true, name: true, email: true, phone: true },
         },
         staff: {
-          select: { id: true, name: true, email: true, phone: true, role: true },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            role: true,
+          },
         },
         _count: {
           select: { staff: true, orders: true },
@@ -82,9 +88,12 @@ export class BranchService {
           managerId: dto.managerId || null,
           status: dto.status || StaffStatus.ACTIVE,
           operatingHours: dto.operatingHours || null,
-          openingStockValue: dto.openingStockValue ? new Prisma.Decimal(dto.openingStockValue) : new Prisma.Decimal(0),
+          openingStockValue: dto.openingStockValue
+            ? new Prisma.Decimal(dto.openingStockValue)
+            : new Prisma.Decimal(0),
           taxRegNumber: dto.taxRegNumber || null,
-          showInFooter: dto.showInFooter !== undefined ? dto.showInFooter : true,
+          showInFooter:
+            dto.showInFooter !== undefined ? dto.showInFooter : true,
         },
         include: {
           manager: {
@@ -93,8 +102,13 @@ export class BranchService {
         },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException(`Branch code "${dto.code}" already exists.`);
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          `Branch code "${dto.code}" already exists.`,
+        );
       }
       throw error;
     }
@@ -113,14 +127,18 @@ export class BranchService {
     if (dto.altPhone !== undefined) data.altPhone = dto.altPhone || null;
     if (dto.email !== undefined) data.email = dto.email || null;
     if (dto.managerId !== undefined) {
-      data.manager = dto.managerId ? { connect: { id: dto.managerId } } : { disconnect: true };
+      data.manager = dto.managerId
+        ? { connect: { id: dto.managerId } }
+        : { disconnect: true };
     }
     if (dto.status !== undefined) data.status = dto.status;
-    if (dto.operatingHours !== undefined) data.operatingHours = dto.operatingHours || null;
+    if (dto.operatingHours !== undefined)
+      data.operatingHours = dto.operatingHours || null;
     if (dto.openingStockValue !== undefined) {
       data.openingStockValue = new Prisma.Decimal(dto.openingStockValue);
     }
-    if (dto.taxRegNumber !== undefined) data.taxRegNumber = dto.taxRegNumber || null;
+    if (dto.taxRegNumber !== undefined)
+      data.taxRegNumber = dto.taxRegNumber || null;
     if (dto.showInFooter !== undefined) data.showInFooter = dto.showInFooter;
 
     try {
@@ -134,7 +152,10 @@ export class BranchService {
         },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
         throw new ConflictException(`Branch code already exists.`);
       }
       throw error;

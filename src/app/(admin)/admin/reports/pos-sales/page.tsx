@@ -79,10 +79,11 @@ export default function PosSalesReportPage() {
   useEffect(() => {
     Promise.all([
       apiGet<any[]>("/branches").catch(() => []),
-      apiGet<any[]>("/staff").catch(() => []),
+      apiGet<{ data: any[] } | any[]>("/employees").catch(() => []),
     ]).then(([branchesRes, staffRes]) => {
       if (Array.isArray(branchesRes)) setBranches(branchesRes);
-      if (Array.isArray(staffRes)) setStaffList(staffRes);
+      const list = Array.isArray(staffRes) ? staffRes : (staffRes as any)?.data || [];
+      setStaffList(list);
     });
   }, []);
 

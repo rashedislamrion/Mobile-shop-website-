@@ -19,11 +19,19 @@ import { ModuleName, PermissionAction, PhoneUnitStatus } from '@prisma/client';
 export class PhoneUnitController {
   constructor(private readonly phoneUnitService: PhoneUnitService) {}
 
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.READ,
+  })
   @Get('check-imei')
   checkImei(@Query('imei') imei: string) {
     return this.phoneUnitService.checkImei(imei);
   }
 
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.READ,
+  })
   @Get('available')
   getAvailable(
     @Query('variantId') variantId: string,
@@ -32,7 +40,10 @@ export class PhoneUnitController {
     return this.phoneUnitService.getAvailableUnits(variantId, branchId);
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.READ,
+  })
   @Get()
   findAll(
     @Query('branchId') branchId?: string,
@@ -52,13 +63,19 @@ export class PhoneUnitController {
     });
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.READ,
+  })
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.phoneUnitService.findOne(id);
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.CREATE,
+  })
   @Post()
   create(@Body() dto: CreatePhoneUnitDto) {
     return this.phoneUnitService.create(dto);

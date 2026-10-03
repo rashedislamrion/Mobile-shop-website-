@@ -124,14 +124,18 @@ export class WastedProductService {
     });
 
     if (!product) {
-      throw new NotFoundException(`Product with ID "${dto.productId}" not found`);
+      throw new NotFoundException(
+        `Product with ID "${dto.productId}" not found`,
+      );
     }
 
     let targetVariant: any = null;
     if (dto.variantId) {
       targetVariant = product.variants.find((v) => v.id === dto.variantId);
       if (!targetVariant) {
-        throw new NotFoundException(`Product variant with ID "${dto.variantId}" not found`);
+        throw new NotFoundException(
+          `Product variant with ID "${dto.variantId}" not found`,
+        );
       }
     } else if (product.variants.length === 1) {
       targetVariant = product.variants[0];
@@ -158,7 +162,10 @@ export class WastedProductService {
         data: {
           productId: dto.productId,
           variantId: targetVariant ? targetVariant.id : dto.variantId || null,
-          branchId: dto.branchId && dto.branchId !== 'null' && dto.branchId !== '' ? dto.branchId : null,
+          branchId:
+            dto.branchId && dto.branchId !== 'null' && dto.branchId !== ''
+              ? dto.branchId
+              : null,
           quantity: dto.quantity,
           reason: dto.reason.toUpperCase(),
           note: dto.note || null,
@@ -214,7 +221,8 @@ export class WastedProductService {
     const data: Prisma.WastedProductUpdateInput = {};
     if (dto.reason !== undefined) data.reason = dto.reason.toUpperCase();
     if (dto.note !== undefined) data.note = dto.note || null;
-    if (dto.costImpact !== undefined) data.costImpact = new Prisma.Decimal(dto.costImpact);
+    if (dto.costImpact !== undefined)
+      data.costImpact = new Prisma.Decimal(dto.costImpact);
 
     return this.prisma.wastedProduct.update({
       where: { id },

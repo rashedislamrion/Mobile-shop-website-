@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { User } from "lucide-react";
+import { BACKEND_URL } from "@/lib/api-client";
 
 interface CustomerAvatarProps {
   photo?: string | null;
@@ -57,7 +58,7 @@ export function CustomerAvatar({
   const resolvedPhoto = photo
     ? photo.startsWith("http")
       ? photo
-      : `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000"}${photo.startsWith("/") ? "" : "/"}${photo}`
+      : `${BACKEND_URL}${photo.startsWith("/") ? "" : "/"}${photo}`
     : null;
 
   if (resolvedPhoto) {

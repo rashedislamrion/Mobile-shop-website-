@@ -24,7 +24,10 @@ export class CountryController {
 
   @Public()
   @Get()
-  findAll(@Query('status') status?: StaffStatus, @Query('search') search?: string) {
+  findAll(
+    @Query('status') status?: StaffStatus,
+    @Query('search') search?: string,
+  ) {
     return this.countryService.findAll({ status, search });
   }
 
@@ -35,19 +38,28 @@ export class CountryController {
   }
 
   @Post()
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.CREATE,
+  })
   create(@Body() createDto: CreateCountryDto) {
     return this.countryService.create(createDto);
   }
 
   @Patch(':id')
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.UPDATE,
+  })
   update(@Param('id') id: string, @Body() updateDto: UpdateCountryDto) {
     return this.countryService.update(id, updateDto);
   }
 
   @Delete(':id')
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.DELETE,
+  })
   remove(@Param('id') id: string) {
     return this.countryService.remove(id);
   }

@@ -22,7 +22,10 @@ export class HelpNoteController {
   constructor(private readonly helpNoteService: HelpNoteService) {}
 
   @Get()
-  @RequirePermission({ module: ModuleName.HELP_NOTES, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.HELP_NOTES,
+    action: PermissionAction.READ,
+  })
   findAll(
     @Query('search') search?: string,
     @Query('page') page?: number,
@@ -32,25 +35,37 @@ export class HelpNoteController {
   }
 
   @Get(':id')
-  @RequirePermission({ module: ModuleName.HELP_NOTES, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.HELP_NOTES,
+    action: PermissionAction.READ,
+  })
   findOne(@Param('id') id: string) {
     return this.helpNoteService.findOne(id);
   }
 
   @Post()
-  @RequirePermission({ module: ModuleName.HELP_NOTES, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.HELP_NOTES,
+    action: PermissionAction.CREATE,
+  })
   create(@Body() createDto: CreateHelpNoteDto) {
     return this.helpNoteService.create(createDto);
   }
 
   @Patch(':id')
-  @RequirePermission({ module: ModuleName.HELP_NOTES, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.HELP_NOTES,
+    action: PermissionAction.UPDATE,
+  })
   update(@Param('id') id: string, @Body() updateDto: UpdateHelpNoteDto) {
     return this.helpNoteService.update(id, updateDto);
   }
 
   @Delete(':id')
-  @RequirePermission({ module: ModuleName.HELP_NOTES, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.HELP_NOTES,
+    action: PermissionAction.DELETE,
+  })
   remove(@Param('id') id: string) {
     return this.helpNoteService.remove(id);
   }

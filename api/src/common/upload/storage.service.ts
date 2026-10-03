@@ -1,5 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 import * as fs from 'fs';
 
 @Injectable()
@@ -30,14 +34,20 @@ export class StorageService {
           },
         });
         this.bucketName = bucketName;
-        this.publicUrl = (process.env.R2_PUBLIC_URL || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
-        this.logger.log(`Cloudflare R2 storage initialized for bucket: ${bucketName}`);
+        this.publicUrl = (process.env.R2_PUBLIC_URL || '')
+          .replace(/^https?:\/\//, '')
+          .replace(/\/$/, '');
+        this.logger.log(
+          `Cloudflare R2 storage initialized for bucket: ${bucketName}`,
+        );
       } catch (err: any) {
         this.logger.error(`Failed to initialize Cloudflare R2: ${err.message}`);
         this.s3Client = null;
       }
     } else {
-      this.logger.log('Cloudflare R2 credentials not configured. Using local disk storage (/uploads).');
+      this.logger.log(
+        'Cloudflare R2 credentials not configured. Using local disk storage (/uploads).',
+      );
     }
   }
 
@@ -49,7 +59,10 @@ export class StorageService {
    * Uploads a file to Cloudflare R2 (or retains local disk path if R2 is not configured)
    * Returns the public URL to store in the database.
    */
-  async uploadFile(file: Express.Multer.File, subfolder: string): Promise<string> {
+  async uploadFile(
+    file: Express.Multer.File,
+    subfolder: string,
+  ): Promise<string> {
     if (!file) {
       throw new Error('No file provided for upload');
     }
@@ -97,7 +110,9 @@ export class StorageService {
       this.logger.log(`Uploaded to Cloudflare R2: ${finalUrl}`);
       return finalUrl;
     } catch (err: any) {
-      this.logger.error(`Cloudflare R2 upload failed for ${file.filename}: ${err.message}. Falling back to local.`);
+      this.logger.error(
+        `Cloudflare R2 upload failed for ${file.filename}: ${err.message}. Falling back to local.`,
+      );
       return localUrl;
     }
   }
@@ -105,7 +120,10 @@ export class StorageService {
   /**
    * Batch uploads multiple files to R2 or returns local URLs.
    */
-  async uploadFiles(files: Express.Multer.File[], subfolder: string): Promise<string[]> {
+  async uploadFiles(
+    files: Express.Multer.File[],
+    subfolder: string,
+  ): Promise<string[]> {
     if (!files || files.length === 0) return [];
     return Promise.all(files.map((file) => this.uploadFile(file, subfolder)));
   }
@@ -116,7 +134,10 @@ export class StorageService {
   async deleteFile(fileUrl: string): Promise<void> {
     if (!fileUrl) return;
 
-    if (this.isR2Configured() && (fileUrl.startsWith('http://') || fileUrl.startsWith('https://'))) {
+    if (
+      this.isR2Configured() &&
+      (fileUrl.startsWith('http://') || fileUrl.startsWith('https://'))
+    ) {
       try {
         const urlObj = new URL(fileUrl);
         const key = urlObj.pathname.replace(/^\//, '');
@@ -128,7 +149,9 @@ export class StorageService {
         );
         this.logger.log(`Deleted from Cloudflare R2: ${key}`);
       } catch (err: any) {
-        this.logger.warn(`Failed to delete object from R2 (${fileUrl}): ${err.message}`);
+        this.logger.warn(
+          `Failed to delete object from R2 (${fileUrl}): ${err.message}`,
+        );
       }
     }
   }

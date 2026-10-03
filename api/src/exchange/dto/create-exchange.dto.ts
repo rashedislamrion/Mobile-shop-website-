@@ -18,7 +18,9 @@ export class CreateExchangeDto {
   @IsOptional()
   newVariantId?: string;
 
-  @Transform(({ value }) => (value !== undefined && value !== '' ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : undefined,
+  )
   @IsNumber()
   @IsOptional()
   priceDifference?: number;

@@ -21,16 +21,22 @@ export class DeliveryChargeService {
   }
 
   async findOne(id: string) {
-    const tier = await this.prisma.deliveryChargeTier.findUnique({ where: { id } });
+    const tier = await this.prisma.deliveryChargeTier.findUnique({
+      where: { id },
+    });
     if (!tier) {
-      throw new NotFoundException(`Delivery charge tier with ID ${id} not found`);
+      throw new NotFoundException(
+        `Delivery charge tier with ID ${id} not found`,
+      );
     }
     return tier;
   }
 
   private async checkOverlap(min: number, max: number, excludeId?: string) {
     if (min >= max) {
-      throw new BadRequestException('Minimum order quantity must be strictly less than maximum order quantity');
+      throw new BadRequestException(
+        'Minimum order quantity must be strictly less than maximum order quantity',
+      );
     }
 
     const existingTiers = await this.prisma.deliveryChargeTier.findMany({
@@ -62,16 +68,22 @@ export class DeliveryChargeService {
 
   async update(id: string, dto: UpdateDeliveryChargeTierDto) {
     const existing = await this.findOne(id);
-    const min = dto.minOrderQty !== undefined ? dto.minOrderQty : existing.minOrderQty;
-    const max = dto.maxOrderQty !== undefined ? dto.maxOrderQty : existing.maxOrderQty;
+    const min =
+      dto.minOrderQty !== undefined ? dto.minOrderQty : existing.minOrderQty;
+    const max =
+      dto.maxOrderQty !== undefined ? dto.maxOrderQty : existing.maxOrderQty;
 
     await this.checkOverlap(min, max, id);
 
     return this.prisma.deliveryChargeTier.update({
       where: { id },
       data: {
-        ...(dto.minOrderQty !== undefined ? { minOrderQty: dto.minOrderQty } : {}),
-        ...(dto.maxOrderQty !== undefined ? { maxOrderQty: dto.maxOrderQty } : {}),
+        ...(dto.minOrderQty !== undefined
+          ? { minOrderQty: dto.minOrderQty }
+          : {}),
+        ...(dto.maxOrderQty !== undefined
+          ? { maxOrderQty: dto.maxOrderQty }
+          : {}),
         ...(dto.charge !== undefined ? { charge: dto.charge } : {}),
       },
     });

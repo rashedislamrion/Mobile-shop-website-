@@ -150,6 +150,15 @@ export function AdminSidebar() {
   };
 
   const isTechnician = roleName.includes("technician");
+  const isBranchRole = roleName.includes("branch admin") || roleName.includes("branch manager");
+
+  const filterItemForRole = (item: NavItem): boolean => {
+    // Product Requests is visible ONLY to Branch Admin / Branch Manager
+    if (item.href === "/admin/branch/product-requests") {
+      return isBranchRole;
+    }
+    return true;
+  };
 
   const technicianNavConfig = [
     {
@@ -169,9 +178,9 @@ export function AdminSidebar() {
         },
         {
           label: "Servicing Report",
-          href: "/admin/reports/service-sales",
+          href: "/admin/technician/servicing-report",
           icon: PieChart,
-          module: "REPORT",
+          module: "SALES",
         },
       ],
     },
@@ -180,12 +189,15 @@ export function AdminSidebar() {
   const visibleNavConfig = isTechnician
     ? technicianNavConfig
     : !isRestrictedStaff
-    ? adminNavConfig
+    ? adminNavConfig.map((group) => ({
+        ...group,
+        items: group.items.filter((item) => filterItemForRole(item)),
+      })).filter((group) => group.items.length > 0)
     : adminNavConfig
         .map((group) => ({
           ...group,
           items: group.items
-            .filter(isItemVisible)
+            .filter((item) => filterItemForRole(item) && isItemVisible(item))
             .map((item) => {
               if (item.children) {
                 return {
@@ -209,7 +221,7 @@ export function AdminSidebar() {
             <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-white">
               <Image src="/images/logo-icon.jpeg" alt="Logo" width={32} height={32} className="rounded-full" />
             </div>
-            <span className="font-bold text-slate-800 whitespace-nowrap text-lg">MobileHubBD ERP</span>
+            <span className="font-bold text-slate-800 whitespace-nowrap text-lg">Mobile Hub BD</span>
           </div>
         )}
         {isSidebarCollapsed && (

@@ -22,7 +22,8 @@ import {
   AlertCircle,
   Building2,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Store
 } from "lucide-react";
 import { useAdminPage } from "@/contexts/AdminPageContext";
 import { useStaffAuth } from "@/context/AuthContext";
@@ -30,6 +31,7 @@ import { apiGet, apiPost } from "@/lib/api-client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -81,7 +83,10 @@ interface MaterialRow {
   id: string;
   partName: string;
   productId?: string;
+  sourceType: "OWN_STOCK" | "SUPPLIER" | "OTHER";
   supplierId: string;
+  sourcedFromName?: string;
+  sourceNote?: string;
   cost: number;
   quantity: number;
   total: number;
@@ -141,7 +146,10 @@ export default function CreateServicingJobPage() {
       id: "mat-1",
       partName: "",
       productId: "",
+      sourceType: "OWN_STOCK",
       supplierId: "",
+      sourcedFromName: "",
+      sourceNote: "",
       cost: 0,
       quantity: 1,
       total: 0,
@@ -316,7 +324,10 @@ export default function CreateServicingJobPage() {
         id: `mat-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
         partName: "",
         productId: "",
-        supplierId: suppliers[0]?.id || "",
+        sourceType: "OWN_STOCK",
+        supplierId: "",
+        sourcedFromName: "",
+        sourceNote: "",
         cost: 0,
         quantity: 1,
         total: 0,
@@ -339,6 +350,23 @@ export default function CreateServicingJobPage() {
             updated.partName = prod.name;
             const unitCost = Number(prod.purchasePrice) || Number(prod.sellingPrice) || 0;
             updated.cost = unitCost;
+          }
+        }
+        if (field === "sourceType") {
+          if (value === "SUPPLIER") {
+            if (!updated.supplierId && suppliers.length > 0) {
+              updated.supplierId = suppliers[0].id;
+            }
+            updated.sourcedFromName = "";
+            updated.sourceNote = "";
+          }
+          if (value === "OWN_STOCK") {
+            updated.supplierId = "";
+            updated.sourcedFromName = "";
+            updated.sourceNote = "";
+          }
+          if (value === "OTHER") {
+            updated.supplierId = "";
           }
         }
         if (field === "cost" || field === "quantity" || field === "productId") {
@@ -462,7 +490,7 @@ export default function CreateServicingJobPage() {
       return;
     }
 
-    // Validate materials: each must have a part name and supplier
+    // Validate materials: each must have a part name, and conditional requirements based on sourceType
     for (let i = 0; i < materials.length; i++) {
       const mat = materials[i];
       if (mat.cost > 0 || mat.partName.trim()) {
@@ -470,8 +498,12 @@ export default function CreateServicingJobPage() {
           toast.error(`Part name is required for Material Row #${i + 1}.`);
           return;
         }
-        if (!mat.supplierId) {
-          toast.error(`Supplier is required for Material Row #${i + 1} (${mat.partName}).`);
+        if (mat.sourceType === "SUPPLIER" && !mat.supplierId) {
+          toast.error(`Please select a registered supplier for Material Row #${i + 1} (${mat.partName}).`);
+          return;
+        }
+        if (mat.sourceType === "OTHER" && !mat.sourcedFromName?.trim()) {
+          toast.error(`Please provide the sourced vendor/person name for Material Row #${i + 1} (${mat.partName}).`);
           return;
         }
       }
@@ -496,7 +528,10 @@ export default function CreateServicingJobPage() {
         .map((m) => ({
           partName: m.partName.trim(),
           productId: m.productId || undefined,
-          supplierId: m.supplierId,
+          sourceType: m.sourceType || "OWN_STOCK",
+          supplierId: m.sourceType === "SUPPLIER" ? m.supplierId : undefined,
+          sourcedFromName: m.sourceType === "OTHER" ? (m.sourcedFromName?.trim() || undefined) : undefined,
+          sourceNote: m.sourceType === "OTHER" ? (m.sourceNote?.trim() || m.sourcedFromName?.trim() || undefined) : undefined,
           cost: Number(m.cost) || 0,
           quantity: Number(m.quantity) || 1,
           total: Number(m.total) || 0,
@@ -916,105 +951,201 @@ export default function CreateServicingJobPage() {
                 {materials.map((row, idx) => (
                   <div
                     key={row.id}
-                    className="p-3 bg-slate-50 rounded-lg border border-slate-200 grid grid-cols-1 md:grid-cols-12 gap-2.5 items-end"
+                    className={`p-3 rounded-lg border transition-all ${
+                      row.sourceType === "OTHER"
+                        ? "bg-amber-50/20 border-amber-300 shadow-xs"
+                        : "bg-slate-50 border-slate-200"
+                    }`}
                   >
-                    {/* Part Name / Catalog Picker (5 cols) */}
-                    <div className="md:col-span-4">
-                      <Label className="text-[11px] font-semibold text-slate-600 mb-1 flex items-center justify-between">
-                        <span>Part / Material Name *</span>
-                        {catalogProducts.length > 0 && (
-                          <span className="text-[10px] text-emerald-600 font-normal">Free text or select:</span>
-                        )}
-                      </Label>
-                      <div className="space-y-1">
-                        <Input
-                          placeholder="e.g. OLED Display Panel"
-                          value={row.partName}
-                          onChange={(e) => handleUpdateMaterialRow(row.id, "partName", e.target.value)}
-                          className="h-8 text-xs bg-white font-medium"
-                        />
-                        {catalogProducts.length > 0 && (
-                          <select
-                            value={row.productId || ""}
-                            onChange={(e) => handleUpdateMaterialRow(row.id, "productId", e.target.value)}
-                            className="w-full h-7 text-[11px] rounded border border-slate-300 bg-white px-2 text-slate-700"
-                          >
-                            <option value="">Or Pick from Spare-Parts Catalog...</option>
-                            {catalogProducts.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.name} (৳{Number(p.purchasePrice || p.sellingPrice || 0)})
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Sourced Supplier (3 cols) - Client Requested Feature */}
-                    <div className="md:col-span-3">
-                      <Label className="text-[11px] font-semibold text-slate-600 mb-1">
-                        Sourced Supplier * <span className="text-emerald-600 font-bold">(Main Source)</span>
-                      </Label>
-                      <select
-                        value={row.supplierId}
-                        onChange={(e) => handleUpdateMaterialRow(row.id, "supplierId", e.target.value)}
-                        className="w-full h-8 text-xs rounded-md border border-slate-300 bg-white px-2 text-slate-800 focus:ring-emerald-500 font-medium"
-                        required
-                      >
-                        <option value="">Select Supplier...</option>
-                        {suppliers.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name || s.companyName}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Unit Cost (2 cols) */}
-                    <div className="md:col-span-2">
-                      <Label className="text-[11px] font-semibold text-slate-600 mb-1">Unit Cost (৳) *</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        placeholder="0"
-                        value={row.cost === 0 ? "" : row.cost}
-                        onChange={(e) => handleUpdateMaterialRow(row.id, "cost", e.target.value)}
-                        className="h-8 text-xs bg-white font-mono font-bold"
-                      />
-                    </div>
-
-                    {/* Quantity (1 col) */}
-                    <div className="md:col-span-1">
-                      <Label className="text-[11px] font-semibold text-slate-600 mb-1">Qty</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={row.quantity}
-                        onChange={(e) => handleUpdateMaterialRow(row.id, "quantity", e.target.value)}
-                        className="h-8 text-xs bg-white text-center font-bold"
-                      />
-                    </div>
-
-                    {/* Total & Action (2 cols) */}
-                    <div className="md:col-span-2 flex items-center justify-between gap-1">
-                      <div>
-                        <Label className="text-[11px] font-semibold text-slate-600 mb-1">Total</Label>
-                        <div className="text-xs font-mono font-bold text-slate-800 py-1">
-                          ৳{Number(row.total || 0).toLocaleString()}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-end">
+                      {/* Part Name / Catalog Picker (3 cols) */}
+                      <div className="md:col-span-3">
+                        <Label className="text-[11px] font-semibold text-slate-600 mb-1 flex items-center justify-between">
+                          <span>Part / Material Name *</span>
+                          {catalogProducts.length > 0 && (
+                            <span className="text-[10px] text-emerald-600 font-normal">Catalog:</span>
+                          )}
+                        </Label>
+                        <div className="space-y-1">
+                          <Input
+                            placeholder="e.g. OLED Display Panel"
+                            value={row.partName}
+                            onChange={(e) => handleUpdateMaterialRow(row.id, "partName", e.target.value)}
+                            className="h-8 text-xs bg-white font-medium"
+                          />
+                          {catalogProducts.length > 0 && (
+                            <select
+                              value={row.productId || ""}
+                              onChange={(e) => handleUpdateMaterialRow(row.id, "productId", e.target.value)}
+                              className="w-full h-7 text-[11px] rounded border border-slate-300 bg-white px-2 text-slate-700"
+                            >
+                              <option value="">Or Pick from Spare-Parts Catalog...</option>
+                              {catalogProducts.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name} (৳{Number(p.purchasePrice || p.sellingPrice || 0)})
+                                </option>
+                              ))}
+                            </select>
+                          )}
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        disabled={materials.length <= 1}
-                        onClick={() => handleRemoveMaterialRow(row.id)}
-                        className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600"
-                        title="Delete material row"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+
+                      {/* Source Type Selector (2 cols) */}
+                      <div className="md:col-span-2">
+                        <Label className="text-[11px] font-semibold text-slate-600 mb-1 block">
+                          Source Type *
+                        </Label>
+                        <select
+                          value={row.sourceType}
+                          onChange={(e) => handleUpdateMaterialRow(row.id, "sourceType", e.target.value)}
+                          className={`w-full h-8 text-xs rounded-md border bg-white px-2 font-medium ${
+                            row.sourceType === "OTHER"
+                              ? "border-amber-400 focus:ring-amber-500 font-semibold text-amber-900"
+                              : "border-slate-300 focus:ring-emerald-500 text-slate-800"
+                          }`}
+                        >
+                          <option value="OWN_STOCK">From Own Stock</option>
+                          <option value="SUPPLIER">From Supplier</option>
+                          <option value="OTHER">Sourced From Outside</option>
+                        </select>
+                      </div>
+
+                      {/* Sourcing Details (Supplier or Note or Own Stock Tag) (3 cols) */}
+                      <div className="md:col-span-3">
+                        {row.sourceType === "SUPPLIER" ? (
+                          <div>
+                            <Label className="text-[11px] font-semibold text-emerald-700 mb-1 flex items-center justify-between">
+                              <span>Sourced Supplier *</span>
+                              <span className="text-[10px] text-emerald-600 font-normal">Registered</span>
+                            </Label>
+                            <select
+                              value={row.supplierId}
+                              onChange={(e) => handleUpdateMaterialRow(row.id, "supplierId", e.target.value)}
+                              className="w-full h-8 text-xs rounded-md border border-emerald-300 bg-white px-2 text-slate-800 focus:ring-emerald-500 font-medium"
+                              required
+                            >
+                              <option value="">Select Supplier...</option>
+                              {suppliers.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                  {s.name || s.companyName}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : row.sourceType === "OTHER" ? (
+                          <div>
+                            <Label className="text-[11px] font-semibold text-amber-800 mb-1 block">
+                              Sourcing Source
+                            </Label>
+                            <div className="h-8 flex items-center px-2.5 rounded-md bg-amber-50 border border-amber-300 text-[11px] text-amber-900 font-medium">
+                              <Store className="w-3.5 h-3.5 mr-1.5 text-amber-700 flex-shrink-0" />
+                              <span className="truncate font-semibold">Outside / Ad-hoc Vendor</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <Label className="text-[11px] font-semibold text-slate-500 mb-1 block">
+                              Sourcing Source
+                            </Label>
+                            <div className="h-8 flex items-center px-2.5 rounded-md bg-emerald-50/70 border border-emerald-200 text-[11px] text-emerald-800 font-medium">
+                              <span className="truncate">In-House Inventory</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Unit Cost (2 cols) */}
+                      <div className="md:col-span-2">
+                        <Label className="text-[11px] font-semibold text-slate-600 mb-1">Unit Cost (৳) *</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          value={row.cost === 0 ? "" : row.cost}
+                          onChange={(e) => handleUpdateMaterialRow(row.id, "cost", e.target.value)}
+                          className="h-8 text-xs bg-white font-mono font-bold"
+                        />
+                      </div>
+
+                      {/* Quantity (1 col) */}
+                      <div className="md:col-span-1">
+                        <Label className="text-[11px] font-semibold text-slate-600 mb-1">Qty</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={row.quantity}
+                          onChange={(e) => handleUpdateMaterialRow(row.id, "quantity", e.target.value)}
+                          className="h-8 text-xs bg-white text-center font-bold"
+                        />
+                      </div>
+
+                      {/* Total & Action (1 col) */}
+                      <div className="md:col-span-1 flex items-center justify-between gap-1">
+                        <div>
+                          <Label className="text-[11px] font-semibold text-slate-600 mb-1">Total</Label>
+                          <div className="text-xs font-mono font-bold text-slate-800 py-1">
+                            ৳{Number(row.total || 0).toLocaleString()}
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={materials.length <= 1}
+                          onClick={() => handleRemoveMaterialRow(row.id)}
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600"
+                          title="Delete material row"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
+
+                    {/* Dedicated "Sourced From Outside" Box directly below this row */}
+                    {row.sourceType === "OTHER" && (
+                      <div className="border border-amber-300 bg-amber-50 rounded-lg p-4 mt-2 space-y-3">
+                        <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-amber-200/80">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                            <Store className="w-4 h-4 text-amber-700" />
+                            <span>Sourced From Outside (Vendor & Sourcing Details)</span>
+                          </div>
+                          <span className="text-[10px] text-amber-800 bg-amber-200/60 border border-amber-300 px-2 py-0.5 rounded font-semibold">
+                            Outside Sourcing Details
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                          {/* Sourced From (Vendor/Person Name) - Required */}
+                          <div className="md:col-span-5">
+                            <Label className="text-xs font-bold text-amber-900 mb-1 flex items-center justify-between">
+                              <span>Sourced From (Vendor/Person Name) *</span>
+                              <span className="text-[10px] text-amber-700 font-semibold">(Required)</span>
+                            </Label>
+                            <Input
+                              placeholder="e.g. Anwar Hardware, Elephant Road"
+                              value={row.sourcedFromName || ""}
+                              onChange={(e) => handleUpdateMaterialRow(row.id, "sourcedFromName", e.target.value)}
+                              className="h-8 text-xs bg-white border-amber-300 text-slate-900 focus-visible:ring-amber-500 font-medium placeholder:text-slate-400"
+                              required
+                            />
+                          </div>
+
+                          {/* Note / Description - Optional */}
+                          <div className="md:col-span-7">
+                            <Label className="text-xs font-semibold text-amber-900 mb-1 flex items-center justify-between">
+                              <span>Note / Description (Optional)</span>
+                            </Label>
+                            <Textarea
+                              rows={2}
+                              placeholder="e.g. Bought urgently, no warranty, cash payment"
+                              value={row.sourceNote || ""}
+                              onChange={(e) => handleUpdateMaterialRow(row.id, "sourceNote", e.target.value)}
+                              className="min-h-[34px] h-[34px] text-xs bg-white border-amber-300 text-slate-900 focus-visible:ring-amber-500 font-medium resize-none py-1.5 placeholder:text-slate-400"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

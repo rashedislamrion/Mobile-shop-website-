@@ -37,24 +37,36 @@ export class PageController {
 
   @Get()
   @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.READ })
-  findAll(@Query('status') status?: ContentStatus, @Query('search') search?: string) {
+  findAll(
+    @Query('status') status?: ContentStatus,
+    @Query('search') search?: string,
+  ) {
     return this.pageService.findAll({ status, search });
   }
 
   @Post()
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.CREATE,
+  })
   create(@Body() createDto: CreatePageDto) {
     return this.pageService.create(createDto);
   }
 
   @Patch(':id')
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.UPDATE,
+  })
   update(@Param('id') id: string, @Body() updateDto: UpdatePageDto) {
     return this.pageService.update(id, updateDto);
   }
 
   @Delete(':id')
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.DELETE,
+  })
   remove(@Param('id') id: string) {
     return this.pageService.remove(id);
   }

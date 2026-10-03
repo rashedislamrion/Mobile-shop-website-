@@ -46,7 +46,8 @@ export class HelpNoteService {
 
   async findOne(id: string) {
     const note = await this.prisma.helpNote.findUnique({ where: { id } });
-    if (!note) throw new NotFoundException(`Help note with ID "${id}" not found.`);
+    if (!note)
+      throw new NotFoundException(`Help note with ID "${id}" not found.`);
     return note;
   }
 

@@ -1,4 +1,13 @@
-import { Controller, Post, Body, Get, Req, Res, UseGuards, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Req,
+  Res,
+  UseGuards,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterCustomerDto } from './dto/register-customer.dto';
 import { LoginDto } from './dto/login.dto';
@@ -18,59 +27,87 @@ export class AuthController {
 
   @Public()
   @Post('customer/register')
-  async registerCustomer(@Body() dto: RegisterCustomerDto, @Res({ passthrough: true }) res: Response) {
-    const { accessToken, refreshToken, user, customer } = await this.authService.registerCustomer(dto);
+  async registerCustomer(
+    @Body() dto: RegisterCustomerDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { accessToken, refreshToken, user, customer } =
+      await this.authService.registerCustomer(dto);
     this.setCustomerRefreshTokenCookie(res, refreshToken);
     return { accessToken, user, customer };
   }
 
   @Public()
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('customer/login')
-  async loginCustomer(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const { accessToken, refreshToken, user, customer } = await this.authService.loginCustomer(dto);
+  async loginCustomer(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { accessToken, refreshToken, user, customer } =
+      await this.authService.loginCustomer(dto);
     this.setCustomerRefreshTokenCookie(res, refreshToken);
     return { accessToken, user, customer };
   }
 
   @Public()
-  @Throttle({ default: { limit: 100, ttl: 60000 } })
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('staff/login')
-  async loginStaff(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const { accessToken, refreshToken, user } = await this.authService.loginStaff(dto);
+  async loginStaff(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { accessToken, refreshToken, user } =
+      await this.authService.loginStaff(dto);
     this.setStaffRefreshTokenCookie(res, refreshToken);
     return { accessToken, user };
   }
 
   @Public()
   @Post('customer/refresh')
-  async refreshCustomerTokens(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const token = req.cookies?.['customer_refresh_token'] || req.cookies?.['refresh_token'];
-    if (!token) throw new UnauthorizedException('No customer refresh token provided');
-    const { accessToken, refreshToken } = await this.authService.refreshTokens(token);
+  async refreshCustomerTokens(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const token =
+      req.cookies?.['customer_refresh_token'] || req.cookies?.['refresh_token'];
+    if (!token)
+      throw new UnauthorizedException('No customer refresh token provided');
+    const { accessToken, refreshToken } =
+      await this.authService.refreshTokens(token);
     this.setCustomerRefreshTokenCookie(res, refreshToken);
     return { accessToken };
   }
 
   @Public()
   @Post('staff/refresh')
-  async refreshStaffTokens(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const token = req.cookies?.['staff_refresh_token'] || req.cookies?.['refresh_token'];
-    if (!token) throw new UnauthorizedException('No staff refresh token provided');
-    const { accessToken, refreshToken } = await this.authService.refreshTokens(token);
+  async refreshStaffTokens(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const token =
+      req.cookies?.['staff_refresh_token'] || req.cookies?.['refresh_token'];
+    if (!token)
+      throw new UnauthorizedException('No staff refresh token provided');
+    const { accessToken, refreshToken } =
+      await this.authService.refreshTokens(token);
     this.setStaffRefreshTokenCookie(res, refreshToken);
     return { accessToken };
   }
 
   @Public()
   @Post('refresh')
-  async refreshTokens(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async refreshTokens(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const token =
       req.cookies?.['staff_refresh_token'] ||
       req.cookies?.['customer_refresh_token'] ||
       req.cookies?.['refresh_token'];
     if (!token) throw new UnauthorizedException('No refresh token provided');
-    const { accessToken, refreshToken } = await this.authService.refreshTokens(token);
+    const { accessToken, refreshToken } =
+      await this.authService.refreshTokens(token);
     if (req.cookies?.['staff_refresh_token']) {
       this.setStaffRefreshTokenCookie(res, refreshToken);
     } else {
@@ -80,33 +117,55 @@ export class AuthController {
   }
 
   @Post('customer/logout')
-  async customerLogout(@Req() req: Request, @Res({ passthrough: true }) res: Response, @CurrentUser('sub') userId: string) {
-    const refreshToken = req.cookies?.['customer_refresh_token'] || req.cookies?.['refresh_token'];
+  async customerLogout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+    @CurrentUser('sub') userId: string,
+  ) {
+    const refreshToken =
+      req.cookies?.['customer_refresh_token'] || req.cookies?.['refresh_token'];
     if (refreshToken && userId) {
       await this.authService.logout(refreshToken, userId);
     }
     const isProd = process.env.NODE_ENV === 'production';
-    const clearOpts = { path: '/', secure: isProd, sameSite: isProd ? ('none' as const) : ('lax' as const) };
+    const clearOpts = {
+      path: '/',
+      secure: isProd,
+      sameSite: isProd ? ('none' as const) : ('lax' as const),
+    };
     res.clearCookie('customer_refresh_token', clearOpts);
     res.clearCookie('refresh_token', clearOpts);
     return { success: true };
   }
 
   @Post('staff/logout')
-  async staffLogout(@Req() req: Request, @Res({ passthrough: true }) res: Response, @CurrentUser('sub') userId: string) {
-    const refreshToken = req.cookies?.['staff_refresh_token'] || req.cookies?.['refresh_token'];
+  async staffLogout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+    @CurrentUser('sub') userId: string,
+  ) {
+    const refreshToken =
+      req.cookies?.['staff_refresh_token'] || req.cookies?.['refresh_token'];
     if (refreshToken && userId) {
       await this.authService.logout(refreshToken, userId);
     }
     const isProd = process.env.NODE_ENV === 'production';
-    const clearOpts = { path: '/', secure: isProd, sameSite: isProd ? ('none' as const) : ('lax' as const) };
+    const clearOpts = {
+      path: '/',
+      secure: isProd,
+      sameSite: isProd ? ('none' as const) : ('lax' as const),
+    };
     res.clearCookie('staff_refresh_token', clearOpts);
     res.clearCookie('refresh_token', clearOpts);
     return { success: true };
   }
 
   @Post('logout')
-  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response, @CurrentUser('sub') userId: string) {
+  async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+    @CurrentUser('sub') userId: string,
+  ) {
     const refreshToken =
       req.cookies?.['staff_refresh_token'] ||
       req.cookies?.['customer_refresh_token'] ||
@@ -115,7 +174,11 @@ export class AuthController {
       await this.authService.logout(refreshToken, userId);
     }
     const isProd = process.env.NODE_ENV === 'production';
-    const clearOpts = { path: '/', secure: isProd, sameSite: isProd ? ('none' as const) : ('lax' as const) };
+    const clearOpts = {
+      path: '/',
+      secure: isProd,
+      sameSite: isProd ? ('none' as const) : ('lax' as const),
+    };
     res.clearCookie('customer_refresh_token', clearOpts);
     res.clearCookie('staff_refresh_token', clearOpts);
     res.clearCookie('refresh_token', clearOpts);
@@ -145,7 +208,10 @@ export class AuthController {
   }
 
   @Get('me')
-  async getMe(@CurrentUser('sub') userId: string, @CurrentUser('userType') userType: 'STAFF' | 'CUSTOMER') {
+  async getMe(
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('userType') userType: 'STAFF' | 'CUSTOMER',
+  ) {
     return this.authService.getMe(userId, userType);
   }
 

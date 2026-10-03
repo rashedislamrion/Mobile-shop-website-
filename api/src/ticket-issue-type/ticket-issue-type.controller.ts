@@ -23,7 +23,9 @@ import { ModuleName, PermissionAction, StaffStatus } from '@prisma/client';
 @Controller('ticket-issue-types')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class TicketIssueTypeController {
-  constructor(private readonly ticketIssueTypeService: TicketIssueTypeService) {}
+  constructor(
+    private readonly ticketIssueTypeService: TicketIssueTypeService,
+  ) {}
 
   @Public()
   @Get('active')
@@ -33,7 +35,10 @@ export class TicketIssueTypeController {
 
   @Get()
   @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.READ })
-  findAll(@Query('status') status?: StaffStatus, @Query('search') search?: string) {
+  findAll(
+    @Query('status') status?: StaffStatus,
+    @Query('search') search?: string,
+  ) {
     return this.ticketIssueTypeService.findAll({ status, search });
   }
 
@@ -44,19 +49,28 @@ export class TicketIssueTypeController {
   }
 
   @Post()
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.CREATE,
+  })
   create(@Body() createDto: CreateTicketIssueTypeDto) {
     return this.ticketIssueTypeService.create(createDto);
   }
 
   @Patch(':id')
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.UPDATE,
+  })
   update(@Param('id') id: string, @Body() updateDto: UpdateTicketIssueTypeDto) {
     return this.ticketIssueTypeService.update(id, updateDto);
   }
 
   @Delete(':id')
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.DELETE,
+  })
   remove(@Param('id') id: string) {
     return this.ticketIssueTypeService.remove(id);
   }

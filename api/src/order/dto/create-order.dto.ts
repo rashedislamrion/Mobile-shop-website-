@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsNumber,
@@ -50,6 +51,13 @@ export class CreateOrderItemDto {
   @IsString()
   @IsOptional()
   warrantyEndDate?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isService?: boolean;
+
+  @IsOptional()
+  serviceDetails?: any;
 }
 
 export class CreateOrderDto {
@@ -74,17 +82,23 @@ export class CreateOrderDto {
   @Type(() => CreateOrderItemDto)
   items: CreateOrderItemDto[];
 
-  @Transform(({ value }) => (value !== undefined && value !== '' ? Number(value) : 0))
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : 0,
+  )
   @IsNumber()
   @IsOptional()
   discountAmount?: number = 0;
 
-  @Transform(({ value }) => (value !== undefined && value !== '' ? Number(value) : 0))
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : 0,
+  )
   @IsNumber()
   @IsOptional()
   deliveryCharge?: number = 0;
 
-  @Transform(({ value }) => (value !== undefined && value !== '' ? Number(value) : 0))
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : 0,
+  )
   @IsNumber()
   @IsOptional()
   paidAmount?: number = 0;
@@ -118,7 +132,9 @@ export class CreateOrderDto {
   @IsOptional()
   issueDescription?: string;
 
-  @Transform(({ value }) => (value !== undefined && value !== '' ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : undefined,
+  )
   @IsNumber()
   @IsOptional()
   serviceCharge?: number;

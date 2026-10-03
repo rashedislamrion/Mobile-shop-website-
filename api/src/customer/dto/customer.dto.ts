@@ -1,4 +1,13 @@
-import { IsNotEmpty, IsOptional, IsString, IsEmail, IsNumber, Min, IsEnum, IsBoolean } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsEmail,
+  IsNumber,
+  Min,
+  IsEnum,
+  IsBoolean,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { AddressTag } from '@prisma/client';
 

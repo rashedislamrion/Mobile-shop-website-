@@ -12,13 +12,19 @@ export class BlogCategoryController {
   constructor(private readonly blogService: BlogService) {}
 
   @Get()
-  @RequirePermission({ module: ModuleName.BLOGS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.BLOGS,
+    action: PermissionAction.READ,
+  })
   findAll() {
     return this.blogService.findAllCategories();
   }
 
   @Post()
-  @RequirePermission({ module: ModuleName.BLOGS, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.BLOGS,
+    action: PermissionAction.CREATE,
+  })
   create(@Body() dto: CreateBlogCategoryDto) {
     return this.blogService.createCategory(dto.name);
   }

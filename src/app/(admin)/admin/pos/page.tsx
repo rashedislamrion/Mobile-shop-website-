@@ -41,6 +41,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PosInvoiceModal } from "@/components/admin/pos/PosInvoiceModal";
+import { PosProductModal } from "@/components/admin/pos/PosProductModal";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
@@ -154,37 +155,7 @@ export default function PosTerminalPage() {
 
   // Product Details Modal State
   const [selectedProductForModal, setSelectedProductForModal] = useState<PosProductVariant | null>(null);
-  const [modalVariantId, setModalVariantId] = useState<string>("");
-  const [modalQuantity, setModalQuantity] = useState<number>(1);
-  const [modalPriceOverride, setModalPriceOverride] = useState<number | string>("");
-
-  // Phone selection and warranty in modal
-  const [phoneUnitsForModal, setPhoneUnitsForModal] = useState<any[]>([]);
-  const [selectedPhoneUnitId, setSelectedPhoneUnitId] = useState<string>("");
-  const [modalWarrantyType, setModalWarrantyType] = useState<string>("7 Days Replacement");
-  const [modalWarrantyPeriod, setModalWarrantyPeriod] = useState<string>("7 Days");
-  const [modalWarrantyStartDate, setModalWarrantyStartDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
-  const [modalWarrantyEndDate, setModalWarrantyEndDate] = useState<string>(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    return d.toISOString().split("T")[0];
-  });
   const [selectedPaymentChannel, setSelectedPaymentChannel] = useState<string>("CASH");
-
-  const handleWarrantyPeriodChange = (period: string) => {
-    setModalWarrantyPeriod(period);
-    const d = new Date(modalWarrantyStartDate || Date.now());
-    if (period.includes("7") || period.toLowerCase().includes("week")) {
-      d.setDate(d.getDate() + 7);
-    } else if (period.includes("30") || period.toLowerCase().includes("1 month") || period.toLowerCase().includes("month")) {
-      d.setDate(d.getDate() + 30);
-    } else if (period.includes("180") || period.toLowerCase().includes("6 month")) {
-      d.setDate(d.getDate() + 180);
-    } else if (period.includes("365") || period.toLowerCase().includes("1 year") || period.toLowerCase().includes("year")) {
-      d.setDate(d.getDate() + 365);
-    }
-    setModalWarrantyEndDate(d.toISOString().split("T")[0]);
-  };
 
   // Services Tab Form State
   const [serviceDevice, setServiceDevice] = useState("");
@@ -238,6 +209,12 @@ export default function PosTerminalPage() {
     setTitle("POS Terminal");
     setBadge("Point of Sale");
     setDateFilter("");
+    if (typeof window !== "undefined") {
+      (window as any).__SET_COMPLETED_ORDER__ = (order: any) => {
+        setCompletedOrder(order);
+        setInvoiceModalOpen(true);
+      };
+    }
   }, [setTitle, setBadge, setDateFilter]);
 
   // Load branches
@@ -324,184 +301,80 @@ export default function PosTerminalPage() {
   // Handle Product Row Click -> Open Product Details Dialog
   const handleOpenProductModal = (product: PosProductVariant) => {
     setSelectedProductForModal(product);
-    setModalVariantId(product.id);
-    setModalQuantity(1);
-    setModalPriceOverride(product.price);
-
-    if (product.isPhone) {
-      apiGet<any[]>(`/phone-units/available?variantId=${product.id}${currentBranchId ? `&branchId=${currentBranchId}` : ""}`)
-        .then((units) => {
-          const list = Array.isArray(units) ? units : (product.phoneUnits || []);
-          setPhoneUnitsForModal(list);
-          if (list.length > 0) {
-            setSelectedPhoneUnitId(list[0].id);
-            if (list[0].sellingPrice) {
-              setModalPriceOverride(list[0].sellingPrice);
-            }
-          } else {
-            setSelectedPhoneUnitId("");
-          }
-        })
-        .catch(() => {
-          const list = product.phoneUnits || [];
-          setPhoneUnitsForModal(list);
-          if (list.length > 0) setSelectedPhoneUnitId(list[0].id);
-        });
-    } else {
-      setPhoneUnitsForModal([]);
-      setSelectedPhoneUnitId("");
-    }
   };
 
-  // Currently active variant in details modal
-  const activeModalVariant = useMemo(() => {
-    if (!selectedProductForModal) return null;
-    if (modalVariantId) {
-      const found = selectedProductForModal.allVariants.find((v) => v.id === modalVariantId);
-      if (found) return found;
-    }
-    return {
-      id: selectedProductForModal.id,
-      color: selectedProductForModal.color,
-      quality: selectedProductForModal.quality,
-      sku: selectedProductForModal.sku,
-      stock: selectedProductForModal.stock,
-      price: selectedProductForModal.price,
-    };
-  }, [selectedProductForModal, modalVariantId]);
-
-  // When variant changes in modal, update price override
-  const handleSelectModalVariant = (variantId: string) => {
-    setModalVariantId(variantId);
-    if (selectedProductForModal) {
-      const v = selectedProductForModal.allVariants.find((item) => item.id === variantId);
-      if (v) {
-        setModalPriceOverride(v.price);
-      }
-      if (selectedProductForModal.isPhone) {
-        apiGet<any[]>(`/phone-units/available?variantId=${variantId}${currentBranchId ? `&branchId=${currentBranchId}` : ""}`)
-          .then((units) => {
-            const list = Array.isArray(units) ? units : [];
-            setPhoneUnitsForModal(list);
-            if (list.length > 0) {
-              setSelectedPhoneUnitId(list[0].id);
-              if (list[0].sellingPrice) setModalPriceOverride(list[0].sellingPrice);
-            } else {
-              setSelectedPhoneUnitId("");
-            }
-          })
-          .catch(() => setPhoneUnitsForModal([]));
-      }
-    }
-  };
-
-  // Add from Details Modal to Cart
-  const handleAddModalProductToCart = () => {
-    if (!selectedProductForModal || !activeModalVariant) return;
-
-    if (selectedProductForModal.isPhone) {
-      if (!selectedPhoneUnitId) {
-        toast.error("Please select a physical phone unit (IMEI) to add to cart.");
-        return;
-      }
-      const chosenUnit = phoneUnitsForModal.find((u) => u.id === selectedPhoneUnitId);
-      if (!chosenUnit) {
-        toast.error("Selected phone unit is not available.");
-        return;
-      }
-
-      // Check if already in cart
-      if (cart.some((item) => item.phoneUnitId === chosenUnit.id)) {
-        toast.error(`Phone with IMEI ${chosenUnit.imei1} is already in the cart.`);
-        return;
-      }
-
-      const unitPrice = Number(modalPriceOverride) >= 0 ? Number(modalPriceOverride) : (chosenUnit.sellingPrice || activeModalVariant.price);
-      const cartItemId = `pu-${chosenUnit.id}`;
-
-      setCart((prev) => [
-        ...prev,
-        {
-          id: cartItemId,
-          productId: selectedProductForModal.productId,
-          variantId: activeModalVariant.id.startsWith("pv-") ? undefined : activeModalVariant.id,
-          phoneUnitId: chosenUnit.id,
-          isPhone: true,
-          imei1: chosenUnit.imei1,
-          imei2: chosenUnit.imei2,
-          serialNumber: chosenUnit.serialNumber,
-          phoneCondition: chosenUnit.condition || selectedProductForModal.condition || "NEW",
-          brandName: selectedProductForModal.brandName,
-          warrantyType: modalWarrantyType,
-          warrantyPeriod: modalWarrantyPeriod,
-          warrantyStartDate: modalWarrantyStartDate,
-          warrantyEndDate: modalWarrantyEndDate,
-          name: selectedProductForModal.productName,
-          image: selectedProductForModal.productImage,
-          color: activeModalVariant.color,
-          quality: activeModalVariant.quality,
-          sku: activeModalVariant.sku,
-          stock: 1,
-          unitPrice,
-          originalPrice: chosenUnit.sellingPrice || activeModalVariant.price,
-          quantity: 1,
-        },
-      ]);
-
-      toast.success(`Added phone ${selectedProductForModal.productName} (IMEI: ${chosenUnit.imei1}) to cart`);
-      setSelectedProductForModal(null);
-      return;
-    }
-
-    const qty = Number(modalQuantity) || 1;
-    if (qty <= 0) {
-      toast.error("Please enter a valid quantity");
-      return;
-    }
-
-    if (activeModalVariant.stock <= 0) {
-      toast.error(`"${selectedProductForModal.productName}" is out of stock in this branch`);
-      return;
-    }
-
-    if (activeModalVariant.stock < qty) {
-      toast.error(`Insufficient stock! Available in this branch: ${activeModalVariant.stock}, Requested: ${qty}`);
-      return;
-    }
-
-    const unitPrice = Number(modalPriceOverride) >= 0 ? Number(modalPriceOverride) : activeModalVariant.price;
-    const cartItemId = activeModalVariant.id;
-
+  const handleAddStandardItemToCart = (item: {
+    cartItemId: string;
+    productId: string;
+    variantId?: string;
+    name: string;
+    image: string;
+    color: string | null;
+    quality: string | null;
+    sku: string;
+    stock: number;
+    unitPrice: number;
+    originalPrice: number;
+    quantity: number;
+  }) => {
     setCart((prev) => {
-      const existing = prev.find((item) => item.id === cartItemId);
+      const existing = prev.find((i) => i.id === item.cartItemId);
       if (existing) {
-        return prev.map((item) =>
-          item.id === cartItemId
-            ? { ...item, quantity: item.quantity + qty, unitPrice }
-            : item
+        return prev.map((i) =>
+          i.id === item.cartItemId
+            ? { ...i, quantity: i.quantity + item.quantity, unitPrice: item.unitPrice }
+            : i
         );
       }
       return [
         ...prev,
         {
-          id: cartItemId,
-          productId: selectedProductForModal.productId,
-          variantId: activeModalVariant.id.startsWith("pv-") ? undefined : activeModalVariant.id,
-          name: selectedProductForModal.productName,
-          image: selectedProductForModal.productImage,
-          color: activeModalVariant.color,
-          quality: activeModalVariant.quality,
-          sku: activeModalVariant.sku,
-          stock: activeModalVariant.stock,
-          unitPrice,
-          originalPrice: activeModalVariant.price,
-          quantity: qty,
+          id: item.cartItemId,
+          productId: item.productId,
+          variantId: item.variantId,
+          name: item.name,
+          image: item.image,
+          color: item.color,
+          quality: item.quality,
+          sku: item.sku,
+          stock: item.stock,
+          unitPrice: item.unitPrice,
+          originalPrice: item.originalPrice,
+          quantity: item.quantity,
         },
       ];
     });
+  };
 
-    toast.success(`Added ${qty}x ${selectedProductForModal.productName} to cart`);
-    setSelectedProductForModal(null);
+  const handleAddPhoneItemToCart = (item: any) => {
+    setCart((prev) => [
+      ...prev,
+      {
+        id: item.cartItemId,
+        productId: item.productId,
+        variantId: item.variantId,
+        phoneUnitId: item.phoneUnitId,
+        isPhone: true,
+        imei1: item.imei1,
+        imei2: item.imei2,
+        serialNumber: item.serialNumber,
+        phoneCondition: item.phoneCondition,
+        brandName: item.brandName,
+        warrantyType: item.warrantyType,
+        warrantyPeriod: item.warrantyPeriod,
+        warrantyStartDate: item.warrantyStartDate,
+        warrantyEndDate: item.warrantyEndDate,
+        name: item.name,
+        image: item.image,
+        color: item.color,
+        quality: item.quality,
+        sku: item.sku,
+        stock: 1,
+        unitPrice: item.unitPrice,
+        originalPrice: item.originalPrice,
+        quantity: 1,
+      },
+    ]);
   };
 
   // Add Service item to Cart
@@ -662,6 +535,8 @@ export default function PosTerminalPage() {
           warrantyPeriod: item.warrantyPeriod,
           warrantyStartDate: item.warrantyStartDate,
           warrantyEndDate: item.warrantyEndDate,
+          isService: Boolean(item.isService),
+          serviceDetails: item.serviceDetails,
         })),
         discountAmount: calculatedDiscount,
         deliveryCharge: calculatedDelivery,
@@ -669,6 +544,7 @@ export default function PosTerminalPage() {
         note: orderNote.trim() || (paymentMode === "SPLIT" ? `Split Payment: Cash ৳${Number(splitCashAmount || 0)}, Bank/Digital ৳${Number(splitBankAmount || 0)}` : undefined),
         shippingAddress: showCourier ? courierAddress || selectedCustomer?.addresses?.[0]?.fullAddress || "Customer Delivery Address" : undefined,
         courierPartner: showCourier ? courierPartner : undefined,
+        technicianId: isTechnician ? (user?.id || (user as any)?.sub) : undefined,
         device: serviceItem?.serviceDetails?.device || (isDiagnosingAction ? "Diagnostic Intake Device" : undefined),
         issueDescription: serviceItem?.serviceDetails?.issueDescription || (isDiagnosingAction ? "Customer device diagnostic inspection" : undefined),
         serviceCharge: serviceItem ? serviceItem.unitPrice : undefined,
@@ -1576,300 +1452,19 @@ export default function PosTerminalPage() {
       </div>
 
       {/* ========================================================================= */}
-      {/* PRODUCT DETAILS MODAL (Color, Quality, Quantity Stepper, Override Price)  */}
+      {/* PRODUCT DETAILS MODAL (Separated Color & Quality, Stepper, Price Override)*/}
       {/* ========================================================================= */}
-      {selectedProductForModal && (
-        <Dialog
-          open={Boolean(selectedProductForModal)}
-          onOpenChange={(open) => {
-            if (!open) setSelectedProductForModal(null);
-          }}
-        >
-          <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden rounded-2xl border border-slate-200">
-            <DialogHeader className="p-5 pb-3 border-b border-slate-100 bg-slate-50/60">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <DialogTitle className="text-base font-bold text-slate-900">
-                    {selectedProductForModal.productName}
-                  </DialogTitle>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Category: {selectedProductForModal.categoryName}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className="text-lg font-black text-emerald-700 block">
-                    ৳{activeModalVariant?.price.toLocaleString()}
-                  </span>
-                  {selectedProductForModal.salePrice && selectedProductForModal.salePrice < selectedProductForModal.regularPrice && (
-                    <span className="text-xs text-slate-400 line-through">
-                      ৳{selectedProductForModal.regularPrice.toLocaleString()}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </DialogHeader>
-
-            <div className="p-5 space-y-4 text-xs">
-              {/* Product SKU & Stock Status Banner */}
-              <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <div>
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase">Selected SKU</span>
-                  <p className="font-mono font-bold text-slate-800">{activeModalVariant?.sku}</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase">Current Stock</span>
-                  <p className={`font-bold ${activeModalVariant && activeModalVariant.stock > 0 ? "text-emerald-700" : "text-rose-600"}`}>
-                    {activeModalVariant?.stock} units available
-                  </p>
-                </div>
-              </div>
-
-              {/* Variant Selector (if multiple variants exist) */}
-              {selectedProductForModal.allVariants.length > 1 && (
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold text-slate-700 uppercase">
-                    Select Variant / Quality
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {selectedProductForModal.allVariants.map((v) => {
-                      const isSelected = activeModalVariant?.id === v.id;
-                      return (
-                        <div
-                          key={v.id}
-                          onClick={() => handleSelectModalVariant(v.id)}
-                          className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
-                            isSelected
-                              ? "bg-emerald-50/80 border-emerald-500 ring-1 ring-emerald-500 text-emerald-900"
-                              : "border-slate-200 hover:bg-slate-50 text-slate-700"
-                          }`}
-                        >
-                          <div className="font-bold text-xs">
-                            {v.color || "Standard"} {v.quality ? `(${v.quality})` : ""}
-                          </div>
-                          <div className="flex justify-between items-center text-[10px] mt-1 text-slate-500">
-                            <span>Stock: {v.stock}</span>
-                            <span className="font-bold text-slate-800">৳{v.price.toLocaleString()}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Phone Unit Picker & Warranty (for PHONE products) */}
-              {selectedProductForModal.isPhone ? (
-                <div className="space-y-3 pt-1">
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-bold text-slate-700 uppercase">
-                        Select Physical Device (IMEI) *
-                      </label>
-                      <span className="text-[10px] text-purple-700 font-semibold bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
-                        {phoneUnitsForModal.length} in stock
-                      </span>
-                    </div>
-
-                    {phoneUnitsForModal.length === 0 ? (
-                      <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs">
-                        <p className="font-bold">No Physical Phone Units In Stock</p>
-                        <p className="text-[11px] mt-0.5 text-rose-600">
-                          There are no available units with status &quot;IN_STOCK&quot; for this variant. Please purchase or receive units before selling.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                        {phoneUnitsForModal.map((unit) => {
-                          const isSelected = selectedPhoneUnitId === unit.id;
-                          return (
-                            <div
-                              key={unit.id}
-                              onClick={() => {
-                                setSelectedPhoneUnitId(unit.id);
-                                if (unit.sellingPrice) setModalPriceOverride(unit.sellingPrice);
-                              }}
-                              className={`p-2 rounded-xl border cursor-pointer transition-all flex items-center justify-between text-xs ${
-                                isSelected
-                                  ? "bg-purple-50 border-purple-600 ring-1 ring-purple-600 text-purple-950 font-bold"
-                                  : "border-slate-200 hover:bg-slate-50 text-slate-700"
-                              }`}
-                            >
-                              <div>
-                                <div className="font-mono text-xs text-purple-900 font-bold">
-                                  IMEI 1: {unit.imei1}
-                                </div>
-                                <div className="text-[10px] text-slate-500 font-normal">
-                                  {unit.imei2 ? `IMEI 2: ${unit.imei2} • ` : ""}
-                                  Condition: <span className="font-semibold">{unit.condition || selectedProductForModal.condition || "NEW"}</span>
-                                  {unit.serialNumber ? ` • S/N: ${unit.serialNumber}` : ""}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-xs font-bold text-emerald-700">
-                                  ৳{(unit.sellingPrice || activeModalVariant?.price || 0).toLocaleString()}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Warranty Information */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2 text-xs">
-                    <div className="font-bold text-slate-800 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Outbound Customer Warranty
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[10px] font-semibold text-slate-600 mb-1">Warranty Type</label>
-                        <select
-                          value={modalWarrantyType}
-                          onChange={(e) => setModalWarrantyType(e.target.value)}
-                          className="w-full h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
-                        >
-                          <option value="7 Days Replacement">7 Days Replacement</option>
-                          <option value="1 Month Service Warranty">1 Month Service Warranty</option>
-                          <option value="6 Months Service Warranty">6 Months Service Warranty</option>
-                          <option value="1 Year Official Warranty">1 Year Official Warranty</option>
-                          <option value="No Warranty">No Warranty</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-slate-600 mb-1">Warranty Period</label>
-                        <select
-                          value={modalWarrantyPeriod}
-                          onChange={(e) => handleWarrantyPeriodChange(e.target.value)}
-                          className="w-full h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
-                        >
-                          <option value="7 Days">7 Days</option>
-                          <option value="30 Days / 1 Month">30 Days / 1 Month</option>
-                          <option value="180 Days / 6 Months">180 Days / 6 Months</option>
-                          <option value="365 Days / 1 Year">365 Days / 1 Year</option>
-                          <option value="None">None</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[10px] font-semibold text-slate-600 mb-1">Start Date</label>
-                        <Input
-                          type="date"
-                          value={modalWarrantyStartDate}
-                          onChange={(e) => setModalWarrantyStartDate(e.target.value)}
-                          className="h-8 text-xs bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-slate-600 mb-1">End Date</label>
-                        <Input
-                          type="date"
-                          value={modalWarrantyEndDate}
-                          onChange={(e) => setModalWarrantyEndDate(e.target.value)}
-                          className="h-8 text-xs bg-white"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Price Override for Phone */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                      Selling Price (৳)
-                    </label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={modalPriceOverride}
-                      onChange={(e) => setModalPriceOverride(e.target.value)}
-                      placeholder="Selling price"
-                      className="h-9 text-sm font-bold text-emerald-800"
-                    />
-                  </div>
-
-                  {/* Add to Cart Button for Phone */}
-                  <button
-                    type="button"
-                    disabled={!selectedPhoneUnitId || phoneUnitsForModal.length === 0}
-                    onClick={handleAddModalProductToCart}
-                    className="w-full bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm shadow-sm"
-                  >
-                    <ShoppingCart className="w-4 h-4" />
-                    Add Selected Phone to Cart
-                  </button>
-                </div>
-              ) : (
-                /* Standard Quantity Stepper & Price Override for Spare Parts/Accessories */
-                <>
-                  <div className="grid grid-cols-2 gap-3 pt-2">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">
-                        Quantity *
-                      </label>
-                      <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl p-1">
-                        <button
-                          type="button"
-                          onClick={() => setModalQuantity(Math.max(1, modalQuantity - 1))}
-                          className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 shadow-2xs"
-                        >
-                          -
-                        </button>
-                        <Input
-                          type="number"
-                          min={1}
-                          value={modalQuantity}
-                          onChange={(e) => setModalQuantity(Math.max(1, Number(e.target.value) || 1))}
-                          className="h-8 text-center text-sm font-bold border-none bg-transparent shadow-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setModalQuantity(modalQuantity + 1)}
-                          className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 shadow-2xs"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">
-                        Override Price (৳)
-                      </label>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={modalPriceOverride}
-                        onChange={(e) => setModalPriceOverride(e.target.value)}
-                        placeholder="Regular price"
-                        className="h-10 text-sm font-bold text-emerald-800"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Total Calculation Preview */}
-                  <div className="bg-slate-100/80 p-3 rounded-xl flex justify-between items-center text-xs font-bold text-slate-800">
-                    <span>Line Total:</span>
-                    <span className="text-base text-emerald-700">
-                      ৳{(Number(modalPriceOverride || activeModalVariant?.price || 0) * modalQuantity).toLocaleString()}
-                    </span>
-                  </div>
-
-                  {/* Add to Cart Action */}
-                  <button
-                    type="button"
-                    onClick={handleAddModalProductToCart}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm shadow-sm"
-                  >
-                    <ShoppingCart className="w-4 h-4" />
-                    Add to Cart ({modalQuantity}x)
-                  </button>
-                </>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      <PosProductModal
+        open={Boolean(selectedProductForModal)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedProductForModal(null);
+        }}
+        product={selectedProductForModal}
+        currentBranchId={currentBranchId}
+        cart={cart}
+        onAddStandardItem={handleAddStandardItemToCart}
+        onAddPhoneItem={handleAddPhoneItemToCart}
+      />
 
       {/* ========================================================================= */}
       {/* POST-SALE PRINTABLE INVOICE MODAL                                         */}

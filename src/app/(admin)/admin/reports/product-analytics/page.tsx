@@ -20,6 +20,7 @@ import {
 } from "recharts";
 import { apiGet } from "@/lib/api-client";
 import { toast } from "sonner";
+import { exportToCsv } from "@/lib/export-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProductAnalyticsRecord {
@@ -189,6 +190,36 @@ export default function ProductAnalyticsReport() {
     },
   ];
 
+  const handleExport = () => {
+    if (!data || data.length === 0) {
+      toast.info("No product analytics data available to export");
+      return;
+    }
+    const headers = [
+      "Product Name",
+      "Category",
+      "Brand",
+      "Rating",
+      "Total Units Sold",
+      "Total Revenue (BDT)",
+      "Total Profit (BDT)",
+      "Current Stock",
+      "Revenue Contribution %",
+    ];
+    const rows = data.map((d) => [
+      d.name,
+      d.category,
+      d.brand,
+      d.rating,
+      d.totalSold,
+      d.totalRevenue,
+      d.totalProfit,
+      d.currentStock,
+      d.revenueContributionPct,
+    ]);
+    exportToCsv("product-analytics-report", headers, rows);
+  };
+
   return (
     <div className="space-y-6">
       
@@ -205,7 +236,7 @@ export default function ProductAnalyticsReport() {
           }}
           className="flex-1"
         />
-        <ReportExportButtons />
+        <ReportExportButtons onExportCsv={handleExport} filename="product-analytics-report" />
       </div>
 
       {/* KPI Cards */}

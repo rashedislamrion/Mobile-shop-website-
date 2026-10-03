@@ -8,7 +8,11 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PromoAdStatus, PromoApplicableTo, PromoDiscountType } from '@prisma/client';
+import {
+  PromoAdStatus,
+  PromoApplicableTo,
+  PromoDiscountType,
+} from '@prisma/client';
 
 export class CreatePromoCodeDto {
   @IsString()
@@ -148,7 +152,14 @@ export class ValidatePromoCodeDto {
   @IsNumber()
   @Min(0)
   @Type(() => Number)
-  orderSubtotal: number;
+  @IsOptional()
+  orderSubtotal?: number;
+
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  @IsOptional()
+  orderAmount?: number;
 
   @IsArray()
   @IsString({ each: true })

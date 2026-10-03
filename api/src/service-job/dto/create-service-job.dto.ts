@@ -1,5 +1,12 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsEnum,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
+import { ServiceMaterialSourceType } from '@prisma/client';
 
 export class CreateServiceJobDto {
   @IsString()
@@ -22,7 +29,9 @@ export class CreateServiceJobDto {
   @IsOptional()
   specialization?: string;
 
-  @Transform(({ value }) => (value !== undefined && value !== '' ? Number(value) : 0))
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : 0,
+  )
   @IsNumber()
   serviceCharge: number;
 }
@@ -42,15 +51,29 @@ export class ServiceJobMaterialDto {
   @IsOptional()
   productId?: string;
 
+  @IsEnum(ServiceMaterialSourceType)
+  @IsOptional()
+  sourceType?: ServiceMaterialSourceType;
+
   @IsString()
-  @IsNotEmpty()
-  supplierId: string;
+  @IsOptional()
+  supplierId?: string;
+
+  @IsString()
+  @IsOptional()
+  sourcedFromName?: string;
+
+  @IsString()
+  @IsOptional()
+  sourceNote?: string;
 
   @Transform(({ value }) => Number(value) || 0)
   @IsNumber()
   cost: number;
 
-  @Transform(({ value }) => (value !== undefined && value !== '' ? Number(value) : 1))
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : 1,
+  )
   @IsNumber()
   @IsOptional()
   quantity?: number;
@@ -171,6 +194,9 @@ export class CreateRepairJobDto {
 
   @IsOptional()
   payments?: ServicePaymentDto[];
+
+  @IsOptional()
+  paymentDetails?: any;
 
   @IsString()
   @IsOptional()

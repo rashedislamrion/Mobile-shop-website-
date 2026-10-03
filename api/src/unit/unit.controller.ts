@@ -17,31 +17,46 @@ import { ModuleName, PermissionAction } from '@prisma/client';
 export class UnitController {
   constructor(private readonly unitService: UnitService) {}
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.READ,
+  })
   @Get()
   findAll() {
     return this.unitService.findAll();
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.READ,
+  })
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.unitService.findOne(id);
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.CREATE,
+  })
   @Post()
   create(@Body() dto: CreateUnitDto) {
     return this.unitService.create(dto);
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.UPDATE,
+  })
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateUnitDto) {
     return this.unitService.update(id, dto);
   }
 
-  @RequirePermission({ module: ModuleName.PRODUCTS, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.PRODUCTS,
+    action: PermissionAction.DELETE,
+  })
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.unitService.remove(id);

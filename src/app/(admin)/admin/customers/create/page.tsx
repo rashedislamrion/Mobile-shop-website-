@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { getStaffToken, API_BASE_URL } from "@/lib/api-client";
 
 const CUSTOMER_SOURCES = [
   "Walk-In",
@@ -75,11 +76,11 @@ export default function AddCustomerPage() {
       formData.append("image", file);
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"}/customers/upload`,
+        `${API_BASE_URL}/customers/upload`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+            Authorization: `Bearer ${getStaffToken() || ""}`,
           },
           body: formData,
         }
@@ -176,12 +177,12 @@ export default function AddCustomerPage() {
       }
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"}/customers`,
+        `${API_BASE_URL}/customers`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+            Authorization: `Bearer ${getStaffToken() || ""}`,
           },
           body: JSON.stringify(payload),
         }

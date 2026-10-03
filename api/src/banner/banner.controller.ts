@@ -12,9 +12,16 @@ import {
   UploadedFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { createMulterConfig, resolveUploadedFile } from '../common/upload/multer.config';
+import {
+  createMulterConfig,
+  resolveUploadedFile,
+} from '../common/upload/multer.config';
 import { BannerService } from './banner.service';
-import { CreateBannerDto, UpdateBannerDto, ReorderBannersDto } from './dto/banner.dto';
+import {
+  CreateBannerDto,
+  UpdateBannerDto,
+  ReorderBannersDto,
+} from './dto/banner.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
@@ -33,38 +40,58 @@ export class BannerController {
   }
 
   @Get()
-  @RequirePermission({ module: ModuleName.PROMOTIONAL_BANNER, action: PermissionAction.READ })
-  findAll(@Query('status') status?: StaffStatus, @Query('search') search?: string) {
+  @RequirePermission({
+    module: ModuleName.PROMOTIONAL_BANNER,
+    action: PermissionAction.READ,
+  })
+  findAll(
+    @Query('status') status?: StaffStatus,
+    @Query('search') search?: string,
+  ) {
     return this.bannerService.findAll({ status, search });
   }
 
   @Get(':id')
-  @RequirePermission({ module: ModuleName.PROMOTIONAL_BANNER, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.PROMOTIONAL_BANNER,
+    action: PermissionAction.READ,
+  })
   findOne(@Param('id') id: string) {
     return this.bannerService.findOne(id);
   }
 
   @Post()
-  @RequirePermission({ module: ModuleName.PROMOTIONAL_BANNER, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.PROMOTIONAL_BANNER,
+    action: PermissionAction.CREATE,
+  })
   @UseInterceptors(FileInterceptor('image', createMulterConfig('banners')))
   async create(
     @Body() createBannerDto: CreateBannerDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (file) {
-      createBannerDto.imageUrl = (await resolveUploadedFile(file, 'banners')) || `/uploads/banners/${file.filename}`;
+      createBannerDto.imageUrl =
+        (await resolveUploadedFile(file, 'banners')) ||
+        `/uploads/banners/${file.filename}`;
     }
     return this.bannerService.create(createBannerDto);
   }
 
   @Patch('reorder')
-  @RequirePermission({ module: ModuleName.PROMOTIONAL_BANNER, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.PROMOTIONAL_BANNER,
+    action: PermissionAction.UPDATE,
+  })
   reorder(@Body() reorderDto: ReorderBannersDto) {
     return this.bannerService.reorder(reorderDto);
   }
 
   @Patch(':id')
-  @RequirePermission({ module: ModuleName.PROMOTIONAL_BANNER, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.PROMOTIONAL_BANNER,
+    action: PermissionAction.UPDATE,
+  })
   @UseInterceptors(FileInterceptor('image', createMulterConfig('banners')))
   async update(
     @Param('id') id: string,
@@ -72,13 +99,18 @@ export class BannerController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (file) {
-      updateBannerDto.imageUrl = (await resolveUploadedFile(file, 'banners')) || `/uploads/banners/${file.filename}`;
+      updateBannerDto.imageUrl =
+        (await resolveUploadedFile(file, 'banners')) ||
+        `/uploads/banners/${file.filename}`;
     }
     return this.bannerService.update(id, updateBannerDto);
   }
 
   @Delete(':id')
-  @RequirePermission({ module: ModuleName.PROMOTIONAL_BANNER, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.PROMOTIONAL_BANNER,
+    action: PermissionAction.DELETE,
+  })
   remove(@Param('id') id: string) {
     return this.bannerService.remove(id);
   }

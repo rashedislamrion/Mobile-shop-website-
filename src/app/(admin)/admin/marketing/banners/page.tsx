@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAdminPage } from "@/contexts/AdminPageContext";
-import { Plus, Edit2, Loader2, Image as ImageIcon } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -92,17 +92,21 @@ export default function BannersPage() {
     }
   };
 
-  const handleDeleteInEdit = async () => {
-    if (!editingBanner) return;
+  const handleDeleteBanner = async (bannerId: string) => {
     if (!confirm("Are you sure you want to delete this banner?")) return;
     try {
-      await apiDelete(`/banners/${editingBanner.id}`);
+      await apiDelete(`/banners/${bannerId}`);
       toast.success("Banner deleted");
-      setEditingBanner(null);
+      if (editingBanner?.id === bannerId) setEditingBanner(null);
       fetchBanners();
     } catch (err: any) {
       toast.error(err.message || "Failed to delete banner");
     }
+  };
+
+  const handleDeleteInEdit = async () => {
+    if (!editingBanner) return;
+    handleDeleteBanner(editingBanner.id);
   };
 
   return (
@@ -186,15 +190,24 @@ export default function BannersPage() {
                     </div>
                   </td>
 
-                  {/* ACTION (single edit pencil icon only) */}
+                  {/* ACTION */}
                   <td className="py-3.5 px-4 text-center">
-                    <button
-                      onClick={() => handleOpenEdit(banner)}
-                      className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-emerald-700 transition-colors"
-                      title="Edit Banner"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        onClick={() => handleOpenEdit(banner)}
+                        className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-emerald-700 transition-colors"
+                        title="Edit Banner"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBanner(banner.id)}
+                        className="p-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-500 hover:text-rose-700 transition-colors"
+                        title="Delete Banner"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

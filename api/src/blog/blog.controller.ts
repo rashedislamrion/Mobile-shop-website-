@@ -13,7 +13,10 @@ import {
   UploadedFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { createMulterConfig, resolveUploadedFile } from '../common/upload/multer.config';
+import {
+  createMulterConfig,
+  resolveUploadedFile,
+} from '../common/upload/multer.config';
 import { BlogService } from './blog.service';
 import { CreateBlogDto, UpdateBlogDto } from './dto/blog.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -39,7 +42,10 @@ export class BlogController {
   }
 
   @Get('admin')
-  @RequirePermission({ module: ModuleName.BLOGS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.BLOGS,
+    action: PermissionAction.READ,
+  })
   findAdminAll(
     @Query('status') status?: ContentStatus,
     @Query('search') search?: string,
@@ -56,7 +62,10 @@ export class BlogController {
   }
 
   @Post()
-  @RequirePermission({ module: ModuleName.BLOGS, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.BLOGS,
+    action: PermissionAction.CREATE,
+  })
   @UseInterceptors(FileInterceptor('image', createMulterConfig('blogs')))
   async create(
     @Body() createDto: CreateBlogDto,
@@ -64,13 +73,18 @@ export class BlogController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (file) {
-      createDto.featuredImage = (await resolveUploadedFile(file, 'blogs')) || `/uploads/blogs/${file.filename}`;
+      createDto.featuredImage =
+        (await resolveUploadedFile(file, 'blogs')) ||
+        `/uploads/blogs/${file.filename}`;
     }
     return this.blogService.create(createDto, req.user?.sub);
   }
 
   @Patch(':id')
-  @RequirePermission({ module: ModuleName.BLOGS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.BLOGS,
+    action: PermissionAction.UPDATE,
+  })
   @UseInterceptors(FileInterceptor('image', createMulterConfig('blogs')))
   async update(
     @Param('id') id: string,
@@ -78,13 +92,18 @@ export class BlogController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (file) {
-      updateDto.featuredImage = (await resolveUploadedFile(file, 'blogs')) || `/uploads/blogs/${file.filename}`;
+      updateDto.featuredImage =
+        (await resolveUploadedFile(file, 'blogs')) ||
+        `/uploads/blogs/${file.filename}`;
     }
     return this.blogService.update(id, updateDto);
   }
 
   @Delete(':id')
-  @RequirePermission({ module: ModuleName.BLOGS, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.BLOGS,
+    action: PermissionAction.DELETE,
+  })
   remove(@Param('id') id: string) {
     return this.blogService.remove(id);
   }

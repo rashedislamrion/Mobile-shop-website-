@@ -20,7 +20,12 @@ function slugify(text: string): string {
 export class BlogService {
   constructor(private prisma: PrismaService) {}
 
-  async findPublished(query?: { tag?: string; search?: string; page?: number; limit?: number }) {
+  async findPublished(query?: {
+    tag?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) {
     const page = Math.max(1, Number(query?.page) || 1);
     const limit = Math.min(50, Math.max(1, Number(query?.limit) || 10));
     const skip = (page - 1) * limit;
@@ -75,7 +80,8 @@ export class BlogService {
       },
     });
 
-    if (!blog) throw new NotFoundException(`Blog post with slug "${slug}" not found.`);
+    if (!blog)
+      throw new NotFoundException(`Blog post with slug "${slug}" not found.`);
 
     // Increment view count
     await this.prisma.blog.update({
@@ -86,7 +92,12 @@ export class BlogService {
     return { ...blog, views: blog.views + 1 };
   }
 
-  async findAdminAll(query?: { status?: ContentStatus; search?: string; page?: number; limit?: number }) {
+  async findAdminAll(query?: {
+    status?: ContentStatus;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) {
     const page = Math.max(1, Number(query?.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(query?.limit) || 20));
     const skip = (page - 1) * limit;
@@ -173,7 +184,9 @@ export class BlogService {
 
     const excerpt =
       dto.excerpt ||
-      (dto.content ? dto.content.replace(/<[^>]*>?/gm, '').slice(0, 160) : null);
+      (dto.content
+        ? dto.content.replace(/<[^>]*>?/gm, '').slice(0, 160)
+        : null);
 
     return this.prisma.blog.create({
       data: {
@@ -181,7 +194,8 @@ export class BlogService {
         slug: finalSlug,
         excerpt,
         content: dto.content,
-        featuredImage: dto.featuredImage || dto.coverImage || dto.thumbnailUrl || null,
+        featuredImage:
+          dto.featuredImage || dto.coverImage || dto.thumbnailUrl || null,
         authorId: dto.authorId || staffId || null,
         categoryId: dto.categoryId || null,
         tags: dto.tags || dto.categoryTags || [],
@@ -215,7 +229,8 @@ export class BlogService {
       const existing = await this.prisma.blog.findFirst({
         where: { slug: finalSlug, NOT: { id } },
       });
-      if (existing) throw new ConflictException(`Slug "${finalSlug}" is already taken.`);
+      if (existing)
+        throw new ConflictException(`Slug "${finalSlug}" is already taken.`);
     }
 
     const tags = dto.tags !== undefined ? dto.tags : dto.categoryTags;

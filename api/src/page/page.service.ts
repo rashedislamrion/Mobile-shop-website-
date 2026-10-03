@@ -90,7 +90,8 @@ export class PageService {
       const existing = await this.prisma.page.findFirst({
         where: { slug: finalSlug, NOT: { id } },
       });
-      if (existing) throw new ConflictException(`Slug "${finalSlug}" is already in use.`);
+      if (existing)
+        throw new ConflictException(`Slug "${finalSlug}" is already in use.`);
     }
 
     return this.prisma.page.update({

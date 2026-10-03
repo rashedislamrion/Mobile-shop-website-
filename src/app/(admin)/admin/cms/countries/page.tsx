@@ -110,55 +110,61 @@ export default function CountriesManagementPage() {
     }
   };
 
-  const columns = [
+  const columns: any[] = [
     {
+      accessorKey: "name",
       header: "Country Name",
-      accessor: (country: CountryRecord) => (
-        <span className="font-bold text-slate-900">{country.name}</span>
+      cell: ({ row }: any) => (
+        <span className="font-bold text-slate-900">{row.original.name}</span>
       ),
     },
     {
+      accessorKey: "code",
       header: "ISO Code",
-      accessor: (country: CountryRecord) => (
-        <span className="text-slate-500 font-mono text-xs uppercase">{country.code}</span>
+      cell: ({ row }: any) => (
+        <span className="text-slate-500 font-mono text-xs uppercase">{row.original.code}</span>
       ),
     },
     {
+      accessorKey: "phoneCode",
       header: "Dial Code",
-      accessor: (country: CountryRecord) => (
-        <span className="text-slate-600 text-xs font-mono">{country.phoneCode || "—"}</span>
+      cell: ({ row }: any) => (
+        <span className="text-slate-600 text-xs font-mono">{row.original.phoneCode || "—"}</span>
       ),
     },
     {
+      accessorKey: "currency",
       header: "Currency",
-      accessor: (country: CountryRecord) => (
-        <span className="text-slate-700 text-xs font-semibold">{country.currency || "—"}</span>
+      cell: ({ row }: any) => (
+        <span className="text-slate-700 text-xs font-semibold">{row.original.currency || "—"}</span>
       ),
     },
     {
+      accessorKey: "status",
       header: "Status",
-      accessor: (country: CountryRecord) => {
-        const s = country.status;
+      cell: ({ row }: any) => {
+        const s = row.original.status;
         const type = s === "ACTIVE" ? "success" : "neutral";
         return <StatusBadge status={s} type={type as any} />;
       },
     },
     {
+      id: "actions",
       header: "Action",
-      accessor: (country: CountryRecord) => (
+      cell: ({ row }: any) => (
         <div className="flex items-center gap-1.5 justify-end">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleToggleStatus(country)}
+            onClick={() => handleToggleStatus(row.original)}
             className="text-xs text-slate-600"
           >
-            {country.status === "ACTIVE" ? "Disable" : "Enable"}
+            {row.original.status === "ACTIVE" ? "Disable" : "Enable"}
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => handleDelete(country.id)}
+            onClick={() => handleDelete(row.original.id)}
             className="text-slate-400 hover:text-danger"
           >
             <Trash2 className="w-4 h-4" />

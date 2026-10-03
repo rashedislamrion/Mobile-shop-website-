@@ -52,7 +52,9 @@ export class UpdateBranchDto {
   @IsOptional()
   operatingHours?: any;
 
-  @Transform(({ value }) => (value !== undefined && value !== null ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== null ? Number(value) : undefined,
+  )
   @IsNumber()
   @IsOptional()
   openingStockValue?: number;

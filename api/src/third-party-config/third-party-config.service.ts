@@ -155,13 +155,18 @@ export class ThirdPartyConfigService {
     return config;
   }
 
-  async updatePaymentGateway(gateway: PaymentGatewayName, dto: UpdatePaymentGatewayDto) {
+  async updatePaymentGateway(
+    gateway: PaymentGatewayName,
+    dto: UpdatePaymentGatewayDto,
+  ) {
     const existing = await this.prisma.paymentGatewayConfig.findUnique({
       where: { gateway },
     });
 
     const existingCreds =
-      existing && typeof existing.credentials === 'object' && existing.credentials !== null
+      existing &&
+      typeof existing.credentials === 'object' &&
+      existing.credentials !== null
         ? (existing.credentials as Record<string, any>)
         : {};
 
@@ -179,12 +184,14 @@ export class ThirdPartyConfigService {
     return this.prisma.paymentGatewayConfig.upsert({
       where: { gateway },
       update: {
-        isActive: dto.isActive !== undefined ? dto.isActive : existing?.isActive,
+        isActive:
+          dto.isActive !== undefined ? dto.isActive : existing?.isActive,
         mode: dto.mode !== undefined ? dto.mode : existing?.mode,
         title: dto.title !== undefined ? dto.title : existing?.title,
         logoUrl: dto.logoUrl !== undefined ? dto.logoUrl : existing?.logoUrl,
         credentials: updatedCreds,
-        extraConfig: dto.extraConfig !== undefined ? (dto.extraConfig as any) : undefined,
+        extraConfig:
+          dto.extraConfig !== undefined ? (dto.extraConfig as any) : undefined,
       },
       create: {
         gateway,
@@ -223,18 +230,25 @@ export class ThirdPartyConfigService {
   async updateSmsConfig(dto: UpdateSmsConfigDto) {
     const existing = await this.prisma.smsConfig.findFirst();
     const apiKey =
-      dto.apiKey && !dto.apiKey.includes('****') ? dto.apiKey : existing?.apiKey || null;
+      dto.apiKey && !dto.apiKey.includes('****')
+        ? dto.apiKey
+        : existing?.apiKey || null;
     const apiSecret =
-      dto.apiSecret && !dto.apiSecret.includes('****') ? dto.apiSecret : existing?.apiSecret || null;
+      dto.apiSecret && !dto.apiSecret.includes('****')
+        ? dto.apiSecret
+        : existing?.apiSecret || null;
 
     if (existing) {
       return this.prisma.smsConfig.update({
         where: { id: existing.id },
         data: {
-          isActive: dto.isActive !== undefined ? dto.isActive : existing.isActive,
-          provider: dto.provider !== undefined ? dto.provider : existing.provider,
+          isActive:
+            dto.isActive !== undefined ? dto.isActive : existing.isActive,
+          provider:
+            dto.provider !== undefined ? dto.provider : existing.provider,
           apiKey,
-          senderId: dto.senderId !== undefined ? dto.senderId : existing.senderId,
+          senderId:
+            dto.senderId !== undefined ? dto.senderId : existing.senderId,
           apiSecret,
         },
       });
@@ -279,21 +293,28 @@ export class ThirdPartyConfigService {
   async updateMailConfig(dto: UpdateMailConfigDto) {
     const existing = await this.prisma.mailConfig.findFirst();
     const password =
-      dto.password && !dto.password.includes('****') ? dto.password : existing?.password || null;
+      dto.password && !dto.password.includes('****')
+        ? dto.password
+        : existing?.password || null;
 
     if (existing) {
       return this.prisma.mailConfig.update({
         where: { id: existing.id },
         data: {
-          isActive: dto.isActive !== undefined ? dto.isActive : existing.isActive,
+          isActive:
+            dto.isActive !== undefined ? dto.isActive : existing.isActive,
           driver: dto.driver !== undefined ? dto.driver : existing.driver,
           host: dto.host !== undefined ? dto.host : existing.host,
           port: dto.port !== undefined ? dto.port : existing.port,
-          username: dto.username !== undefined ? dto.username : existing.username,
+          username:
+            dto.username !== undefined ? dto.username : existing.username,
           password,
-          encryption: dto.encryption !== undefined ? dto.encryption : existing.encryption,
-          fromName: dto.fromName !== undefined ? dto.fromName : existing.fromName,
-          fromEmail: dto.fromEmail !== undefined ? dto.fromEmail : existing.fromEmail,
+          encryption:
+            dto.encryption !== undefined ? dto.encryption : existing.encryption,
+          fromName:
+            dto.fromName !== undefined ? dto.fromName : existing.fromName,
+          fromEmail:
+            dto.fromEmail !== undefined ? dto.fromEmail : existing.fromEmail,
         },
       });
     }
@@ -336,17 +357,25 @@ export class ThirdPartyConfigService {
   async updateFirebaseConfig(dto: UpdateFirebaseConfigDto) {
     const existing = await this.prisma.firebaseConfig.findFirst();
     const serverKey =
-      dto.serverKey && !dto.serverKey.includes('****') ? dto.serverKey : existing?.serverKey || null;
+      dto.serverKey && !dto.serverKey.includes('****')
+        ? dto.serverKey
+        : existing?.serverKey || null;
 
     if (existing) {
       return this.prisma.firebaseConfig.update({
         where: { id: existing.id },
         data: {
-          isActive: dto.isActive !== undefined ? dto.isActive : existing.isActive,
-          projectId: dto.projectId !== undefined ? dto.projectId : existing.projectId,
+          isActive:
+            dto.isActive !== undefined ? dto.isActive : existing.isActive,
+          projectId:
+            dto.projectId !== undefined ? dto.projectId : existing.projectId,
           serverKey,
-          senderId: dto.senderId !== undefined ? dto.senderId : existing.senderId,
-          configFileUrl: dto.configFileUrl !== undefined ? dto.configFileUrl : existing.configFileUrl,
+          senderId:
+            dto.senderId !== undefined ? dto.senderId : existing.senderId,
+          configFileUrl:
+            dto.configFileUrl !== undefined
+              ? dto.configFileUrl
+              : existing.configFileUrl,
         },
       });
     }
@@ -385,13 +414,16 @@ export class ThirdPartyConfigService {
   async updateRecaptchaConfig(dto: UpdateRecaptchaConfigDto) {
     const existing = await this.prisma.recaptchaConfig.findFirst();
     const secretKey =
-      dto.secretKey && !dto.secretKey.includes('****') ? dto.secretKey : existing?.secretKey || null;
+      dto.secretKey && !dto.secretKey.includes('****')
+        ? dto.secretKey
+        : existing?.secretKey || null;
 
     if (existing) {
       return this.prisma.recaptchaConfig.update({
         where: { id: existing.id },
         data: {
-          isActive: dto.isActive !== undefined ? dto.isActive : existing.isActive,
+          isActive:
+            dto.isActive !== undefined ? dto.isActive : existing.isActive,
           version: dto.version !== undefined ? dto.version : existing.version,
           minScoreThreshold:
             dto.minScoreThreshold !== undefined

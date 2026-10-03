@@ -30,7 +30,10 @@ export class SupplierController {
   // ============================= SUPPLIERS =============================
 
   @Get('suppliers')
-  @RequirePermission({ module: ModuleName.SUPPLIERS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.SUPPLIERS,
+    action: PermissionAction.READ,
+  })
   findAllSuppliers(
     @Query('status') status?: StaffStatus,
     @Query('search') search?: string,
@@ -46,7 +49,10 @@ export class SupplierController {
   }
 
   @Get('suppliers/:id/advance')
-  @RequirePermission({ module: ModuleName.SUPPLIERS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.SUPPLIERS,
+    action: PermissionAction.READ,
+  })
   async getSupplierAdvance(@Param('id') id: string) {
     const supplier = await this.supplierService.findOneSupplier(id);
     return {
@@ -56,25 +62,37 @@ export class SupplierController {
   }
 
   @Get('suppliers/:id')
-  @RequirePermission({ module: ModuleName.SUPPLIERS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.SUPPLIERS,
+    action: PermissionAction.READ,
+  })
   findOneSupplier(@Param('id') id: string) {
     return this.supplierService.findOneSupplier(id);
   }
 
   @Post('suppliers')
-  @RequirePermission({ module: ModuleName.SUPPLIERS, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.SUPPLIERS,
+    action: PermissionAction.CREATE,
+  })
   createSupplier(@Body() dto: CreateSupplierDto) {
     return this.supplierService.createSupplier(dto);
   }
 
   @Patch('suppliers/:id')
-  @RequirePermission({ module: ModuleName.SUPPLIERS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.SUPPLIERS,
+    action: PermissionAction.UPDATE,
+  })
   updateSupplier(@Param('id') id: string, @Body() dto: UpdateSupplierDto) {
     return this.supplierService.updateSupplier(id, dto);
   }
 
   @Delete('suppliers/:id')
-  @RequirePermission({ module: ModuleName.SUPPLIERS, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.SUPPLIERS,
+    action: PermissionAction.DELETE,
+  })
   removeSupplier(@Param('id') id: string) {
     return this.supplierService.removeSupplier(id);
   }
@@ -82,7 +100,10 @@ export class SupplierController {
   // ============================= SUPPLIER PAYMENTS =============================
 
   @Get('supplier-payments')
-  @RequirePermission({ module: ModuleName.SUPPLIERS, action: PermissionAction.READ })
+  @RequirePermission({
+    module: ModuleName.SUPPLIERS,
+    action: PermissionAction.READ,
+  })
   findAllPayments(
     @Query('supplier') supplier?: string,
     @Query('method') method?: string,
@@ -104,7 +125,10 @@ export class SupplierController {
   }
 
   @Post('supplier-payments')
-  @RequirePermission({ module: ModuleName.SUPPLIERS, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.SUPPLIERS,
+    action: PermissionAction.CREATE,
+  })
   createPayment(
     @Body() dto: CreateSupplierPaymentDto,
     @CurrentUser() user: JwtPayload,

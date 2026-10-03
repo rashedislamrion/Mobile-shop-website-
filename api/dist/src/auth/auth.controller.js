@@ -80,7 +80,11 @@ let AuthController = class AuthController {
             await this.authService.logout(refreshToken, userId);
         }
         const isProd = process.env.NODE_ENV === 'production';
-        const clearOpts = { path: '/', secure: isProd, sameSite: isProd ? 'none' : 'lax' };
+        const clearOpts = {
+            path: '/',
+            secure: isProd,
+            sameSite: isProd ? 'none' : 'lax',
+        };
         res.clearCookie('customer_refresh_token', clearOpts);
         res.clearCookie('refresh_token', clearOpts);
         return { success: true };
@@ -91,7 +95,11 @@ let AuthController = class AuthController {
             await this.authService.logout(refreshToken, userId);
         }
         const isProd = process.env.NODE_ENV === 'production';
-        const clearOpts = { path: '/', secure: isProd, sameSite: isProd ? 'none' : 'lax' };
+        const clearOpts = {
+            path: '/',
+            secure: isProd,
+            sameSite: isProd ? 'none' : 'lax',
+        };
         res.clearCookie('staff_refresh_token', clearOpts);
         res.clearCookie('refresh_token', clearOpts);
         return { success: true };
@@ -104,7 +112,11 @@ let AuthController = class AuthController {
             await this.authService.logout(refreshToken, userId);
         }
         const isProd = process.env.NODE_ENV === 'production';
-        const clearOpts = { path: '/', secure: isProd, sameSite: isProd ? 'none' : 'lax' };
+        const clearOpts = {
+            path: '/',
+            secure: isProd,
+            sameSite: isProd ? 'none' : 'lax',
+        };
         res.clearCookie('customer_refresh_token', clearOpts);
         res.clearCookie('staff_refresh_token', clearOpts);
         res.clearCookie('refresh_token', clearOpts);
@@ -155,7 +167,7 @@ __decorate([
 ], AuthController.prototype, "registerCustomer", null);
 __decorate([
     (0, public_decorator_1.Public)(),
-    (0, throttler_1.Throttle)({ default: { limit: 5, ttl: 60000 } }),
+    (0, throttler_1.Throttle)({ default: { limit: 10, ttl: 60000 } }),
     (0, common_1.Post)('customer/login'),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
@@ -165,7 +177,7 @@ __decorate([
 ], AuthController.prototype, "loginCustomer", null);
 __decorate([
     (0, public_decorator_1.Public)(),
-    (0, throttler_1.Throttle)({ default: { limit: 100, ttl: 60000 } }),
+    (0, throttler_1.Throttle)({ default: { limit: 10, ttl: 60000 } }),
     (0, common_1.Post)('staff/login'),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),

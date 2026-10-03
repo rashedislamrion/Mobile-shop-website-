@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Query,
-  Res,
-} from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { SslcommerzService } from './sslcommerz.service';
 import { Public } from '../../auth/decorators/public.decorator';
@@ -35,7 +28,11 @@ export class SslcommerzController {
 
   @Public()
   @Post('success')
-  async successPost(@Query() query: any, @Body() body: any, @Res() res: Response) {
+  async successPost(
+    @Query() query: any,
+    @Body() body: any,
+    @Res() res: Response,
+  ) {
     const redirectUrl = await this.sslcommerzService.handleSuccess(query, body);
     return res.redirect(redirectUrl);
   }
@@ -63,7 +60,11 @@ export class SslcommerzController {
 
   @Public()
   @Post('cancel')
-  async cancelPost(@Query() query: any, @Body() body: any, @Res() res: Response) {
+  async cancelPost(
+    @Query() query: any,
+    @Body() body: any,
+    @Res() res: Response,
+  ) {
     const redirectUrl = await this.sslcommerzService.handleCancel(query, body);
     return res.redirect(redirectUrl);
   }

@@ -11,13 +11,19 @@ import { slugify } from '../common/utils/slug.util';
 import { Prisma, ProductStatus } from '@prisma/client';
 import * as fs from 'fs';
 import { join } from 'path';
-import { getUploadRoot, resolveUploadedFiles } from '../common/upload/multer.config';
+import {
+  getUploadRoot,
+  resolveUploadedFiles,
+} from '../common/upload/multer.config';
 
 @Injectable()
 export class ProductService {
   constructor(private prisma: PrismaService) {}
 
-  private async generateUniqueSlug(baseName: string, existingId?: string): Promise<string> {
+  private async generateUniqueSlug(
+    baseName: string,
+    existingId?: string,
+  ): Promise<string> {
     const baseSlug = slugify(baseName) || `product-${Date.now()}`;
     let slug = baseSlug;
     let counter = 1;
@@ -40,7 +46,10 @@ export class ProductService {
     }
   }
 
-  private async generateUniqueCode(providedCode?: string, existingId?: string): Promise<string> {
+  private async generateUniqueCode(
+    providedCode?: string,
+    existingId?: string,
+  ): Promise<string> {
     if (providedCode && providedCode.trim()) {
       const trimmed = providedCode.trim();
       const existing = await this.prisma.product.findFirst({
@@ -51,7 +60,9 @@ export class ProductService {
         select: { id: true },
       });
       if (existing) {
-        throw new ConflictException(`Product code "${trimmed}" already exists.`);
+        throw new ConflictException(
+          `Product code "${trimmed}" already exists.`,
+        );
       }
       return trimmed;
     }
@@ -108,7 +119,10 @@ export class ProductService {
       where.isNewest = query.newest === true || query.newest === 'true';
     }
 
-    if (query.productCategory || (query.type && query.type.toUpperCase() === 'PHONE')) {
+    if (
+      query.productCategory ||
+      (query.type && query.type.toUpperCase() === 'PHONE')
+    ) {
       const catVal = (query.productCategory || query.type || '').toUpperCase();
       if (catVal === 'PHONE') {
         where.OR = [
@@ -135,12 +149,17 @@ export class ProductService {
     }
 
     if (query.brand) {
-      const brands = query.brand.split(',').map((s) => s.trim()).filter(Boolean);
+      const brands = query.brand
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
       if (brands.length > 0) {
         where.brand = {
           OR: [
             { id: { in: brands } },
-            ...brands.map((b) => ({ name: { equals: b, mode: 'insensitive' as const } })),
+            ...brands.map((b) => ({
+              name: { equals: b, mode: 'insensitive' as const },
+            })),
           ],
         };
       }
@@ -148,18 +167,28 @@ export class ProductService {
 
     const variantFilters: Prisma.ProductVariantWhereInput[] = [];
     if (query.color) {
-      const colors = query.color.split(',').map((s) => s.trim()).filter(Boolean);
+      const colors = query.color
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
       if (colors.length > 0) {
         variantFilters.push({
-          OR: colors.map((c) => ({ color: { equals: c, mode: 'insensitive' as const } })),
+          OR: colors.map((c) => ({
+            color: { equals: c, mode: 'insensitive' as const },
+          })),
         });
       }
     }
     if (query.quality) {
-      const qualities = query.quality.split(',').map((s) => s.trim()).filter(Boolean);
+      const qualities = query.quality
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
       if (qualities.length > 0) {
         variantFilters.push({
-          OR: qualities.map((q) => ({ quality: { equals: q, mode: 'insensitive' as const } })),
+          OR: qualities.map((q) => ({
+            quality: { equals: q, mode: 'insensitive' as const },
+          })),
         });
       }
     }
@@ -171,11 +200,17 @@ export class ProductService {
     ['guarantee', 'frame', 'type', 'service'].forEach((specKey) => {
       const val = query[specKey as keyof typeof query];
       if (val && typeof val === 'string') {
-        const vals = val.split(',').map((s) => s.trim()).filter(Boolean);
+        const vals = val
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
         vals.forEach((v) => {
           specFilters.push({
             OR: [
-              { label: { contains: specKey, mode: 'insensitive' }, value: { contains: v, mode: 'insensitive' } },
+              {
+                label: { contains: specKey, mode: 'insensitive' },
+                value: { contains: v, mode: 'insensitive' },
+              },
               { value: { contains: v, mode: 'insensitive' } },
             ],
           });
@@ -190,20 +225,30 @@ export class ProductService {
     if (query.search) {
       const search = query.search.trim();
       where.AND = [
-        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+        ...(Array.isArray(where.AND)
+          ? where.AND
+          : where.AND
+            ? [where.AND]
+            : []),
         {
           OR: [
             { name: { contains: search, mode: 'insensitive' } },
             { code: { contains: search, mode: 'insensitive' } },
             { description: { contains: search, mode: 'insensitive' } },
             { shortDescription: { contains: search, mode: 'insensitive' } },
-            { variants: { some: { sku: { contains: search, mode: 'insensitive' } } } },
+            {
+              variants: {
+                some: { sku: { contains: search, mode: 'insensitive' } },
+              },
+            },
           ],
         },
       ];
     }
 
-    let orderBy: Prisma.ProductOrderByWithRelationInput | Prisma.ProductOrderByWithRelationInput[] = { createdAt: 'desc' };
+    let orderBy:
+      | Prisma.ProductOrderByWithRelationInput
+      | Prisma.ProductOrderByWithRelationInput[] = { createdAt: 'desc' };
     if (query.sort === 'price_asc') {
       orderBy = { regularPrice: 'asc' };
     } else if (query.sort === 'price_desc') {
@@ -239,12 +284,18 @@ export class ProductService {
     ]);
 
     const mappedData = data.map((p) => {
-      const isPhone = p.productCategory === 'PHONE' || p.productType?.toLowerCase() === 'phone' || p.category?.name?.toLowerCase().includes('phone');
+      const isPhone =
+        p.productCategory === 'PHONE' ||
+        p.productType?.toLowerCase() === 'phone' ||
+        p.category?.name?.toLowerCase().includes('phone');
       const mappedVariants = p.variants.map((v: any) => ({
         ...v,
         stock: isPhone ? (v.phoneUnits?.length ?? 0) : v.stock,
       }));
-      const totalStock = mappedVariants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
+      const totalStock = mappedVariants.reduce(
+        (sum, v) => sum + (Number(v.stock) || 0),
+        0,
+      );
       return {
         ...p,
         variants: mappedVariants,
@@ -291,16 +342,24 @@ export class ProductService {
     });
 
     if (!product) {
-      throw new NotFoundException(`Product with identifier "${slugOrId}" not found`);
+      throw new NotFoundException(
+        `Product with identifier "${slugOrId}" not found`,
+      );
     }
 
-    const isPhone = product.productCategory === 'PHONE' || product.productType?.toLowerCase() === 'phone' || product.category?.name?.toLowerCase().includes('phone');
+    const isPhone =
+      product.productCategory === 'PHONE' ||
+      product.productType?.toLowerCase() === 'phone' ||
+      product.category?.name?.toLowerCase().includes('phone');
     const mappedVariants = product.variants.map((v: any) => ({
       ...v,
       stock: isPhone ? (v.phoneUnits?.length ?? 0) : v.stock,
       phoneUnits: undefined, // Never expose raw IMEIs on public storefront
     }));
-    const totalStock = mappedVariants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
+    const totalStock = mappedVariants.reduce(
+      (sum, v) => sum + (Number(v.stock) || 0),
+      0,
+    );
 
     const relatedProducts = await this.prisma.product.findMany({
       where: {
@@ -334,7 +393,10 @@ export class ProductService {
       return {
         ...p,
         variants: relVariants,
-        totalStock: relVariants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0),
+        totalStock: relVariants.reduce(
+          (sum, v) => sum + (Number(v.stock) || 0),
+          0,
+        ),
       };
     });
 
@@ -365,9 +427,11 @@ export class ProductService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.ProductWhereInput = {};
-    if (query.categoryId && query.categoryId !== 'all') where.categoryId = query.categoryId;
+    if (query.categoryId && query.categoryId !== 'all')
+      where.categoryId = query.categoryId;
     if (query.brandId && query.brandId !== 'all') where.brandId = query.brandId;
-    if (query.status && query.status !== ('all' as any)) where.status = query.status;
+    if (query.status && query.status !== ('all' as any))
+      where.status = query.status;
 
     if (query.homepage !== undefined && query.homepage !== 'all') {
       where.isHomepage = query.homepage === true || query.homepage === 'true';
@@ -388,11 +452,17 @@ export class ProductService {
         { name: { contains: search, mode: 'insensitive' } },
         { code: { contains: search, mode: 'insensitive' } },
         { slug: { contains: search, mode: 'insensitive' } },
-        { variants: { some: { sku: { contains: search, mode: 'insensitive' } } } },
+        {
+          variants: {
+            some: { sku: { contains: search, mode: 'insensitive' } },
+          },
+        },
       ];
     }
 
-    let orderBy: Prisma.ProductOrderByWithRelationInput | Prisma.ProductOrderByWithRelationInput[] = { createdAt: 'desc' };
+    let orderBy:
+      | Prisma.ProductOrderByWithRelationInput
+      | Prisma.ProductOrderByWithRelationInput[] = { createdAt: 'desc' };
     if (query.sort === 'oldest') {
       orderBy = { createdAt: 'asc' };
     } else if (query.sort === 'price_asc') {
@@ -428,16 +498,22 @@ export class ProductService {
       }),
     ]);
 
-    const targetBranch = query.branchId && query.branchId !== 'all' ? query.branchId : null;
+    const targetBranch =
+      query.branchId && query.branchId !== 'all' ? query.branchId : null;
 
     const data = products.map((p) => {
       const variantsWithStock = p.variants.map((v) => {
         let variantStock = Number(v.stock || 0);
         if (targetBranch) {
-          const bInv = v.branchInventories?.find((b) => b.branchId === targetBranch);
+          const bInv = v.branchInventories?.find(
+            (b) => b.branchId === targetBranch,
+          );
           variantStock = bInv ? Number(bInv.quantity) : 0;
         } else if (v.branchInventories && v.branchInventories.length > 0) {
-          variantStock = v.branchInventories.reduce((sum, b) => sum + Number(b.quantity), 0);
+          variantStock = v.branchInventories.reduce(
+            (sum, b) => sum + Number(b.quantity),
+            0,
+          );
         }
         return {
           ...v,
@@ -492,7 +568,11 @@ export class ProductService {
   async create(dto: CreateProductDto, files?: Express.Multer.File[]) {
     const slug = await this.generateUniqueSlug(dto.slug || dto.name);
     const code = await this.generateUniqueCode(dto.code);
-    const categoryId = dto.categoryId || (dto.categoryIds && dto.categoryIds.length > 0 ? dto.categoryIds[0] : undefined);
+    const categoryId =
+      dto.categoryId ||
+      (dto.categoryIds && dto.categoryIds.length > 0
+        ? dto.categoryIds[0]
+        : undefined);
 
     if (!categoryId) {
       throw new BadRequestException('At least one Category must be selected.');
@@ -516,9 +596,14 @@ export class ProductService {
           regularPrice: new Prisma.Decimal(dto.regularPrice || 0),
           salePrice: dto.salePrice ? new Prisma.Decimal(dto.salePrice) : null,
           costPrice: dto.costPrice ? new Prisma.Decimal(dto.costPrice) : null,
-          buyingPrice: dto.buyingPrice ? new Prisma.Decimal(dto.buyingPrice) : null,
-          wholesalePrice: dto.wholesalePrice ? new Prisma.Decimal(dto.wholesalePrice) : null,
-          minOrderQty: dto.minOrderQty !== undefined ? Number(dto.minOrderQty) : 1,
+          buyingPrice: dto.buyingPrice
+            ? new Prisma.Decimal(dto.buyingPrice)
+            : null,
+          wholesalePrice: dto.wholesalePrice
+            ? new Prisma.Decimal(dto.wholesalePrice)
+            : null,
+          minOrderQty:
+            dto.minOrderQty !== undefined ? Number(dto.minOrderQty) : 1,
           warranty: dto.warranty || null,
           productType: dto.productType || 'Spare Parts',
           condition: dto.condition || null,
@@ -556,11 +641,27 @@ export class ProductService {
               price: new Prisma.Decimal(v.price || dto.regularPrice || 0),
               stock: Number(v.stock) || 0,
               sku: v.sku?.trim() || `${slug.toUpperCase()}-V${idx + 1}`,
-              buyingPrice: v.buyingPrice ? new Prisma.Decimal(v.buyingPrice) : (dto.buyingPrice ? new Prisma.Decimal(dto.buyingPrice) : null),
-              wholesalePrice: v.wholesalePrice ? new Prisma.Decimal(v.wholesalePrice) : (dto.wholesalePrice ? new Prisma.Decimal(dto.wholesalePrice) : null),
-              discountedPrice: v.discountedPrice ? new Prisma.Decimal(v.discountedPrice) : null,
-              offerPrice: v.offerPrice ? new Prisma.Decimal(v.offerPrice) : null,
-              attributes: v.attributes ? (typeof v.attributes === 'object' ? v.attributes : JSON.parse(v.attributes)) : null,
+              buyingPrice: v.buyingPrice
+                ? new Prisma.Decimal(v.buyingPrice)
+                : dto.buyingPrice
+                  ? new Prisma.Decimal(dto.buyingPrice)
+                  : null,
+              wholesalePrice: v.wholesalePrice
+                ? new Prisma.Decimal(v.wholesalePrice)
+                : dto.wholesalePrice
+                  ? new Prisma.Decimal(dto.wholesalePrice)
+                  : null,
+              discountedPrice: v.discountedPrice
+                ? new Prisma.Decimal(v.discountedPrice)
+                : null,
+              offerPrice: v.offerPrice
+                ? new Prisma.Decimal(v.offerPrice)
+                : null,
+              attributes: v.attributes
+                ? typeof v.attributes === 'object'
+                  ? v.attributes
+                  : JSON.parse(v.attributes)
+                : null,
             },
           });
 
@@ -590,8 +691,12 @@ export class ProductService {
             price: new Prisma.Decimal(dto.regularPrice || 0),
             stock: 0,
             sku: `${slug.toUpperCase()}-DEFAULT`,
-            buyingPrice: dto.buyingPrice ? new Prisma.Decimal(dto.buyingPrice) : null,
-            wholesalePrice: dto.wholesalePrice ? new Prisma.Decimal(dto.wholesalePrice) : null,
+            buyingPrice: dto.buyingPrice
+              ? new Prisma.Decimal(dto.buyingPrice)
+              : null,
+            wholesalePrice: dto.wholesalePrice
+              ? new Prisma.Decimal(dto.wholesalePrice)
+              : null,
           },
         });
 
@@ -642,7 +747,11 @@ export class ProductService {
     });
   }
 
-  async update(id: string, dto: UpdateProductDto, files?: Express.Multer.File[]) {
+  async update(
+    id: string,
+    dto: UpdateProductDto,
+    files?: Express.Multer.File[],
+  ) {
     const existing = await this.prisma.product.findUnique({
       where: { id },
       include: { images: true },
@@ -662,10 +771,15 @@ export class ProductService {
     return this.prisma.$transaction(async (tx) => {
       // 1. Remove requested images
       if (dto.removedImageIds && dto.removedImageIds.length > 0) {
-        const toDelete = existing.images.filter((img) => dto.removedImageIds!.includes(img.id));
+        const toDelete = existing.images.filter((img) =>
+          dto.removedImageIds!.includes(img.id),
+        );
         for (const img of toDelete) {
           try {
-            const filePath = join(process.cwd(), img.url.startsWith('/') ? img.url.slice(1) : img.url);
+            const filePath = join(
+              process.cwd(),
+              img.url.startsWith('/') ? img.url.slice(1) : img.url,
+            );
             if (fs.existsSync(filePath)) {
               fs.unlinkSync(filePath);
             }
@@ -680,7 +794,9 @@ export class ProductService {
 
       // 2. Add newly uploaded files
       if (files && files.length > 0) {
-        const currentCount = await tx.productImage.count({ where: { productId: id } });
+        const currentCount = await tx.productImage.count({
+          where: { productId: id },
+        });
         const uploadedUrls = await resolveUploadedFiles(files, 'products');
         await tx.productImage.createMany({
           data: uploadedUrls.map((url, idx) => ({
@@ -718,14 +834,28 @@ export class ProductService {
               productId: id,
               color: v.color || null,
               quality: v.quality || null,
-              price: new Prisma.Decimal(v.price ?? dto.regularPrice ?? existing.regularPrice),
+              price: new Prisma.Decimal(
+                v.price ?? dto.regularPrice ?? existing.regularPrice,
+              ),
               stock: Number(v.stock) || 0,
               sku: v.sku?.trim() || `${slug.toUpperCase()}-V${idx + 1}`,
-              buyingPrice: v.buyingPrice ? new Prisma.Decimal(v.buyingPrice) : null,
-              wholesalePrice: v.wholesalePrice ? new Prisma.Decimal(v.wholesalePrice) : null,
-              discountedPrice: v.discountedPrice ? new Prisma.Decimal(v.discountedPrice) : null,
-              offerPrice: v.offerPrice ? new Prisma.Decimal(v.offerPrice) : null,
-              attributes: v.attributes ? (typeof v.attributes === 'object' ? v.attributes : JSON.parse(v.attributes)) : null,
+              buyingPrice: v.buyingPrice
+                ? new Prisma.Decimal(v.buyingPrice)
+                : null,
+              wholesalePrice: v.wholesalePrice
+                ? new Prisma.Decimal(v.wholesalePrice)
+                : null,
+              discountedPrice: v.discountedPrice
+                ? new Prisma.Decimal(v.discountedPrice)
+                : null,
+              offerPrice: v.offerPrice
+                ? new Prisma.Decimal(v.offerPrice)
+                : null,
+              attributes: v.attributes
+                ? typeof v.attributes === 'object'
+                  ? v.attributes
+                  : JSON.parse(v.attributes)
+                : null,
             },
           });
 
@@ -777,34 +907,51 @@ export class ProductService {
       if (dto.isFeatured !== undefined) updateData.isFeatured = dto.isFeatured;
       if (dto.isHomepage !== undefined) updateData.isHomepage = dto.isHomepage;
       if (dto.isBestDeal !== undefined) updateData.isBestDeal = dto.isBestDeal;
-      if (dto.shortDescription !== undefined) updateData.shortDescription = dto.shortDescription || null;
-      if (dto.description !== undefined) updateData.description = dto.description || null;
+      if (dto.shortDescription !== undefined)
+        updateData.shortDescription = dto.shortDescription || null;
+      if (dto.description !== undefined)
+        updateData.description = dto.description || null;
       if (dto.categoryId !== undefined) {
         updateData.category = { connect: { id: dto.categoryId } };
       } else if (dto.categoryIds && dto.categoryIds.length > 0) {
         updateData.category = { connect: { id: dto.categoryIds[0] } };
       }
       if (dto.brandId !== undefined) {
-        updateData.brand = dto.brandId ? { connect: { id: dto.brandId } } : { disconnect: true };
+        updateData.brand = dto.brandId
+          ? { connect: { id: dto.brandId } }
+          : { disconnect: true };
       }
       if (dto.seriesId !== undefined) {
-        updateData.series = dto.seriesId ? { connect: { id: dto.seriesId } } : { disconnect: true };
+        updateData.series = dto.seriesId
+          ? { connect: { id: dto.seriesId } }
+          : { disconnect: true };
       }
       if (dto.unitId !== undefined) {
-        updateData.unit = dto.unitId ? { connect: { id: dto.unitId } } : { disconnect: true };
+        updateData.unit = dto.unitId
+          ? { connect: { id: dto.unitId } }
+          : { disconnect: true };
       }
-      if (dto.regularPrice !== undefined) updateData.regularPrice = new Prisma.Decimal(dto.regularPrice);
+      if (dto.regularPrice !== undefined)
+        updateData.regularPrice = new Prisma.Decimal(dto.regularPrice);
       if (dto.salePrice !== undefined) {
-        updateData.salePrice = dto.salePrice ? new Prisma.Decimal(dto.salePrice) : null;
+        updateData.salePrice = dto.salePrice
+          ? new Prisma.Decimal(dto.salePrice)
+          : null;
       }
       if (dto.costPrice !== undefined) {
-        updateData.costPrice = dto.costPrice ? new Prisma.Decimal(dto.costPrice) : null;
+        updateData.costPrice = dto.costPrice
+          ? new Prisma.Decimal(dto.costPrice)
+          : null;
       }
       if (dto.buyingPrice !== undefined) {
-        updateData.buyingPrice = dto.buyingPrice ? new Prisma.Decimal(dto.buyingPrice) : null;
+        updateData.buyingPrice = dto.buyingPrice
+          ? new Prisma.Decimal(dto.buyingPrice)
+          : null;
       }
       if (dto.wholesalePrice !== undefined) {
-        updateData.wholesalePrice = dto.wholesalePrice ? new Prisma.Decimal(dto.wholesalePrice) : null;
+        updateData.wholesalePrice = dto.wholesalePrice
+          ? new Prisma.Decimal(dto.wholesalePrice)
+          : null;
       }
       if (dto.minOrderQty !== undefined) {
         updateData.minOrderQty = Number(dto.minOrderQty);
@@ -822,9 +969,12 @@ export class ProductService {
         updateData.ogImageUrl = dto.ogImageUrl || null;
       }
       if (dto.status !== undefined) updateData.status = dto.status;
-      if (dto.metaTitle !== undefined) updateData.metaTitle = dto.metaTitle || null;
-      if (dto.metaDescription !== undefined) updateData.metaDescription = dto.metaDescription || null;
-      if (dto.metaKeywords !== undefined) updateData.metaKeywords = dto.metaKeywords || null;
+      if (dto.metaTitle !== undefined)
+        updateData.metaTitle = dto.metaTitle || null;
+      if (dto.metaDescription !== undefined)
+        updateData.metaDescription = dto.metaDescription || null;
+      if (dto.metaKeywords !== undefined)
+        updateData.metaKeywords = dto.metaKeywords || null;
 
       return tx.product.update({
         where: { id },
@@ -859,7 +1009,10 @@ export class ProductService {
       throw new NotFoundException(`Product with ID "${id}" not found`);
     }
 
-    if (product.orderItems.length > 0 || product.purchaseOrderItems.length > 0) {
+    if (
+      product.orderItems.length > 0 ||
+      product.purchaseOrderItems.length > 0
+    ) {
       throw new ConflictException(
         `Cannot delete product "${product.name}" with existing order history. Please set its status to Draft or Discontinued instead.`,
       );
@@ -867,7 +1020,10 @@ export class ProductService {
 
     for (const img of product.images) {
       try {
-        const filePath = join(process.cwd(), img.url.startsWith('/') ? img.url.slice(1) : img.url);
+        const filePath = join(
+          process.cwd(),
+          img.url.startsWith('/') ? img.url.slice(1) : img.url,
+        );
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
         }
@@ -906,7 +1062,9 @@ export class ProductService {
       productWhere.OR = [
         { categoryId: query.category },
         { category: { slug: query.category } },
-        { category: { name: { contains: query.category, mode: 'insensitive' } } },
+        {
+          category: { name: { contains: query.category, mode: 'insensitive' } },
+        },
       ];
     }
 
@@ -919,9 +1077,15 @@ export class ProductService {
             { name: { contains: s, mode: 'insensitive' } },
             { code: { contains: s, mode: 'insensitive' } },
             { slug: { contains: s, mode: 'insensitive' } },
-            { variants: { some: { sku: { contains: s, mode: 'insensitive' } } } },
+            {
+              variants: { some: { sku: { contains: s, mode: 'insensitive' } } },
+            },
             { variants: { some: { id: s } } },
-            { specifications: { some: { value: { contains: s, mode: 'insensitive' } } } },
+            {
+              specifications: {
+                some: { value: { contains: s, mode: 'insensitive' } },
+              },
+            },
           ],
         },
       ];
@@ -959,9 +1123,11 @@ export class ProductService {
       orderBy: { updatedAt: 'desc' },
     });
 
-    const targetBranch = (query.branchId || query.branch) && (query.branchId || query.branch) !== 'all'
-      ? (query.branchId || query.branch)
-      : null;
+    const targetBranch =
+      (query.branchId || query.branch) &&
+      (query.branchId || query.branch) !== 'all'
+        ? query.branchId || query.branch
+        : null;
 
     const flatVariants: any[] = [];
 
@@ -975,19 +1141,32 @@ export class ProductService {
 
           if (isPhone) {
             availableUnits = targetBranch
-              ? (variant.phoneUnits?.filter((u: any) => u.branchId === targetBranch) || [])
-              : (variant.phoneUnits || []);
+              ? variant.phoneUnits?.filter(
+                  (u: any) => u.branchId === targetBranch,
+                ) || []
+              : variant.phoneUnits || [];
             variantStock = availableUnits.length;
           } else {
             if (targetBranch) {
-              const bInv = variant.branchInventories?.find((b) => b.branchId === targetBranch);
+              const bInv = variant.branchInventories?.find(
+                (b) => b.branchId === targetBranch,
+              );
               variantStock = bInv ? Number(bInv.quantity) : 0;
-            } else if (variant.branchInventories && variant.branchInventories.length > 0) {
-              variantStock = variant.branchInventories.reduce((sum, b) => sum + Number(b.quantity), 0);
+            } else if (
+              variant.branchInventories &&
+              variant.branchInventories.length > 0
+            ) {
+              variantStock = variant.branchInventories.reduce(
+                (sum, b) => sum + Number(b.quantity),
+                0,
+              );
             }
           }
 
-          if ((query.inStock === true || query.inStock === 'true') && variantStock <= 0) {
+          if (
+            (query.inStock === true || query.inStock === 'true') &&
+            variantStock <= 0
+          ) {
             continue;
           }
 
@@ -996,20 +1175,33 @@ export class ProductService {
             productId: product.id,
             productName: product.name,
             productSlug: product.slug,
-            productImage: product.images?.[0]?.url || 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=200&h=200&fit=crop',
+            productImage:
+              product.images?.[0]?.url ||
+              'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=200&h=200&fit=crop',
             color: variant.color || null,
             quality: variant.quality || null,
+            attributes: variant.attributes || null,
             sku: variant.sku,
             stock: variantStock,
             isPhone,
             condition: product.condition || null,
             productType: product.productType,
             phoneUnits: availableUnits,
-            price: Number(variant.price || product.salePrice || product.regularPrice),
+            price: Number(
+              variant.price || product.salePrice || product.regularPrice,
+            ),
             regularPrice: Number(product.regularPrice),
             salePrice: product.salePrice ? Number(product.salePrice) : null,
-            buyingPrice: variant.buyingPrice ? Number(variant.buyingPrice) : (product.buyingPrice ? Number(product.buyingPrice) : null),
-            wholesalePrice: variant.wholesalePrice ? Number(variant.wholesalePrice) : (product.wholesalePrice ? Number(product.wholesalePrice) : null),
+            buyingPrice: variant.buyingPrice
+              ? Number(variant.buyingPrice)
+              : product.buyingPrice
+                ? Number(product.buyingPrice)
+                : null,
+            wholesalePrice: variant.wholesalePrice
+              ? Number(variant.wholesalePrice)
+              : product.wholesalePrice
+                ? Number(product.wholesalePrice)
+                : null,
             offerPrice: variant.offerPrice ? Number(variant.offerPrice) : null,
             categoryName: product.category?.name || 'General',
             categoryId: product.categoryId,
@@ -1020,28 +1212,43 @@ export class ProductService {
               let vUnits: any[] = [];
               if (isPhone) {
                 vUnits = targetBranch
-                  ? (v.phoneUnits?.filter((u: any) => u.branchId === targetBranch) || [])
-                  : (v.phoneUnits || []);
+                  ? v.phoneUnits?.filter(
+                      (u: any) => u.branchId === targetBranch,
+                    ) || []
+                  : v.phoneUnits || [];
                 vStock = vUnits.length;
               } else {
                 if (targetBranch) {
-                  const bInv = v.branchInventories?.find((b) => b.branchId === targetBranch);
+                  const bInv = v.branchInventories?.find(
+                    (b) => b.branchId === targetBranch,
+                  );
                   vStock = bInv ? Number(bInv.quantity) : 0;
-                } else if (v.branchInventories && v.branchInventories.length > 0) {
-                  vStock = v.branchInventories.reduce((sum, b) => sum + Number(b.quantity), 0);
+                } else if (
+                  v.branchInventories &&
+                  v.branchInventories.length > 0
+                ) {
+                  vStock = v.branchInventories.reduce(
+                    (sum, b) => sum + Number(b.quantity),
+                    0,
+                  );
                 }
               }
               return {
                 id: v.id,
                 color: v.color,
                 quality: v.quality,
+                attributes: v.attributes || null,
                 sku: v.sku,
                 stock: vStock,
                 isPhone,
                 phoneUnits: vUnits,
-                price: Number(v.price || product.salePrice || product.regularPrice),
+                price: Number(
+                  v.price || product.salePrice || product.regularPrice,
+                ),
                 buyingPrice: v.buyingPrice ? Number(v.buyingPrice) : null,
-                wholesalePrice: v.wholesalePrice ? Number(v.wholesalePrice) : null,
+                wholesalePrice: v.wholesalePrice
+                  ? Number(v.wholesalePrice)
+                  : null,
                 offerPrice: v.offerPrice ? Number(v.offerPrice) : null,
               };
             }),
@@ -1053,7 +1260,9 @@ export class ProductService {
           productId: product.id,
           productName: product.name,
           productSlug: product.slug,
-          productImage: product.images?.[0]?.url || 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=200&h=200&fit=crop',
+          productImage:
+            product.images?.[0]?.url ||
+            'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=200&h=200&fit=crop',
           color: null,
           quality: null,
           sku: product.slug.toUpperCase(),

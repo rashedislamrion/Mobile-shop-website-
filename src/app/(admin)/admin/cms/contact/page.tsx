@@ -7,9 +7,9 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Check, Loader2, Mail, Phone, Calendar } from "lucide-react";
+import { Eye, Check, Loader2, Mail, Phone, Calendar, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { apiGet, apiPatch } from "@/lib/api-client";
+import { apiGet, apiPatch, apiDelete } from "@/lib/api-client";
 import { format } from "date-fns";
 
 export interface ContactSubmissionRecord {
@@ -32,8 +32,8 @@ export default function ContactManagementPage() {
   const fetchSubmissions = async () => {
     setIsLoading(true);
     try {
-      const data = await apiGet<ContactSubmissionRecord[]>("/contact-submissions");
-      setSubmissions(data || []);
+      const res = await apiGet<any>("/contact-submissions");
+      setSubmissions(Array.isArray(res) ? res : res?.data || []);
     } catch (e) {
       console.error(e);
       toast.error("Failed to load contact submissions");
@@ -59,6 +59,20 @@ export default function ContactManagementPage() {
       setSubmissions(submissions.map((s) => (s.id === id ? { ...s, status } : s)));
     } catch (err: any) {
       toast.error(err.message || "Failed to update status");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this contact submission?")) return;
+    try {
+      await apiDelete(`/contact-submissions/${id}`);
+      toast.success("Contact submission deleted successfully");
+      if (selectedSub && selectedSub.id === id) {
+        setSelectedSub(null);
+      }
+      fetchSubmissions();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete submission");
     }
   };
 
@@ -141,6 +155,15 @@ export default function ContactManagementPage() {
               <Check className="w-3.5 h-3.5 mr-1" /> Replied
             </Button>
           )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleDelete(row.original.id)}
+            className="text-xs text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1.5"
+            title="Delete Inquiry"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
         </div>
       ),
     },
@@ -204,20 +227,29 @@ export default function ContactManagementPage() {
                 </p>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t">
+              <div className="flex justify-between items-center pt-2 border-t">
                 <Button
-                  variant="outline"
-                  onClick={() => setSelectedSub(null)}
-                  className="text-xs"
+                  variant="ghost"
+                  onClick={() => handleDelete(selectedSub.id)}
+                  className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-semibold"
                 >
-                  Close
+                  <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete Inquiry
                 </Button>
-                <Button
-                  onClick={() => handleUpdateStatus(selectedSub.id, "REPLIED")}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
-                >
-                  Mark as Replied
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedSub(null)}
+                    className="text-xs"
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    onClick={() => handleUpdateStatus(selectedSub.id, "REPLIED")}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
+                  >
+                    Mark as Replied
+                  </Button>
+                </div>
               </div>
             </div>
           )}

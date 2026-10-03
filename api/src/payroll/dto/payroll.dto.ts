@@ -29,4 +29,3 @@ export class MarkPaidDto {
   @IsOptional()
   note?: string;
 }
-

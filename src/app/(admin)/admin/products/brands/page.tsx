@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useAdminPage } from "@/contexts/AdminPageContext";
-import { apiGet, apiPatch, apiDelete, BACKEND_URL } from "@/lib/api-client";
+import { apiGet, apiPatch, apiDelete, BACKEND_URL, getStaffToken } from "@/lib/api-client";
 import { toast } from "sonner";
 import {
   Search,
@@ -287,7 +287,7 @@ export default function BrandsPage() {
         await apiPatch(`/brands/${editingBrand.id}`, formData);
         toast.success(`Brand "${formName}" updated successfully!`);
       } else {
-        const staffToken = localStorage.getItem("novamobile_staff_token") || "";
+        const staffToken = getStaffToken() || "";
         const res = await fetch(`${BACKEND_URL}/api/v1/brands`, {
           method: "POST",
           headers: {

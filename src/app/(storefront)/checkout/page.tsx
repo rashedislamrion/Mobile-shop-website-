@@ -108,7 +108,9 @@ export default function CheckoutPage() {
     try {
       const res = await apiPost<any>("/promo-codes/validate", {
         code: promoCodeInput.trim(),
+        orderSubtotal: subtotal,
         orderAmount: subtotal,
+        productIds: items.map((i) => i.productId).filter(Boolean),
       });
       setAppliedPromo(res);
       toast.success(`Promo code "${res.code}" applied! You saved ৳${res.discountAmount.toLocaleString()}`);

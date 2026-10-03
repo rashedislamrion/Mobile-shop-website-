@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Get,
-  Patch,
-  Body,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Patch, Body, UseGuards } from '@nestjs/common';
 import { FooterSettingsService } from './footer-settings.service';
 import { UpdateFooterSettingsDto } from './dto/footer-settings.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -25,7 +19,10 @@ export class FooterSettingsController {
   }
 
   @Patch()
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.UPDATE,
+  })
   updateSettings(@Body() updateDto: UpdateFooterSettingsDto) {
     return this.footerSettingsService.updateSettings(updateDto);
   }

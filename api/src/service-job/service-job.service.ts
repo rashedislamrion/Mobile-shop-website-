@@ -1,8 +1,25 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateServiceJobDto, AssignTechnicianDto, CreateRepairJobDto } from './dto/create-service-job.dto';
+import {
+  CreateServiceJobDto,
+  AssignTechnicianDto,
+  CreateRepairJobDto,
+} from './dto/create-service-job.dto';
 import { UpdateServiceJobStatusDto } from './dto/update-service-job-status.dto';
-import { Prisma, ServiceJobStatus, SaleType, OrderStatus, PaymentStatus } from '@prisma/client';
+import { UpdateServiceJobDto } from './dto/update-service-job.dto';
+import {
+  Prisma,
+  ServiceJobStatus,
+  SaleType,
+  OrderStatus,
+  PaymentStatus,
+  ServiceMaterialSourceType,
+} from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -23,6 +40,8 @@ export class ServiceJobService {
     search?: string;
     page?: number;
     limit?: number;
+    startDate?: string;
+    endDate?: string;
   }) {
     const page = Math.max(1, Number(query.page) || 1);
     const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
@@ -52,6 +71,18 @@ export class ServiceJobService {
       ];
     }
 
+    if (query.startDate || query.endDate) {
+      where.createdAt = {};
+      if (query.startDate) {
+        where.createdAt.gte = new Date(query.startDate);
+      }
+      if (query.endDate) {
+        const endDate = new Date(query.endDate);
+        endDate.setUTCHours(23, 59, 59, 999);
+        where.createdAt.lte = endDate;
+      }
+    }
+
     const [total, data] = await Promise.all([
       this.prisma.serviceJob.count({ where }),
       this.prisma.serviceJob.findMany({
@@ -60,8 +91,18 @@ export class ServiceJobService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          technician: { select: { id: true, name: true, phone: true, profitSharePercentage: true } },
+          technician: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              profitSharePercentage: true,
+            },
+          },
           customer: { select: { id: true, name: true, phone: true } },
+          supplier: {
+            select: { id: true, name: true, phone: true, companyName: true },
+          },
           deviceType: true,
           brand: { select: { id: true, name: true } },
           materials: {
@@ -74,6 +115,7 @@ export class ServiceJobService {
             include: {
               customer: { select: { id: true, name: true, phone: true } },
               branch: { select: { id: true, name: true } },
+              payments: true,
             },
           },
         },
@@ -96,7 +138,14 @@ export class ServiceJobService {
       where: { technicianId },
       orderBy: { createdAt: 'desc' },
       include: {
-        technician: { select: { id: true, name: true, phone: true, profitSharePercentage: true } },
+        technician: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            profitSharePercentage: true,
+          },
+        },
         customer: true,
         deviceType: true,
         brand: true,
@@ -110,6 +159,7 @@ export class ServiceJobService {
           include: {
             customer: true,
             branch: true,
+            payments: true,
           },
         },
       },
@@ -122,6 +172,7 @@ export class ServiceJobService {
       include: {
         technician: true,
         customer: true,
+        supplier: true,
         deviceType: true,
         brand: true,
         materials: {
@@ -145,8 +196,11 @@ export class ServiceJobService {
   }
 
   async create(dto: CreateServiceJobDto) {
-    const order = await this.prisma.order.findUnique({ where: { id: dto.orderId } });
-    if (!order) throw new NotFoundException(`Order "${dto.orderId}" not found.`);
+    const order = await this.prisma.order.findUnique({
+      where: { id: dto.orderId },
+    });
+    if (!order)
+      throw new NotFoundException(`Order "${dto.orderId}" not found.`);
 
     return this.prisma.serviceJob.create({
       data: {
@@ -172,11 +226,15 @@ export class ServiceJobService {
       // 1. Resolve Customer
       let customer: any = null;
       if (dto.customerId) {
-        customer = await tx.customer.findUnique({ where: { id: dto.customerId } });
+        customer = await tx.customer.findUnique({
+          where: { id: dto.customerId },
+        });
       }
       if (!customer && dto.customerPhone) {
         const cleanPhone = dto.customerPhone.trim();
-        customer = await tx.customer.findUnique({ where: { phone: cleanPhone } });
+        customer = await tx.customer.findUnique({
+          where: { phone: cleanPhone },
+        });
         if (!customer) {
           const tempPassword = await bcrypt.hash('Customer@12345', 10);
           customer = await tx.customer.create({
@@ -210,24 +268,35 @@ export class ServiceJobService {
         branchId = currentUser.branchId;
       }
       if (!branchId) {
-        const defaultBranch = await tx.branch.findFirst({ orderBy: { createdAt: 'asc' } });
+        const defaultBranch = await tx.branch.findFirst({
+          orderBy: { createdAt: 'asc' },
+        });
         branchId = defaultBranch ? defaultBranch.id : '';
       }
 
       // 4. Resolve Pricing & Profit Share
       const laborCost = Number(dto.laborCost || 0);
       const materialCost = Number(dto.materialCost || 0);
-      const totalBill = Number(dto.totalBill || (laborCost + materialCost));
+      const totalBill = Number(dto.totalBill || laborCost + materialCost);
       const discount = Number(dto.discount || 0);
-      const finalAmount = Number(dto.finalAmount || (totalBill - discount));
+      const finalAmount = Number(dto.finalAmount || totalBill - discount);
       const paidAmount = Number(dto.paidAmount || 0);
       const dueAmount = Math.max(0, finalAmount - paidAmount);
 
+      let technicianId = dto.technicianId || null;
+      if (currentUser?.roleName?.toLowerCase().includes('technician')) {
+        technicianId = currentUser.sub;
+      }
+
       let technicianProfitShare = 0;
-      if (dto.technicianId) {
-        const technician = await tx.staff.findUnique({ where: { id: dto.technicianId } });
+      if (technicianId) {
+        const technician = await tx.staff.findUnique({
+          where: { id: technicianId },
+        });
         if (technician) {
-          const rawRate = Number(technician.profitSharePercentage ?? technician.commissionRate ?? 0);
+          const rawRate = Number(
+            technician.profitSharePercentage ?? technician.commissionRate ?? 0,
+          );
           const rate = rawRate > 0 ? rawRate : 50;
           // Profit share = 50% (or configured rate) * (finalAmount - materialCost)
           const laborProfit = Math.max(0, finalAmount - materialCost);
@@ -253,7 +322,10 @@ export class ServiceJobService {
           saleType: SaleType.DIAGNOSING,
           status: OrderStatus.CONFIRMED,
           paymentStatus,
-          paymentMethod: dto.payments && dto.payments.length > 0 ? (dto.payments[0].method as any) : null,
+          paymentMethod:
+            dto.payments && dto.payments.length > 0
+              ? (dto.payments[0].method as any)
+              : null,
           subtotal: totalBill,
           discountAmount: discount,
           deliveryCharge: 0,
@@ -266,7 +338,8 @@ export class ServiceJobService {
       });
 
       // 6. Create ServiceJob record
-      const jobStatus: ServiceJobStatus = (dto.status as ServiceJobStatus) || ServiceJobStatus.PENDING;
+      const jobStatus: ServiceJobStatus =
+        (dto.status as ServiceJobStatus) || ServiceJobStatus.PENDING;
 
       const serviceJob = await tx.serviceJob.create({
         data: {
@@ -276,7 +349,7 @@ export class ServiceJobService {
           customerName: dto.customerName,
           customerPhone: dto.customerPhone,
           referralNumber: dto.referralNumber || null,
-          technicianId: dto.technicianId || null,
+          technicianId: technicianId || null,
           device: dto.device || 'Mobile Device',
           deviceTypeId: dto.deviceTypeId || null,
           brandId: dto.brandId || null,
@@ -284,8 +357,12 @@ export class ServiceJobService {
           issueDescription: dto.issueDescription || 'Repair Service',
           problems: dto.problems || null,
           warrantyPeriod: dto.warrantyPeriod || null,
-          warrantyStartDate: dto.warrantyStartDate ? new Date(dto.warrantyStartDate) : null,
-          warrantyEndDate: dto.warrantyEndDate ? new Date(dto.warrantyEndDate) : null,
+          warrantyStartDate: dto.warrantyStartDate
+            ? new Date(dto.warrantyStartDate)
+            : null,
+          warrantyEndDate: dto.warrantyEndDate
+            ? new Date(dto.warrantyEndDate)
+            : null,
           laborCost,
           materialCost,
           totalBill,
@@ -294,26 +371,69 @@ export class ServiceJobService {
           paidAmount,
           dueAmount,
           serviceCharge: laborCost,
-          paymentDetails: dto.payments ? (dto.payments as any) : undefined,
+          paymentDetails: dto.payments
+            ? (dto.payments as any)
+            : dto.paymentDetails
+              ? dto.paymentDetails
+              : undefined,
           technicianProfitShare,
           status: jobStatus,
         },
       });
 
-      // 7. Create Material History rows (supplier-linked parts)
+      // 7. Create Material History rows (supplier-linked or sourced parts)
       if (dto.materials && Array.isArray(dto.materials)) {
         for (const mat of dto.materials) {
           if (!mat.partName?.trim()) continue;
+
+          const rawSourceType = mat.sourceType || 'OWN_STOCK';
+          const sourceType = Object.values(ServiceMaterialSourceType).includes(
+            rawSourceType,
+          )
+            ? rawSourceType
+            : ServiceMaterialSourceType.OWN_STOCK;
+
+          // Validation rules per Fix Pass 33:
+          if (
+            sourceType === ServiceMaterialSourceType.SUPPLIER &&
+            !mat.supplierId?.trim()
+          ) {
+            throw new BadRequestException(
+              `Registered Supplier is required for part "${mat.partName.trim()}" when Source Type is "Registered Supplier".`,
+            );
+          }
+          if (
+            sourceType === ServiceMaterialSourceType.OTHER &&
+            !mat.sourcedFromName?.trim() &&
+            !mat.sourceNote?.trim()
+          ) {
+            throw new BadRequestException(
+              `Sourcing Notes are required for part "${mat.partName.trim()}" when Source Type is "Other / Ad-hoc Source".`,
+            );
+          }
+
           const cost = Number(mat.cost || 0);
           const qty = Number(mat.quantity || 1);
-          const total = Number(mat.total || (cost * qty));
+          const total = Number(mat.total || cost * qty);
 
           await tx.serviceJobMaterial.create({
             data: {
               serviceJobId: serviceJob.id,
               partName: mat.partName.trim(),
               productId: mat.productId || null,
-              supplierId: mat.supplierId || null,
+              sourceType,
+              supplierId:
+                sourceType === ServiceMaterialSourceType.SUPPLIER
+                  ? mat.supplierId?.trim() || null
+                  : null,
+              sourcedFromName:
+                sourceType === ServiceMaterialSourceType.OTHER
+                  ? mat.sourcedFromName?.trim() || null
+                  : null,
+              sourceNote:
+                sourceType === ServiceMaterialSourceType.OTHER || mat.sourceNote
+                  ? mat.sourceNote?.trim() || null
+                  : null,
               cost,
               quantity: qty,
               total,
@@ -323,8 +443,15 @@ export class ServiceJobService {
       }
 
       // 8. Create Split Payments & Customer Activity
-      if (customer && dto.payments && Array.isArray(dto.payments)) {
-        for (const p of dto.payments) {
+      const paymentsList =
+        dto.payments && Array.isArray(dto.payments)
+          ? dto.payments
+          : dto.paymentDetails && Array.isArray(dto.paymentDetails)
+            ? dto.paymentDetails
+            : [];
+
+      if (customer && paymentsList.length > 0) {
+        for (const p of paymentsList) {
           const amt = Number(p.amount || 0);
           if (amt > 0) {
             await tx.payment.create({
@@ -389,11 +516,18 @@ export class ServiceJobService {
     // Recompute profit share if technician changed
     let technicianProfitShare = 0;
     if (dto.technicianId) {
-      const technician = await this.prisma.staff.findUnique({ where: { id: dto.technicianId } });
+      const technician = await this.prisma.staff.findUnique({
+        where: { id: dto.technicianId },
+      });
       if (technician) {
-        const rawRate = Number(technician.profitSharePercentage ?? technician.commissionRate ?? 0);
+        const rawRate = Number(
+          technician.profitSharePercentage ?? technician.commissionRate ?? 0,
+        );
         const rate = rawRate > 0 ? rawRate : 50;
-        const laborProfit = Math.max(0, Number(job.finalAmount) - Number(job.materialCost));
+        const laborProfit = Math.max(
+          0,
+          Number(job.finalAmount) - Number(job.materialCost),
+        );
         technicianProfitShare = (laborProfit * rate) / 100;
       }
     }
@@ -430,5 +564,200 @@ export class ServiceJobService {
     }
 
     return updatedJob;
+  }
+
+  async update(id: string, dto: UpdateServiceJobDto) {
+    return this.prisma.$transaction(async (tx) => {
+      const job = await tx.serviceJob.findUnique({
+        where: { id },
+        include: { materials: true },
+      });
+      if (!job) throw new NotFoundException(`Service job "${id}" not found.`);
+
+      const updateData: any = {};
+      if (dto.status !== undefined) updateData.status = dto.status;
+      if (dto.device !== undefined) updateData.device = dto.device;
+      if (dto.issueDescription !== undefined)
+        updateData.issueDescription = dto.issueDescription;
+      if (dto.laborCost !== undefined) updateData.laborCost = dto.laborCost;
+      if (dto.discount !== undefined) updateData.discount = dto.discount;
+      if (dto.advancePayment !== undefined)
+        updateData.paidAmount = dto.advancePayment;
+      if (dto.dueAmount !== undefined) updateData.dueAmount = dto.dueAmount;
+      if (dto.totalBill !== undefined) updateData.totalBill = dto.totalBill;
+      if (dto.supplierId !== undefined) {
+        updateData.supplierId =
+          dto.supplierId && dto.supplierId !== 'NONE' ? dto.supplierId : null;
+      }
+      if (dto.supplierPaymentStatus !== undefined) {
+        updateData.supplierPaymentStatus =
+          dto.supplierPaymentStatus && dto.supplierPaymentStatus !== 'NONE'
+            ? dto.supplierPaymentStatus
+            : null;
+      }
+
+      let materialCost = Number(job.materialCost || 0);
+      if (dto.materials !== undefined) {
+        await tx.serviceJobMaterial.deleteMany({ where: { serviceJobId: id } });
+
+        let newMaterialCost = 0;
+        for (const mat of dto.materials) {
+          if (!mat.partName?.trim()) continue;
+
+          const rawSourceType = mat.sourceType || 'OWN_STOCK';
+          const sourceType = Object.values(ServiceMaterialSourceType).includes(
+            rawSourceType,
+          )
+            ? rawSourceType
+            : ServiceMaterialSourceType.OWN_STOCK;
+
+          if (
+            sourceType === ServiceMaterialSourceType.SUPPLIER &&
+            !mat.supplierId?.trim()
+          ) {
+            throw new BadRequestException(
+              `Registered Supplier is required for part "${mat.partName.trim()}"`,
+            );
+          }
+          if (
+            sourceType === ServiceMaterialSourceType.OTHER &&
+            !mat.sourcedFromName?.trim() &&
+            !mat.sourceNote?.trim()
+          ) {
+            throw new BadRequestException(
+              `Sourcing Notes are required for part "${mat.partName.trim()}"`,
+            );
+          }
+
+          const cost = Number(mat.cost || 0);
+          const qty = Number(mat.quantity || 1);
+          const total = Number(mat.total || cost * qty);
+          newMaterialCost += total;
+
+          await tx.serviceJobMaterial.create({
+            data: {
+              serviceJobId: id,
+              partName: mat.partName.trim(),
+              productId: mat.productId || null,
+              sourceType,
+              supplierId:
+                sourceType === ServiceMaterialSourceType.SUPPLIER
+                  ? mat.supplierId?.trim() || null
+                  : null,
+              sourcedFromName:
+                sourceType === ServiceMaterialSourceType.OTHER
+                  ? mat.sourcedFromName?.trim() || null
+                  : null,
+              sourceNote:
+                sourceType === ServiceMaterialSourceType.OTHER || mat.sourceNote
+                  ? mat.sourceNote?.trim() || null
+                  : null,
+              cost,
+              quantity: qty,
+              total,
+            },
+          });
+        }
+        materialCost = newMaterialCost;
+        updateData.materialCost = materialCost;
+      }
+
+      const currentLaborCost =
+        dto.laborCost !== undefined ? dto.laborCost : Number(job.laborCost);
+      const currentDiscount =
+        dto.discount !== undefined ? dto.discount : Number(job.discount);
+      const currentTotalBill =
+        dto.totalBill !== undefined ? dto.totalBill : Number(job.totalBill);
+      const currentFinalAmount = Math.max(
+        0,
+        currentTotalBill - currentDiscount,
+      );
+
+      updateData.finalAmount = currentFinalAmount;
+
+      let technicianProfitShare = Number(job.technicianProfitShare || 0);
+      if (
+        job.technicianId &&
+        (dto.laborCost !== undefined ||
+          dto.materials !== undefined ||
+          dto.totalBill !== undefined ||
+          dto.discount !== undefined)
+      ) {
+        const technician = await tx.staff.findUnique({
+          where: { id: job.technicianId },
+        });
+        if (technician) {
+          const rawRate = Number(
+            technician.profitSharePercentage ?? technician.commissionRate ?? 0,
+          );
+          const rate = rawRate > 0 ? rawRate : 50;
+          const laborProfit = Math.max(
+            0,
+            currentFinalAmount - Number(materialCost),
+          );
+          technicianProfitShare = (laborProfit * rate) / 100;
+          updateData.technicianProfitShare = technicianProfitShare;
+        }
+      }
+
+      if (
+        job.orderId &&
+        (dto.totalBill !== undefined ||
+          dto.discount !== undefined ||
+          dto.advancePayment !== undefined ||
+          dto.dueAmount !== undefined)
+      ) {
+        const paidAmount =
+          dto.advancePayment !== undefined
+            ? dto.advancePayment
+            : Number(job.paidAmount);
+        const dueAmount =
+          dto.dueAmount !== undefined ? dto.dueAmount : Number(job.dueAmount);
+
+        let paymentStatus: PaymentStatus = PaymentStatus.PENDING;
+        if (dueAmount <= 0) paymentStatus = PaymentStatus.PAID;
+        else if (paidAmount > 0) paymentStatus = PaymentStatus.DUE;
+
+        await tx.order.update({
+          where: { id: job.orderId },
+          data: {
+            subtotal: currentTotalBill,
+            discountAmount: currentDiscount,
+            totalAmount: currentFinalAmount,
+            paidAmount,
+            dueAmount,
+            paymentStatus,
+          },
+        });
+      }
+
+      return tx.serviceJob.update({
+        where: { id },
+        data: updateData,
+        include: {
+          technician: true,
+          order: true,
+          materials: true,
+          supplier: true,
+        },
+      });
+    });
+  }
+
+  async remove(id: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const job = await tx.serviceJob.findUnique({ where: { id } });
+      if (!job) throw new NotFoundException(`Service job "${id}" not found.`);
+
+      if (job.orderId) {
+        await tx.payment.deleteMany({ where: { orderId: job.orderId } });
+        await tx.serviceJob.delete({ where: { id } });
+        await tx.order.delete({ where: { id: job.orderId } });
+      } else {
+        await tx.serviceJob.delete({ where: { id } });
+      }
+
+      return { success: true, message: 'Service job deleted successfully' };
+    });
   }
 }

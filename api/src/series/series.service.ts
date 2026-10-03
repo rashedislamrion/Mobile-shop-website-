@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSeriesDto } from './dto/create-series.dto';
 import { UpdateSeriesDto } from './dto/update-series.dto';
@@ -41,7 +45,9 @@ export class SeriesService {
   }
 
   async create(dto: CreateSeriesDto) {
-    const brand = await this.prisma.brand.findUnique({ where: { id: dto.brandId } });
+    const brand = await this.prisma.brand.findUnique({
+      where: { id: dto.brandId },
+    });
     if (!brand) {
       throw new NotFoundException(`Brand with ID "${dto.brandId}" not found`);
     }
@@ -62,7 +68,9 @@ export class SeriesService {
     await this.findOne(id);
 
     if (dto.brandId) {
-      const brand = await this.prisma.brand.findUnique({ where: { id: dto.brandId } });
+      const brand = await this.prisma.brand.findUnique({
+        where: { id: dto.brandId },
+      });
       if (!brand) {
         throw new NotFoundException(`Brand with ID "${dto.brandId}" not found`);
       }
@@ -90,7 +98,9 @@ export class SeriesService {
     }
 
     if (series.products.length > 0) {
-      throw new ConflictException(`Cannot delete series "${series.name}" because it is linked to products.`);
+      throw new ConflictException(
+        `Cannot delete series "${series.name}" because it is linked to products.`,
+      );
     }
 
     return this.prisma.series.delete({

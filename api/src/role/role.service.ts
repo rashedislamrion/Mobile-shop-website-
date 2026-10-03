@@ -132,7 +132,9 @@ export class RoleService {
       where: { name: dto.name },
     });
     if (existing) {
-      throw new ConflictException(`Role with name "${dto.name}" already exists.`);
+      throw new ConflictException(
+        `Role with name "${dto.name}" already exists.`,
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {

@@ -21,7 +21,9 @@ export class ExpenseService {
 
   async findAllCategories() {
     const now = new Date();
-    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const startOfMonth = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
 
     const categories = await this.prisma.expenseCategory.findMany({
       orderBy: { name: 'asc' },
@@ -57,7 +59,8 @@ export class ExpenseService {
         _count: { select: { expenses: true } },
       },
     });
-    if (!cat) throw new NotFoundException(`Expense category "${id}" not found.`);
+    if (!cat)
+      throw new NotFoundException(`Expense category "${id}" not found.`);
     return cat;
   }
 
@@ -67,12 +70,15 @@ export class ExpenseService {
         data: {
           name: dto.name,
           icon: dto.icon || null,
-          monthlyBudget: dto.monthlyBudget !== undefined ? dto.monthlyBudget : null,
+          monthlyBudget:
+            dto.monthlyBudget !== undefined ? dto.monthlyBudget : null,
         },
       });
     } catch (e: any) {
       if (e.code === 'P2002') {
-        throw new ConflictException(`Expense category "${dto.name}" already exists.`);
+        throw new ConflictException(
+          `Expense category "${dto.name}" already exists.`,
+        );
       }
       throw e;
     }
@@ -86,12 +92,15 @@ export class ExpenseService {
         data: {
           name: dto.name,
           icon: dto.icon !== undefined ? dto.icon || null : undefined,
-          monthlyBudget: dto.monthlyBudget !== undefined ? dto.monthlyBudget : undefined,
+          monthlyBudget:
+            dto.monthlyBudget !== undefined ? dto.monthlyBudget : undefined,
         },
       });
     } catch (e: any) {
       if (e.code === 'P2002') {
-        throw new ConflictException(`Expense category "${dto.name}" already exists.`);
+        throw new ConflictException(
+          `Expense category "${dto.name}" already exists.`,
+        );
       }
       throw e;
     }
@@ -148,7 +157,9 @@ export class ExpenseService {
     }
 
     const now = new Date();
-    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const startOfMonth = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
 
     const [total, data, thisMonthExpenses] = await Promise.all([
       this.prisma.expense.count({ where }),
@@ -229,7 +240,8 @@ export class ExpenseService {
       let branchId = dto.branchId;
       if (!branchId) {
         const defaultBranch = await tx.branch.findFirst();
-        if (!defaultBranch) throw new NotFoundException('No branch found to assign expense.');
+        if (!defaultBranch)
+          throw new NotFoundException('No branch found to assign expense.');
         branchId = defaultBranch.id;
       }
 
@@ -301,7 +313,9 @@ export class ExpenseService {
   async markPaid(id: string, dto: MarkExpensePaidDto, recordedById: string) {
     const exp = await this.findOneExpense(id);
     if (exp.status === ExpenseStatus.PAID) {
-      throw new BadRequestException('This expense has already been marked as PAID.');
+      throw new BadRequestException(
+        'This expense has already been marked as PAID.',
+      );
     }
 
     const amount = Number(exp.amount);
@@ -309,7 +323,9 @@ export class ExpenseService {
     return this.prisma.$transaction(async (tx) => {
       const walletTypeId = dto.walletTypeId || exp.walletTypeId;
       if (!walletTypeId) {
-        throw new BadRequestException('No wallet specified for paying this expense.');
+        throw new BadRequestException(
+          'No wallet specified for paying this expense.',
+        );
       }
 
       const wallet = await tx.walletType.findUnique({

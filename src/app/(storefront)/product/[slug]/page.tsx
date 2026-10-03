@@ -403,26 +403,22 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
 
           {/* Secondary actions */}
           <div className="flex flex-col sm:flex-row items-center gap-4">
-            <a 
-              href={`tel:${supportPhone.replace(/\s+/g, '')}`} 
-              className="w-full"
-            >
-              <Button variant="outline" className="w-full h-12 border-slate-200 text-slate-700 font-medium hover:bg-slate-50">
+            <Button asChild variant="outline" className="w-full flex-1 h-12 border-slate-200 text-slate-700 font-medium hover:bg-slate-50 cursor-pointer">
+              <a href={`tel:${(supportPhone || "+8801700000000").replace(/[^0-9+]/g, '')}`}>
                 <Phone className="w-4 h-4 mr-2" />
                 Call to Order
-              </Button>
-            </a>
-            <a 
-              href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello, I would like to order: ${product.name} (Price: ৳${currentPrice})`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full"
-            >
-              <Button className="w-full h-12 bg-[#25D366] hover:bg-[#20bd5a] text-white font-medium shadow-sm border-none">
+              </a>
+            </Button>
+            <Button asChild className="w-full flex-1 h-12 bg-[#25D366] hover:bg-[#20bd5a] text-white font-medium shadow-sm border-none cursor-pointer">
+              <a 
+                href={`https://wa.me/${(whatsappNumber || "8801700000000").replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello, I would like to order: ${product.name} (Price: ৳${currentPrice})`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <MessageCircle className="w-4 h-4 mr-2" />
                 WhatsApp
-              </Button>
-            </a>
+              </a>
+            </Button>
           </div>
 
           {isOutOfStock && (

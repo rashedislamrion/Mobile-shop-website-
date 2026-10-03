@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUnitDto } from './dto/create-unit.dto';
 import { UpdateUnitDto } from './dto/update-unit.dto';
@@ -37,7 +41,14 @@ export class UnitService {
   }
 
   async create(dto: CreateUnitDto) {
-    const derivedCode = dto.shortCode?.trim() || dto.name.trim().replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase() || 'UNIT';
+    const derivedCode =
+      dto.shortCode?.trim() ||
+      dto.name
+        .trim()
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .slice(0, 4)
+        .toUpperCase() ||
+      'UNIT';
 
     try {
       return await this.prisma.unit.create({
@@ -48,8 +59,13 @@ export class UnitService {
         },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException(`Unit with name "${dto.name}" already exists.`);
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          `Unit with name "${dto.name}" already exists.`,
+        );
       }
       throw error;
     }
@@ -64,8 +80,13 @@ export class UnitService {
         data: dto,
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException(`Unit with name "${dto.name}" already exists.`);
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          `Unit with name "${dto.name}" already exists.`,
+        );
       }
       throw error;
     }
@@ -84,7 +105,9 @@ export class UnitService {
     }
 
     if (unit.products.length > 0) {
-      throw new ConflictException(`Cannot delete unit "${unit.name}" because it is linked to products.`);
+      throw new ConflictException(
+        `Cannot delete unit "${unit.name}" because it is linked to products.`,
+      );
     }
 
     return this.prisma.unit.delete({

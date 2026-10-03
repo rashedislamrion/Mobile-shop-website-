@@ -43,7 +43,10 @@ export class PayrollController {
   }
 
   @Post('run')
-  @RequirePermission({ module: ModuleName.HRM, action: PermissionAction.CREATE })
+  @RequirePermission({
+    module: ModuleName.HRM,
+    action: PermissionAction.CREATE,
+  })
   runPayroll(@Body() runPayrollDto: RunPayrollDto) {
     return this.payrollService.runPayroll(runPayrollDto);
   }
@@ -61,7 +64,10 @@ export class PayrollController {
   }
 
   @Patch(':id/mark-paid')
-  @RequirePermission({ module: ModuleName.HRM, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.HRM,
+    action: PermissionAction.UPDATE,
+  })
   markPaid(
     @Param('id') id: string,
     @Body() markPaidDto: MarkPaidDto,

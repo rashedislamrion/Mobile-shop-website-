@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Patch,
-  Param,
-  Body,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Patch, Param, Body, UseGuards } from '@nestjs/common';
 import { SocialLinkService } from './social-link.service';
 import { UpdateSocialLinkDto } from './dto/social-link.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -26,7 +19,10 @@ export class SocialLinkController {
   }
 
   @Patch(':platform')
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.UPDATE,
+  })
   upsertPlatform(
     @Param('platform') platform: SocialPlatform,
     @Body() updateDto: UpdateSocialLinkDto,

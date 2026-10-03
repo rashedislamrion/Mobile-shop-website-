@@ -2,11 +2,11 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useAdminPage } from "@/contexts/AdminPageContext";
-import { ExternalLink, Edit2, Plus, Search, Building2, MapPin, Phone } from "lucide-react";
+import { ExternalLink, Edit2, Trash2, Plus, Search, Building2, MapPin, Phone } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiGet, apiPatch } from "@/lib/api-client";
+import { apiGet, apiPatch, apiDelete } from "@/lib/api-client";
 import {
   Dialog,
   DialogContent,
@@ -124,6 +124,19 @@ export default function BranchListPage() {
     selectBranch(branch.id, branch.name);
     toast.success(`Switched active context to ${branch.name}`);
     router.push("/admin");
+  };
+
+  const handleDeleteBranch = async (branch: BranchRow) => {
+    if (!confirm(`Are you sure you want to delete branch "${branch.name}"? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      await apiDelete(`/branches/${branch.id}`);
+      toast.success(`Branch "${branch.name}" deleted successfully.`);
+      fetchBranches();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete branch");
+    }
   };
 
   return (
@@ -259,6 +272,16 @@ export default function BranchListPage() {
                           className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                         >
                           <Edit2 className="w-4 h-4" />
+                        </button>
+
+                        {/* Delete branch */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteBranch(branch)}
+                          title="Delete Branch"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>

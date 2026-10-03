@@ -18,12 +18,18 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { Public } from '../auth/decorators/public.decorator';
-import { ContactSubmissionStatus, ModuleName, PermissionAction } from '@prisma/client';
+import {
+  ContactSubmissionStatus,
+  ModuleName,
+  PermissionAction,
+} from '@prisma/client';
 
 @Controller('contact-submissions')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class ContactSubmissionController {
-  constructor(private readonly contactSubmissionService: ContactSubmissionService) {}
+  constructor(
+    private readonly contactSubmissionService: ContactSubmissionService,
+  ) {}
 
   @Public()
   @Post()
@@ -39,7 +45,12 @@ export class ContactSubmissionController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.contactSubmissionService.findAll({ status, search, page, limit });
+    return this.contactSubmissionService.findAll({
+      status,
+      search,
+      page,
+      limit,
+    });
   }
 
   @Get(':id')
@@ -49,7 +60,10 @@ export class ContactSubmissionController {
   }
 
   @Patch(':id/status')
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.UPDATE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.UPDATE,
+  })
   updateStatus(
     @Param('id') id: string,
     @Body() updateDto: UpdateContactSubmissionStatusDto,
@@ -58,7 +72,10 @@ export class ContactSubmissionController {
   }
 
   @Delete(':id')
-  @RequirePermission({ module: ModuleName.CMS, action: PermissionAction.DELETE })
+  @RequirePermission({
+    module: ModuleName.CMS,
+    action: PermissionAction.DELETE,
+  })
   remove(@Param('id') id: string) {
     return this.contactSubmissionService.remove(id);
   }

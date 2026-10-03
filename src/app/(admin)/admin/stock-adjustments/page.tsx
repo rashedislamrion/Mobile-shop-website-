@@ -5,7 +5,7 @@ import { useAdminPage } from "@/contexts/AdminPageContext";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { DataTable, ActionDropdown } from "@/components/admin/DataTable";
 import { FilterConfig, TableAction } from "@/types/table";
-import { mockStockAdjustments, StockAdjustment, AdjustmentType } from "@/lib/mock-data/stock-adjustments";
+import { StockAdjustment, AdjustmentType } from "@/lib/mock-data/stock-adjustments";
 import { ColumnDef } from "@tanstack/react-table";
 import { Eye, Trash2, Plus, ArrowUpRight, ArrowDownRight, RefreshCw } from "lucide-react";
 import Image from "next/image";
@@ -84,11 +84,10 @@ export default function StockAdjustmentsPage() {
         });
         setData(mapped);
       } else {
-        // Fallback to mock data if empty database
-        setData(mockStockAdjustments);
+        setData([]);
       }
     } catch {
-      setData(mockStockAdjustments);
+      setData([]);
     } finally {
       setIsLoading(false);
     }

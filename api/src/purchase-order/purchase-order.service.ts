@@ -78,47 +78,64 @@ export class PurchaseOrderService {
     }
 
     const now = new Date();
-    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const startOfMonth = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
 
-    const [total, data, thisMonthOrders, pendingDeliveryCount] = await Promise.all([
-      this.prisma.purchaseOrder.count({ where }),
-      this.prisma.purchaseOrder.findMany({
-        where,
-        include: {
-          branch: { select: { id: true, name: true, code: true } },
-          supplier: { select: { id: true, name: true, phone: true, advanceBalance: true } },
-          items: {
-            include: {
-              product: { select: { id: true, name: true, images: true } },
-              variant: { select: { id: true, sku: true, color: true, quality: true } },
+    const [total, data, thisMonthOrders, pendingDeliveryCount] =
+      await Promise.all([
+        this.prisma.purchaseOrder.count({ where }),
+        this.prisma.purchaseOrder.findMany({
+          where,
+          include: {
+            branch: { select: { id: true, name: true, code: true } },
+            supplier: {
+              select: {
+                id: true,
+                name: true,
+                phone: true,
+                advanceBalance: true,
+              },
+            },
+            items: {
+              include: {
+                product: { select: { id: true, name: true, images: true } },
+                variant: {
+                  select: { id: true, sku: true, color: true, quality: true },
+                },
+              },
+            },
+            payments: {
+              include: {
+                walletType: { select: { id: true, name: true } },
+                recordedBy: { select: { id: true, name: true } },
+              },
             },
           },
-          payments: {
-            include: {
-              walletType: { select: { id: true, name: true } },
-              recordedBy: { select: { id: true, name: true } },
-            },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+        }),
+        this.prisma.purchaseOrder.findMany({
+          where: {
+            createdAt: { gte: startOfMonth },
+            status: { not: PurchaseOrderStatus.CANCELLED },
+            ...(query?.branch ? { branchId: query.branch } : {}),
           },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.purchaseOrder.findMany({
-        where: {
-          createdAt: { gte: startOfMonth },
-          status: { not: PurchaseOrderStatus.CANCELLED },
-          ...(query?.branch ? { branchId: query.branch } : {}),
-        },
-        select: { grandTotal: true, amountPaid: true, dueAmount: true },
-      }),
-      this.prisma.purchaseOrder.count({
-        where: {
-          status: { in: [PurchaseOrderStatus.ORDERED, PurchaseOrderStatus.PARTIALLY_RECEIVED] },
-          ...(query?.branch ? { branchId: query.branch } : {}),
-        },
-      }),
-    ]);
+          select: { grandTotal: true, amountPaid: true, dueAmount: true },
+        }),
+        this.prisma.purchaseOrder.count({
+          where: {
+            status: {
+              in: [
+                PurchaseOrderStatus.ORDERED,
+                PurchaseOrderStatus.PARTIALLY_RECEIVED,
+              ],
+            },
+            ...(query?.branch ? { branchId: query.branch } : {}),
+          },
+        }),
+      ]);
 
     let thisMonthTotal = 0;
     let thisMonthPaid = 0;
@@ -207,7 +224,9 @@ export class PurchaseOrderService {
     }
 
     if (!dto.items || dto.items.length === 0) {
-      throw new BadRequestException('Purchase order must contain at least one item.');
+      throw new BadRequestException(
+        'Purchase order must contain at least one item.',
+      );
     }
 
     const discount = Number(dto.discount || 0);
@@ -248,8 +267,10 @@ export class PurchaseOrderService {
           variantId,
           quantityOrdered: item.quantityOrdered,
           unitCost: item.unitCost,
-          sellingPrice: item.sellingPrice !== undefined ? item.sellingPrice : null,
-          wholesalePrice: item.wholesalePrice !== undefined ? item.wholesalePrice : null,
+          sellingPrice:
+            item.sellingPrice !== undefined ? item.sellingPrice : null,
+          wholesalePrice:
+            item.wholesalePrice !== undefined ? item.wholesalePrice : null,
           offerPrice: item.offerPrice !== undefined ? item.offerPrice : null,
           lineTotal,
         };
@@ -260,7 +281,11 @@ export class PurchaseOrderService {
 
     // Normalize wallet payments
     const walletPayments: Array<{ walletTypeId: string; amount: number }> = [];
-    if (dto.walletPayments && Array.isArray(dto.walletPayments) && dto.walletPayments.length > 0) {
+    if (
+      dto.walletPayments &&
+      Array.isArray(dto.walletPayments) &&
+      dto.walletPayments.length > 0
+    ) {
       for (const wp of dto.walletPayments) {
         if (wp.walletTypeId && Number(wp.amount) > 0) {
           walletPayments.push({
@@ -276,7 +301,10 @@ export class PurchaseOrderService {
       });
     }
 
-    const totalWalletAmount = walletPayments.reduce((sum, wp) => sum + wp.amount, 0);
+    const totalWalletAmount = walletPayments.reduce(
+      (sum, wp) => sum + wp.amount,
+      0,
+    );
     const totalAmountPaid = totalWalletAmount + advanceUsed;
 
     // Validate Advance balance
@@ -308,22 +336,32 @@ export class PurchaseOrderService {
     const seenImeisInRequest = new Set<string>();
 
     for (const item of dto.items) {
-      if (item.phoneUnits && Array.isArray(item.phoneUnits) && item.phoneUnits.length > 0) {
+      if (
+        item.phoneUnits &&
+        Array.isArray(item.phoneUnits) &&
+        item.phoneUnits.length > 0
+      ) {
         for (const pu of item.phoneUnits) {
           const imei1 = (pu.imei1 || '').trim();
           const imei2 = (pu.imei2 || '').trim();
           if (!imei1) {
-            throw new BadRequestException('IMEI 1 is required for all phone units.');
+            throw new BadRequestException(
+              'IMEI 1 is required for all phone units.',
+            );
           }
 
           if (seenImeisInRequest.has(imei1)) {
-            throw new ConflictException(`Duplicate IMEI "${imei1}" found within the submitted purchase order items.`);
+            throw new ConflictException(
+              `Duplicate IMEI "${imei1}" found within the submitted purchase order items.`,
+            );
           }
           seenImeisInRequest.add(imei1);
 
           if (imei2) {
             if (seenImeisInRequest.has(imei2)) {
-              throw new ConflictException(`Duplicate IMEI "${imei2}" found within the submitted purchase order items.`);
+              throw new ConflictException(
+                `Duplicate IMEI "${imei2}" found within the submitted purchase order items.`,
+              );
             }
             seenImeisInRequest.add(imei2);
           }
@@ -352,8 +390,14 @@ export class PurchaseOrderService {
             imei2: imei2 || null,
             serialNumber: pu.serialNumber?.trim() || null,
             condition: pu.condition || null,
-            buyingPrice: pu.buyingPrice !== undefined ? Number(pu.buyingPrice) : Number(item.unitCost),
-            sellingPrice: pu.sellingPrice !== undefined ? Number(pu.sellingPrice) : Number(item.sellingPrice || 0),
+            buyingPrice:
+              pu.buyingPrice !== undefined
+                ? Number(pu.buyingPrice)
+                : Number(item.unitCost),
+            sellingPrice:
+              pu.sellingPrice !== undefined
+                ? Number(pu.sellingPrice)
+                : Number(item.sellingPrice || 0),
             warrantyType: pu.warrantyType || null,
             warrantyPeriod: pu.warrantyPeriod || null,
             warrantyStartDate: pu.warrantyStartDate || null,
@@ -380,7 +424,9 @@ export class PurchaseOrderService {
             where: { id: wp.walletTypeId },
           });
           if (!wallet) {
-            throw new NotFoundException(`Payment wallet "${wp.walletTypeId}" not found.`);
+            throw new NotFoundException(
+              `Payment wallet "${wp.walletTypeId}" not found.`,
+            );
           }
 
           const currentBal = Number(wallet.currentBalance);
@@ -458,7 +504,8 @@ export class PurchaseOrderService {
         for (const pu of allPhoneUnitsToCreate) {
           let resolvedVariantId = pu.variantId;
           if (!resolvedVariantId) {
-            const matchedItem = po.items.find((i) => i.productId === pu.productId) || po.items[0];
+            const matchedItem =
+              po.items.find((i) => i.productId === pu.productId) || po.items[0];
             resolvedVariantId = matchedItem?.variantId || null;
           }
 
@@ -476,13 +523,20 @@ export class PurchaseOrderService {
                 purchaseId: po.id,
                 warrantyType: pu.warrantyType,
                 warrantyPeriod: pu.warrantyPeriod,
-                warrantyStartDate: pu.warrantyStartDate ? new Date(pu.warrantyStartDate) : new Date(),
-                warrantyEndDate: pu.warrantyEndDate ? new Date(pu.warrantyEndDate) : null,
+                warrantyStartDate: pu.warrantyStartDate
+                  ? new Date(pu.warrantyStartDate)
+                  : new Date(),
+                warrantyEndDate: pu.warrantyEndDate
+                  ? new Date(pu.warrantyEndDate)
+                  : null,
               },
             });
 
             // Increment variant stock for each phone unit if not already receiving below
-            if (dto.status !== PurchaseOrderStatus.RECEIVED && (dto.status as any) !== 'COMPLETED') {
+            if (
+              dto.status !== PurchaseOrderStatus.RECEIVED &&
+              (dto.status as any) !== 'COMPLETED'
+            ) {
               await tx.productVariant.update({
                 where: { id: resolvedVariantId },
                 data: { stock: { increment: 1 } },
@@ -504,7 +558,10 @@ export class PurchaseOrderService {
               method: 'WALLET',
               walletTypeId: wp.walletTypeId,
               purchaseOrderId: po.id,
-              note: dto.internalNotes || dto.note || `Payment on PO creation (${i + 1}/${walletPayments.length})`,
+              note:
+                dto.internalNotes ||
+                dto.note ||
+                `Payment on PO creation (${i + 1}/${walletPayments.length})`,
               recordedById,
             },
           });
@@ -522,7 +579,11 @@ export class PurchaseOrderService {
       }
 
       // If status is RECEIVED or COMPLETED, intake stock into branch inventory immediately
-      if (!isDraft && (dto.status === PurchaseOrderStatus.RECEIVED || (dto.status as any) === 'COMPLETED')) {
+      if (
+        !isDraft &&
+        (dto.status === PurchaseOrderStatus.RECEIVED ||
+          (dto.status as any) === 'COMPLETED')
+      ) {
         for (const item of po.items) {
           await tx.purchaseOrderItem.update({
             where: { id: item.id },
@@ -553,7 +614,10 @@ export class PurchaseOrderService {
             if (item.sellingPrice !== null && item.sellingPrice !== undefined) {
               variantUpdateData.price = item.sellingPrice;
             }
-            if (item.wholesalePrice !== null && item.wholesalePrice !== undefined) {
+            if (
+              item.wholesalePrice !== null &&
+              item.wholesalePrice !== undefined
+            ) {
               variantUpdateData.wholesalePrice = item.wholesalePrice;
             }
             if (item.unitCost !== null && item.unitCost !== undefined) {
@@ -583,11 +647,16 @@ export class PurchaseOrderService {
       return po;
     }
 
-    const unreceivedItems = po.items.map((i) => ({
-      purchaseOrderItemId: i.id,
-      variantId: i.variantId || undefined,
-      quantityReceived: Math.max(0, Number(i.quantityOrdered) - Number(i.quantityReceived)),
-    })).filter((i) => i.quantityReceived > 0);
+    const unreceivedItems = po.items
+      .map((i) => ({
+        purchaseOrderItemId: i.id,
+        variantId: i.variantId || undefined,
+        quantityReceived: Math.max(
+          0,
+          Number(i.quantityOrdered) - Number(i.quantityReceived),
+        ),
+      }))
+      .filter((i) => i.quantityReceived > 0);
 
     if (unreceivedItems.length > 0) {
       await this.receiveItems(id, { items: unreceivedItems });
@@ -600,7 +669,9 @@ export class PurchaseOrderService {
     const po = await this.findOne(id);
 
     if (po.status === PurchaseOrderStatus.CANCELLED) {
-      throw new BadRequestException('Cannot receive items on a cancelled purchase order.');
+      throw new BadRequestException(
+        'Cannot receive items on a cancelled purchase order.',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -617,7 +688,8 @@ export class PurchaseOrderService {
         }
 
         const newReceivedQty =
-          Number(poItem.quantityReceived) + Number(receivedItem.quantityReceived);
+          Number(poItem.quantityReceived) +
+          Number(receivedItem.quantityReceived);
 
         await tx.purchaseOrderItem.update({
           where: { id: poItem.id },
@@ -647,10 +719,16 @@ export class PurchaseOrderService {
             stock: { increment: Number(receivedItem.quantityReceived) },
           };
 
-          if (poItem.sellingPrice !== null && poItem.sellingPrice !== undefined) {
+          if (
+            poItem.sellingPrice !== null &&
+            poItem.sellingPrice !== undefined
+          ) {
             variantUpdateData.price = poItem.sellingPrice;
           }
-          if (poItem.wholesalePrice !== null && poItem.wholesalePrice !== undefined) {
+          if (
+            poItem.wholesalePrice !== null &&
+            poItem.wholesalePrice !== undefined
+          ) {
             variantUpdateData.wholesalePrice = poItem.wholesalePrice;
           }
           if (poItem.unitCost !== null && poItem.unitCost !== undefined) {
@@ -664,7 +742,11 @@ export class PurchaseOrderService {
         }
 
         // Sync Product offer price (salePrice) if offerPrice is present on line item
-        if (poItem.offerPrice !== null && poItem.offerPrice !== undefined && poItem.productId) {
+        if (
+          poItem.offerPrice !== null &&
+          poItem.offerPrice !== undefined &&
+          poItem.productId
+        ) {
           await tx.product.update({
             where: { id: poItem.productId },
             data: { salePrice: poItem.offerPrice },
@@ -685,8 +767,8 @@ export class PurchaseOrderService {
       const nextStatus = allFullyReceived
         ? PurchaseOrderStatus.RECEIVED
         : someReceived
-        ? PurchaseOrderStatus.PARTIALLY_RECEIVED
-        : po.status;
+          ? PurchaseOrderStatus.PARTIALLY_RECEIVED
+          : po.status;
 
       return tx.purchaseOrder.update({
         where: { id },
@@ -708,12 +790,19 @@ export class PurchaseOrderService {
   async returnItems(id: string, dto: ReturnPurchaseOrderDto, staffId: string) {
     const po = await this.findOne(id);
 
-    if (po.status === PurchaseOrderStatus.CANCELLED || po.status === PurchaseOrderStatus.DRAFT) {
-      throw new BadRequestException(`Cannot return items on a ${po.status} purchase order.`);
+    if (
+      po.status === PurchaseOrderStatus.CANCELLED ||
+      po.status === PurchaseOrderStatus.DRAFT
+    ) {
+      throw new BadRequestException(
+        `Cannot return items on a ${po.status} purchase order.`,
+      );
     }
 
     if (!dto.items || dto.items.length === 0) {
-      throw new BadRequestException('At least one item must be selected for return.');
+      throw new BadRequestException(
+        'At least one item must be selected for return.',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -721,14 +810,19 @@ export class PurchaseOrderService {
       const returnNotes: string[] = [];
 
       for (const retItem of dto.items) {
-        const poItem = po.items.find((i) => i.id === retItem.purchaseOrderItemId);
+        const poItem = po.items.find(
+          (i) => i.id === retItem.purchaseOrderItemId,
+        );
         if (!poItem) {
           throw new NotFoundException(
             `Purchase order item "${retItem.purchaseOrderItemId}" not found in this order.`,
           );
         }
 
-        const maxAvailable = poItem.quantityReceived > 0 ? poItem.quantityReceived : poItem.quantityOrdered;
+        const maxAvailable =
+          poItem.quantityReceived > 0
+            ? poItem.quantityReceived
+            : poItem.quantityOrdered;
         if (retItem.quantityReturned > maxAvailable) {
           throw new BadRequestException(
             `Cannot return ${retItem.quantityReturned} units of "${poItem.product?.name}". Max received/ordered is ${maxAvailable}.`,
@@ -746,7 +840,12 @@ export class PurchaseOrderService {
             select: { stock: true },
           });
           const stockBefore = currentVariant?.stock ?? 0;
-          const stockAfter = Math.max(0, stockBefore - retItem.quantityReturned);
+          if (stockBefore < retItem.quantityReturned) {
+            throw new BadRequestException(
+              `Insufficient stock available to return "${poItem.product?.name || 'item'}". Current stock: ${stockBefore}, requested return: ${retItem.quantityReturned}.`,
+            );
+          }
+          const stockAfter = stockBefore - retItem.quantityReturned;
 
           await tx.productVariant.update({
             where: { id: poItem.variantId },
@@ -775,8 +874,14 @@ export class PurchaseOrderService {
         await tx.purchaseOrderItem.update({
           where: { id: poItem.id },
           data: {
-            quantityOrdered: Math.max(0, poItem.quantityOrdered - retItem.quantityReturned),
-            quantityReceived: Math.max(0, poItem.quantityReceived - retItem.quantityReturned),
+            quantityOrdered: Math.max(
+              0,
+              poItem.quantityOrdered - retItem.quantityReturned,
+            ),
+            quantityReceived: Math.max(
+              0,
+              poItem.quantityReceived - retItem.quantityReturned,
+            ),
             lineTotal: Math.max(0, Number(poItem.lineTotal) - itemReturnValue),
           },
         });
@@ -848,7 +953,9 @@ export class PurchaseOrderService {
 
   async attachDocument(id: string, file: Express.Multer.File) {
     const po = await this.findOne(id);
-    const documentUrl = (await resolveUploadedFile(file, 'purchase-documents')) || `/uploads/purchase-documents/${file.filename}`;
+    const documentUrl =
+      (await resolveUploadedFile(file, 'purchase-documents')) ||
+      `/uploads/purchase-documents/${file.filename}`;
 
     return this.prisma.purchaseOrder.update({
       where: { id: po.id },
@@ -876,7 +983,10 @@ export class PurchaseOrderService {
           where: { id: po.supplierId },
         });
         if (supplier) {
-          const newSupplierDue = Math.max(0, Number(supplier.totalDue) - dueAmount);
+          const newSupplierDue = Math.max(
+            0,
+            Number(supplier.totalDue) - dueAmount,
+          );
           await tx.supplier.update({
             where: { id: po.supplierId },
             data: { totalDue: newSupplierDue },

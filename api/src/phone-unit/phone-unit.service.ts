@@ -20,10 +20,7 @@ export class PhoneUnitService {
 
     const existing = await this.prisma.phoneUnit.findFirst({
       where: {
-        OR: [
-          { imei1: cleanImei },
-          { imei2: cleanImei },
-        ],
+        OR: [{ imei1: cleanImei }, { imei2: cleanImei }],
       },
       include: {
         branch: { select: { id: true, name: true } },
@@ -109,7 +106,11 @@ export class PhoneUnitService {
         { imei1: { contains: s, mode: 'insensitive' } },
         { imei2: { contains: s, mode: 'insensitive' } },
         { serialNumber: { contains: s, mode: 'insensitive' } },
-        { productVariant: { product: { name: { contains: s, mode: 'insensitive' } } } },
+        {
+          productVariant: {
+            product: { name: { contains: s, mode: 'insensitive' } },
+          },
+        },
       ];
     }
 
@@ -173,13 +174,17 @@ export class PhoneUnitService {
   async create(dto: CreatePhoneUnitDto) {
     const imei1Check = await this.checkImei(dto.imei1);
     if (imei1Check.exists) {
-      throw new ConflictException(`IMEI 1 "${dto.imei1}" already exists in the system.`);
+      throw new ConflictException(
+        `IMEI 1 "${dto.imei1}" already exists in the system.`,
+      );
     }
 
     if (dto.imei2) {
       const imei2Check = await this.checkImei(dto.imei2);
       if (imei2Check.exists) {
-        throw new ConflictException(`IMEI 2 "${dto.imei2}" already exists in the system.`);
+        throw new ConflictException(
+          `IMEI 2 "${dto.imei2}" already exists in the system.`,
+        );
       }
     }
 
@@ -191,8 +196,12 @@ export class PhoneUnitService {
         imei2: dto.imei2?.trim() || null,
         serialNumber: dto.serialNumber?.trim() || null,
         status: dto.status || PhoneUnitStatus.IN_STOCK,
-        buyingPrice: dto.buyingPrice ? new Prisma.Decimal(dto.buyingPrice) : null,
-        sellingPrice: dto.sellingPrice ? new Prisma.Decimal(dto.sellingPrice) : null,
+        buyingPrice: dto.buyingPrice
+          ? new Prisma.Decimal(dto.buyingPrice)
+          : null,
+        sellingPrice: dto.sellingPrice
+          ? new Prisma.Decimal(dto.sellingPrice)
+          : null,
         purchaseId: dto.purchaseId || null,
         warrantyType: dto.warrantyType || null,
         warrantyPeriod: dto.warrantyPeriod || null,

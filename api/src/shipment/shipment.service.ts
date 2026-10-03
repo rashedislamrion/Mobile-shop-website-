@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateShipmentDto } from './dto/create-shipment.dto';
 import { UpdateShipmentStatusDto } from './dto/update-shipment-status.dto';
@@ -81,11 +85,19 @@ export class ShipmentService {
   }
 
   async create(dto: CreateShipmentDto) {
-    const order = await this.prisma.order.findUnique({ where: { id: dto.orderId } });
-    if (!order) throw new NotFoundException(`Order "${dto.orderId}" not found.`);
+    const order = await this.prisma.order.findUnique({
+      where: { id: dto.orderId },
+    });
+    if (!order)
+      throw new NotFoundException(`Order "${dto.orderId}" not found.`);
 
-    const existingTracking = await this.prisma.shipment.findUnique({ where: { trackingNo: dto.trackingNo } });
-    if (existingTracking) throw new ConflictException(`Tracking number "${dto.trackingNo}" is already in use.`);
+    const existingTracking = await this.prisma.shipment.findUnique({
+      where: { trackingNo: dto.trackingNo },
+    });
+    if (existingTracking)
+      throw new ConflictException(
+        `Tracking number "${dto.trackingNo}" is already in use.`,
+      );
 
     return this.prisma.shipment.create({
       data: {

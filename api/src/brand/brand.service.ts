@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
@@ -40,7 +44,10 @@ export class BrandService {
   }
 
   async create(dto: CreateBrandDto, file?: Express.Multer.File) {
-    const logoPath = file ? ((await resolveUploadedFile(file, 'brands')) || `/uploads/brands/${file.filename}`) : dto.logo || null;
+    const logoPath = file
+      ? (await resolveUploadedFile(file, 'brands')) ||
+        `/uploads/brands/${file.filename}`
+      : dto.logo || null;
     const finalSlug = dto.slug?.trim() ? slugify(dto.slug) : slugify(dto.name);
 
     try {
@@ -57,8 +64,13 @@ export class BrandService {
         },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException(`Brand with name "${dto.name}" or slug "${finalSlug}" already exists.`);
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          `Brand with name "${dto.name}" or slug "${finalSlug}" already exists.`,
+        );
       }
       throw error;
     }
@@ -72,7 +84,11 @@ export class BrandService {
       data.name = dto.name;
     }
     if (dto.slug !== undefined) {
-      data.slug = dto.slug.trim() ? slugify(dto.slug) : (dto.name ? slugify(dto.name) : undefined);
+      data.slug = dto.slug.trim()
+        ? slugify(dto.slug)
+        : dto.name
+          ? slugify(dto.name)
+          : undefined;
     } else if (dto.name !== undefined) {
       // If name changed but slug wasn't provided, optionally check if brand currently has a slug
       const existing = await this.prisma.brand.findUnique({ where: { id } });
@@ -83,10 +99,13 @@ export class BrandService {
     if (dto.description !== undefined) data.description = dto.description;
     if (dto.featured !== undefined) data.featured = dto.featured;
     if (dto.metaTitle !== undefined) data.metaTitle = dto.metaTitle;
-    if (dto.metaDescription !== undefined) data.metaDescription = dto.metaDescription;
+    if (dto.metaDescription !== undefined)
+      data.metaDescription = dto.metaDescription;
     if (dto.status !== undefined) data.status = dto.status;
     if (file) {
-      data.logo = (await resolveUploadedFile(file, 'brands')) || `/uploads/brands/${file.filename}`;
+      data.logo =
+        (await resolveUploadedFile(file, 'brands')) ||
+        `/uploads/brands/${file.filename}`;
     } else if (dto.logo !== undefined) {
       data.logo = dto.logo;
     }
@@ -97,8 +116,13 @@ export class BrandService {
         data,
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException(`Brand with name "${dto.name || id}" or slug already exists.`);
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          `Brand with name "${dto.name || id}" or slug already exists.`,
+        );
       }
       throw error;
     }
@@ -118,11 +142,15 @@ export class BrandService {
     }
 
     if (brand.products.length > 0) {
-      throw new ConflictException(`Cannot delete brand "${brand.name}" because it is linked to products.`);
+      throw new ConflictException(
+        `Cannot delete brand "${brand.name}" because it is linked to products.`,
+      );
     }
 
     if (brand.series.length > 0) {
-      throw new ConflictException(`Cannot delete brand "${brand.name}" because it has linked series.`);
+      throw new ConflictException(
+        `Cannot delete brand "${brand.name}" because it has linked series.`,
+      );
     }
 
     return this.prisma.brand.delete({
