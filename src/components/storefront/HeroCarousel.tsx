@@ -48,6 +48,8 @@ export function HeroCarousel() {
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
+  if (!slides || slides.length === 0) return null;
+
   return (
     <div className="relative w-full aspect-[21/9] md:aspect-[3/1] rounded-2xl overflow-hidden group shadow-sm bg-slate-900">
       {/* Slides */}
