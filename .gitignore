@@ -58,4 +58,5 @@ api/uploads/*
 # temp & scratch
 scratch/
 .system_generated/
+*.dump
 
