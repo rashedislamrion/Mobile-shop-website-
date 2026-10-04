@@ -154,16 +154,16 @@ async function main() {
     const demoPasswordHash = await bcrypt.hash(adminPassword, 10);
 
     const demoRoles = [
-      { email: 'demo.admin@mobilehubbd.test', role: 'Admin', name: 'Demo Global Admin', empId: 'DEMO-ADM-01', phone: '01602670922', branchId: null },
-      { email: 'demo.branchadmin@mobilehubbd.test', role: 'Branch Admin', name: 'Dhaka Branch Admin', empId: 'DEMO-BADM-01', phone: '01602670922', branchId: dhakaBranchId },
-      { email: 'demo.branchmanager@mobilehubbd.test', role: 'Branch Manager', name: 'Dhaka Branch Manager', empId: 'DEMO-BMGR-01', phone: '01602670922', branchId: dhakaBranchId },
-      { email: 'sales@mobilehubbd.test', role: 'Salesperson', name: 'Counter Sales Staff', empId: 'DEMO-SALES-01', phone: '01602670922', branchId: dhakaBranchId },
-      { email: 'demo.purchasemanager@mobilehubbd.test', role: 'Purchase Manager', name: 'Procurement Lead', empId: 'DEMO-PUR-01', phone: '01602670922', branchId: null },
-      { email: 'demo.productuploader@mobilehubbd.test', role: 'Product Uploader', name: 'Catalog Manager', empId: 'DEMO-UPL-01', phone: '01602670922', branchId: null },
-      { email: 'demo.customerservice@mobilehubbd.test', role: 'Customer Service', name: 'Customer Support Rep', empId: 'DEMO-CS-01', phone: '01602670922', branchId: null },
-      { email: 'demo.technician@mobilehubbd.test', role: 'Technician', name: 'Senior Technician', empId: 'DEMO-TECH-01', phone: '01602670922', branchId: dhakaBranchId, profitSharePercentage: 50 },
-      { email: 'demo.seo@mobilehubbd.test', role: 'SEO', name: 'Digital Marketer', empId: 'DEMO-SEO-01', phone: '01602670922', branchId: null },
-      { email: 'demo.auditor@mobilehubbd.test', role: 'Inventory Auditor', name: 'Stock Auditor', empId: 'DEMO-AUD-01', phone: '01602670922', branchId: dhakaBranchId },
+      { email: 'demo.admin@mobilehubbd.test', role: 'Admin', name: 'Demo Global Admin', empId: 'DEMO-ADM-01', phone: '01602670901', branchId: null },
+      { email: 'demo.branchadmin@mobilehubbd.test', role: 'Branch Admin', name: 'Dhaka Branch Admin', empId: 'DEMO-BADM-01', phone: '01602670902', branchId: dhakaBranchId },
+      { email: 'demo.branchmanager@mobilehubbd.test', role: 'Branch Manager', name: 'Dhaka Branch Manager', empId: 'DEMO-BMGR-01', phone: '01602670903', branchId: dhakaBranchId },
+      { email: 'sales@mobilehubbd.test', role: 'Salesperson', name: 'Counter Sales Staff', empId: 'DEMO-SALES-01', phone: '01602670904', branchId: dhakaBranchId },
+      { email: 'demo.purchasemanager@mobilehubbd.test', role: 'Purchase Manager', name: 'Procurement Lead', empId: 'DEMO-PUR-01', phone: '01602670905', branchId: null },
+      { email: 'demo.productuploader@mobilehubbd.test', role: 'Product Uploader', name: 'Catalog Manager', empId: 'DEMO-UPL-01', phone: '01602670906', branchId: null },
+      { email: 'demo.customerservice@mobilehubbd.test', role: 'Customer Service', name: 'Customer Support Rep', empId: 'DEMO-CS-01', phone: '01602670907', branchId: null },
+      { email: 'demo.technician@mobilehubbd.test', role: 'Technician', name: 'Senior Technician', empId: 'DEMO-TECH-01', phone: '01602670908', branchId: dhakaBranchId, profitSharePercentage: 50 },
+      { email: 'demo.seo@mobilehubbd.test', role: 'SEO', name: 'Digital Marketer', empId: 'DEMO-SEO-01', phone: '01602670909', branchId: null },
+      { email: 'demo.auditor@mobilehubbd.test', role: 'Inventory Auditor', name: 'Stock Auditor', empId: 'DEMO-AUD-01', phone: '01602670910', branchId: dhakaBranchId },
     ];
 
     for (const d of demoRoles) {
@@ -177,6 +177,7 @@ async function main() {
             branchId: d.branchId,
             adminPanelAccess: true,
             status: StaffStatus.ACTIVE,
+            phone: d.phone,
             ...(d.profitSharePercentage ? { profitSharePercentage: d.profitSharePercentage } : {}),
           },
           create: {
@@ -198,11 +199,11 @@ async function main() {
     // Customer Account for testing customer 401/403 access
     await prisma.customer.upsert({
       where: { email: 'customer@mobilehubbd.test' },
-      update: { passwordHash: demoPasswordHash },
+      update: { passwordHash: demoPasswordHash, phone: '01602670999' },
       create: {
         name: 'Demo Customer',
         email: 'customer@mobilehubbd.test',
-        phone: '01602670922',
+        phone: '01602670999',
         passwordHash: demoPasswordHash,
       },
     });

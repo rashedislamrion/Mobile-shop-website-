@@ -184,10 +184,10 @@ export class BusinessSettingsService {
     const currencyTax = settings.currencyTax;
 
     return {
-      companyName: general.companyName || 'mobilehubbd Bangladesh',
+      companyName: general.companyName || 'MobileHubBD',
       companyEmail:
-        general.emailAddress || general.email || 'contact@mobilehubbd.com',
-      companyPhone: general.mobileNumber || general.phone || '+880 1700-000000',
+        general.emailAddress || general.email || 'mobilehubbd2@gmail.com',
+      companyPhone: general.mobileNumber || general.phone || '01602670922',
       businessModel: general.businessModel || 'SINGLE_STORE',
       currencyPosition:
         general.currencyPosition || currencyTax.symbolPosition || 'LEFT',

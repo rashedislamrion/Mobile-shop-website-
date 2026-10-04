@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { OFFICIAL_CONTACT } from "@/config/contact";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
@@ -172,7 +173,7 @@ export default function CheckoutPage() {
       } else {
         payload.guestInfo = {
           name: isAuthenticated ? (user?.name || guestName) : guestName.trim(),
-          phone: guestPhone.trim() || (user as any)?.phone || "01700000000",
+          phone: guestPhone.trim() || (user as any)?.phone || OFFICIAL_CONTACT.phone.display,
           email: guestEmail.trim() || (user?.email || undefined),
           address: guestAddress.trim(),
           city: guestCity || "Dhaka",

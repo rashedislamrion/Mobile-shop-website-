@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { OFFICIAL_CONTACT } from "@/config/contact";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
@@ -63,8 +64,8 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
   const [selectedQuality, setSelectedQuality] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
   const [isWishlist, setIsWishlist] = useState(false);
-  const [supportPhone, setSupportPhone] = useState("+880 1700-000000");
-  const [whatsappNumber, setWhatsappNumber] = useState("+8801700000000");
+  const [supportPhone, setSupportPhone] = useState(OFFICIAL_CONTACT.phone.tel);
+  const [whatsappNumber, setWhatsappNumber] = useState(OFFICIAL_CONTACT.phone.whatsappNumber);
 
   useEffect(() => {
     (async () => {
@@ -404,14 +405,14 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
           {/* Secondary actions */}
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <Button asChild variant="outline" className="w-full flex-1 h-12 border-slate-200 text-slate-700 font-medium hover:bg-slate-50 cursor-pointer">
-              <a href={`tel:${(supportPhone || "+8801700000000").replace(/[^0-9+]/g, '')}`}>
+              <a href={`tel:${(supportPhone || OFFICIAL_CONTACT.phone.tel).replace(/[^0-9+]/g, '')}`}>
                 <Phone className="w-4 h-4 mr-2" />
                 Call to Order
               </a>
             </Button>
             <Button asChild className="w-full flex-1 h-12 bg-[#25D366] hover:bg-[#20bd5a] text-white font-medium shadow-sm border-none cursor-pointer">
               <a 
-                href={`https://wa.me/${(whatsappNumber || "8801700000000").replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello, I would like to order: ${product.name} (Price: ৳${currentPrice})`)}`}
+                href={`https://wa.me/${(whatsappNumber || OFFICIAL_CONTACT.phone.whatsappNumber).replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello, I would like to order: ${product.name} (Price: ৳${currentPrice})`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >

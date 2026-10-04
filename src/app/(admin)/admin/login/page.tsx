@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Eye, EyeOff, Mail, Lock, ShieldCheck, LogIn } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, ShieldCheck, LogIn, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -16,24 +16,28 @@ import { useStaffAuth } from "@/context/AuthContext";
 const adminLoginSchema = z.object({
   identifier: z.string().min(3, "Please enter your registered email or mobile number"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  roleHint: z.string().optional(),
 });
 
 type AdminLoginFormValues = z.infer<typeof adminLoginSchema>;
 
 export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [selectedRole, setSelectedRole] = useState("auto");
   const router = useRouter();
   const { login } = useStaffAuth();
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<AdminLoginFormValues>({
     resolver: zodResolver(adminLoginSchema),
     defaultValues: {
       identifier: "",
       password: "",
+      roleHint: "auto",
     },
   });
 
@@ -106,6 +110,41 @@ export default function AdminLoginPage() {
           <p className="text-center text-xs text-slate-400 mb-6">Login To Admin</p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* UX Convenience: Select Your Role Dropdown */}
+            <div className="space-y-1">
+              <Label htmlFor="roleHint" className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                <UserCheck className="w-3.5 h-3.5 text-primary" />
+                Select Your Role <span className="text-slate-400 font-normal text-[11px]">(Quick Selector)</span>
+              </Label>
+              <select
+                id="roleHint"
+                {...register("roleHint")}
+                value={selectedRole}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setValue("roleHint", val);
+                  setSelectedRole(val);
+                }}
+                className="w-full h-11 px-3 text-xs rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
+              >
+                <option value="auto">Auto-detect from Account (Recommended)</option>
+                <option value="admin">Global Admin</option>
+                <option value="branch_admin">Branch Admin</option>
+                <option value="branch_manager">Branch Manager</option>
+                <option value="technician">Technician / Repair Engineer</option>
+                <option value="salesperson">Salesperson / POS Operator</option>
+                <option value="purchase_manager">Purchase Manager</option>
+                <option value="product_uploader">Product Uploader</option>
+                <option value="customer_service">Customer Service</option>
+                <option value="seo">SEO Specialist</option>
+                <option value="auditor">Inventory Auditor</option>
+                <option value="custom">Custom Staff Role</option>
+              </select>
+              <p className="text-[10px] text-slate-400 leading-tight">
+                * Authorization is always determined server-side from your staff database record.
+              </p>
+            </div>
+
             {/* Email / Mobile Field */}
             <div className="space-y-1">
               <Label htmlFor="identifier" className="text-xs font-semibold text-slate-700">
@@ -116,7 +155,19 @@ export default function AdminLoginPage() {
                 <Input
                   id="identifier"
                   type="text"
-                  placeholder="you@example.com or 01XXXXXXXXX"
+                  placeholder={
+                    selectedRole === "technician"
+                      ? "Technician email or 01XXXXXXXXX"
+                      : selectedRole === "salesperson"
+                      ? "Salesperson email or 01XXXXXXXXX"
+                      : selectedRole === "branch_admin"
+                      ? "Branch Admin email or 01XXXXXXXXX"
+                      : selectedRole === "branch_manager"
+                      ? "Branch Manager email or 01XXXXXXXXX"
+                      : selectedRole === "admin"
+                      ? "Admin email or 01XXXXXXXXX"
+                      : "you@example.com or 01XXXXXXXXX"
+                  }
                   autoComplete="username"
                   className="pl-10 h-11 text-xs sm:text-sm border-slate-200 focus-visible:ring-primary bg-white"
                   {...register("identifier")}
